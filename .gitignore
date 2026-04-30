@@ -1,0 +1,45 @@
+# macOS noise
+.DS_Store
+
+# Generated package state
+straight/
+eln-cache/
+var/
+.cache/
+auto-save-list/
+elpa/
+transient/
+server/
+eshell/
+places
+semanticdb
+tramp
+network-security.data
+smex-items
+ede-projects.el
+
+# Customize output (Emacs writes here at runtime)
+custom.el
+
+# Byte-compiled / native-compiled output -- generated, never tracked
+*.elc
+*.eln
+
+# Emacs editing artifacts (backups, autosaves, lockfiles)
+*~
+*.*~
+\#*\#
+.\#*
+
+# Misc package crumbs
+*.cache*
+*.log
+*.eld
+.dap-breakpoints
+.emacs.desktop
+.emacs.desktop.lock
+.org-id-locations
+.projectile
+.tern-port
+.yas-compiled-snippets.el
+flycheck_*.el

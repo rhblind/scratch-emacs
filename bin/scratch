@@ -1,0 +1,337 @@
+#!/usr/bin/env sh
+:; # -*- mode: emacs-lisp; lexical-binding: t -*-
+:; # Polyglot wrapper: shell execs Emacs in batch with this file as the script.
+:; # Lines starting with `:;' are no-ops in elisp (`:' is a self-evaluating
+:; # keyword, `;' starts a comment) and ignorable in shell (`:' is a no-op,
+:; # `;' is a statement separator). Real elisp begins below the shell preamble.
+:; case "$EMACS" in *term*) EMACS=emacs ;; *) EMACS="${EMACS:-emacs}" ;; esac
+:; [ "x$EMACS" = xemacs ] && { type emacs >/dev/null 2>&1 || err=1; }
+:; [ "x$err" = x ] || { echo "Error: failed to run Emacs with command '$EMACS'" >&2; exit 1; }
+:; exec "$EMACS" -q --no-site-file --batch --load "$0" -- "$@"
+:; exit 1   # unreachable
+
+;;; scratch -- CLI for the scratch Emacs framework.
+
+;;; Bookkeeping ---------------------------------------------------------------
+
+(defvar scratch-cli--script-path
+  (or load-file-name (buffer-file-name))
+  "Absolute path to this script file.")
+
+(defvar scratch-cli--emacs-dir
+  (file-name-as-directory
+   (directory-file-name
+    (file-name-directory
+     (directory-file-name
+      (file-name-directory scratch-cli--script-path)))))
+  "Path to the scratch framework dir (the parent of bin/).")
+
+(defvar scratch-cli--default-user-dir
+  (file-name-as-directory (expand-file-name "~/.scratch.d"))
+  "Default path for the user's overrides dir.")
+
+(defun scratch-cli--print (fmt &rest args)
+  (princ (apply #'format fmt args))
+  (terpri))
+
+(defun scratch-cli--die (fmt &rest args)
+  (princ (apply #'format (concat "scratch: " fmt) args))
+  (terpri)
+  (kill-emacs 2))
+
+;;; install -------------------------------------------------------------------
+
+(defun scratch-cli--starter-config-org ()
+  (concat
+   "#+title: Scratch Emacs Configuration\n"
+   "#+property: header-args:emacs-lisp :tangle config.el :results silent :comments link\n"
+   "#+property: header-args :tangle no :results silent :eval no-export\n"
+   "#+startup: inlineimages fold\n"
+   "\n"
+   "* Overview\n"
+   "Scratch is a thin literate Emacs framework: chemacs-friendly profile +\n"
+   "straight.el + use-package + a small module loader. This file tangles into\n"
+   "two outputs:\n"
+   "\n"
+   "- ~packages.el~ -- loaded first; eager package installs + module declarations.\n"
+   "- ~config.el~  -- loaded second; your customizations on top.\n"
+   "\n"
+   "Re-tangling happens on every Emacs start when this file is newer than its\n"
+   "outputs. To force a re-tangle and pre-install everything, run ~scratch sync~\n"
+   "from the shell. ~scratch sync --force-tangle~ re-tangles even when mtimes lie.\n"
+   "\n"
+   "* Module system\n"
+   "Modules live under ~modules/<category>/<name>/~ in the framework dir\n"
+   "(~~/.config/emacs-scratch/~) or under the same path in this user dir;\n"
+   "user dir wins on a name collision. Each module has optional ~packages.el~\n"
+   "(declarations / eager installs) and ~config.el~ (configuration).\n"
+   "\n"
+   "Modules are inert until you call ~(scratch! ...)~ -- *without that call you\n"
+   "get a bare Emacs with the early-init perf knobs and nothing else.* Uncomment\n"
+   "the example block under [[*Modules]] below to opt in.\n"
+   "\n"
+   "** Declaration syntax\n"
+   "Each ~:category~ keyword is followed by zero or more module names. Pass\n"
+   "flags as a list ~(name +flag1 +flag2)~. Example:\n"
+   "\n"
+   "#+begin_src emacs-lisp :tangle no\n"
+   "(scratch! :editor (evil +everywhere)\n"
+   "          :emacs  (vc +forge)\n"
+   "          :ui     theme)\n"
+   "#+end_src\n"
+   "\n"
+   "** Built-in modules\n"
+   "\n"
+   "*** :editor evil -- vim emulation\n"
+   "Loads ~evil-mode~ with sensible defaults (~C-u~ scroll, granular insert-mode\n"
+   "undo, ~Y~ to end of line, etc).\n"
+   "\n"
+   "| flag         | effect                                                              |\n"
+   "|--------------+---------------------------------------------------------------------|\n"
+   "| ~+everywhere~ | also load ~evil-collection~ (vim bindings in dired/magit/many more) |\n"
+   "\n"
+   "*** :emacs vc -- version control\n"
+   "Built-in ~vc~ tweaks (no symlink-following) plus magit (always) and forge.\n"
+   "\n"
+   "| flag    | effect                                                                       |\n"
+   "|---------+------------------------------------------------------------------------------|\n"
+   "| ~+forge~ | install forge for GitHub/GitLab issues + PRs (needs token in ~~/.authinfo~) |\n"
+   "\n"
+   "Default bindings:\n"
+   "- ~C-x g~     -- ~magit-status~\n"
+   "- ~C-x M-g~   -- ~magit-dispatch~\n"
+   "- ~C-c M-g~   -- ~magit-file-dispatch~\n"
+   "\n"
+   "*** :ui theme -- color theme\n"
+   "Ships rougier's [[https://github.com/rougier/nano-theme][nano-theme]]. By default follows the OS appearance via\n"
+   "~auto-dark~ (cross-platform: macOS / Linux / Windows / Termux).\n"
+   "\n"
+   "| flag             | effect                                       |\n"
+   "|------------------+----------------------------------------------|\n"
+   "| (none) / ~+auto~ | follow OS light/dark setting (the default)   |\n"
+   "| ~+light~          | force light, no auto-switch                  |\n"
+   "| ~+dark~           | force dark, no auto-switch                   |\n"
+   "\n"
+   "Override the actual theme symbols by ~setq~ on these vars BEFORE calling\n"
+   "~scratch!~ (any module's ~defvar~ respects an existing binding):\n"
+   "\n"
+   "- ~scratch-theme-dark~  (default ~'nano-dark~)\n"
+   "- ~scratch-theme-light~ (default ~'nano-light~)\n"
+   "\n"
+   "Example with [[https://github.com/doomemacs/themes][doom-themes]]:\n"
+   "\n"
+   "#+begin_src emacs-lisp :tangle no\n"
+   "(straight-use-package 'doom-themes)\n"
+   "(setq scratch-theme-dark  'doom-one\n"
+   "      scratch-theme-light 'doom-one-light)\n"
+   "(scratch! :ui theme)\n"
+   "#+end_src\n"
+   "\n"
+   "** Predicates inside a module\n"
+   "Within a module's ~config.el~ you can branch on its own flags or check\n"
+   "whether a different module is enabled:\n"
+   "\n"
+   "#+begin_src emacs-lisp :tangle no\n"
+   "(modulep! +flag)                  ; current module has +flag\n"
+   "(modulep! :category name)         ; the named module is enabled\n"
+   "(modulep! :category name +flag)   ; module enabled AND has +flag\n"
+   "#+end_src\n"
+   "\n"
+   "* Packages\n"
+   "Blocks tagged ~:tangle packages.el~ load /before/ ~config.el~. This is where\n"
+   "module declarations live, plus any package that has to install eagerly\n"
+   "(themes that need to load early, foundational libraries used in ~config.el~).\n"
+   "\n"
+   "With ~straight-use-package-by-default~ on, a plain ~(use-package foo)~ in\n"
+   "~config.el~ already installs and configures in one step; reach for\n"
+   "~packages.el~ for ~(straight-use-package 'foo)~ declarations or anything\n"
+   "you need available before ~config.el~ runs.\n"
+   "\n"
+   "#+begin_src emacs-lisp :tangle packages.el\n"
+   ";;; packages.el -*- lexical-binding: t; no-byte-compile: t; -*-\n"
+   "#+end_src\n"
+   "\n"
+   "** Modules\n"
+   "Uncomment to opt in. Add or remove modules and flags as you see fit; rerun\n"
+   "~scratch sync~ after editing.\n"
+   "\n"
+   "#+begin_src emacs-lisp :tangle packages.el\n"
+   ";; (scratch! :editor (evil +everywhere)\n"
+   ";;           :emacs  (vc +forge)\n"
+   ";;           :ui     theme)\n"
+   "#+end_src\n"
+   "\n"
+   "** Extra packages\n"
+   "Eager installs that aren't part of any module:\n"
+   "\n"
+   "#+begin_src emacs-lisp :tangle packages.el\n"
+   ";; (straight-use-package 'some-package)\n"
+   "#+end_src\n"
+   "\n"
+   "* Configuration\n"
+   "Blocks here tangle to ~config.el~, which loads /after/ ~packages.el~ (and\n"
+   "after every enabled module). Anything you set here is the last word.\n"
+   "\n"
+   "#+begin_src emacs-lisp\n"
+   ";;; config.el -*- lexical-binding: t; -*-\n"
+   "#+end_src\n"
+   "\n"
+   "** Identity\n"
+   "#+begin_src emacs-lisp\n"
+   ";; (setq user-full-name \"Your Name\"\n"
+   ";;       user-mail-address \"you@example.com\")\n"
+   "#+end_src\n"
+   "\n"
+   "** Better defaults\n"
+   "#+begin_src emacs-lisp\n"
+   ";; (setq-default indent-tabs-mode nil)\n"
+   "#+end_src\n"
+   "\n"
+   "** use-package blocks\n"
+   "Drop in ~(use-package ...)~ forms for personal packages and overrides.\n"
+   "\n"
+   "#+begin_src emacs-lisp\n"
+   ";; (use-package which-key\n"
+   ";;   :config (which-key-mode 1))\n"
+   "#+end_src\n"))
+
+(defun scratch-cli--starter-gitignore ()
+  (concat
+   "# Tangled output of config.org -- regenerated automatically.\n"
+   "config.el\n"
+   "packages.el\n"))
+
+(defun scratch-cli--install-help ()
+  (scratch-cli--print "Usage: scratch install [--user-dir DIR] [--force]")
+  (scratch-cli--print "")
+  (scratch-cli--print "Bootstrap the user config directory (default ~/.scratch.d).")
+  (scratch-cli--print "Creates a starter config.org and .gitignore. By default, files")
+  (scratch-cli--print "that already exist are left alone.")
+  (scratch-cli--print "")
+  (scratch-cli--print "Options:")
+  (scratch-cli--print "  --user-dir DIR  Where to bootstrap. Defaults to $SCRATCHDIR or ~/.scratch.d.")
+  (scratch-cli--print "  --force         Overwrite existing files."))
+
+(defun scratch-cli-install (args)
+  "Bootstrap the user config directory."
+  (let ((user-dir (or (getenv "SCRATCHDIR")
+                      scratch-cli--default-user-dir))
+        (force nil))
+    (while args
+      (pcase (car args)
+        ("--user-dir"
+         (unless (cdr args)
+           (scratch-cli--die "install: --user-dir requires a path"))
+         (setq user-dir (cadr args) args (cddr args)))
+        ((and arg (guard (and (stringp arg) (string-prefix-p "--user-dir=" arg))))
+         (setq user-dir (substring arg (length "--user-dir="))
+               args (cdr args)))
+        ("--force" (setq force t args (cdr args)))
+        ((or "-h" "--help")
+         (scratch-cli--install-help)
+         (kill-emacs 0))
+        (arg (scratch-cli--die "install: unknown option: %s" arg))))
+    (setq user-dir (file-name-as-directory (expand-file-name user-dir)))
+    (make-directory user-dir t)
+    (scratch-cli--print "Bootstrapping %s" user-dir)
+    (scratch-cli--print "")
+    (dolist (entry `((,(expand-file-name "config.org" user-dir)
+                      . ,(scratch-cli--starter-config-org))
+                     (,(expand-file-name ".gitignore"  user-dir)
+                      . ,(scratch-cli--starter-gitignore))))
+      (let ((path (car entry))
+            (content (cdr entry)))
+        (cond
+         ((and (file-exists-p path) (not force))
+          (scratch-cli--print "  exists  %s" path))
+         (t
+          (with-temp-file path (insert content))
+          (scratch-cli--print "  %s  %s" (if force "force " "create") path)))))
+    (scratch-cli--print "")
+    (scratch-cli--print "Done. Edit %sconfig.org -- it'll tangle into config.el +" user-dir)
+    (scratch-cli--print "packages.el on the next Emacs start.")
+    (scratch-cli--print "Framework lives at: %s" scratch-cli--emacs-dir)))
+
+;;; sync ----------------------------------------------------------------------
+
+(defun scratch-cli--sync-help ()
+  (scratch-cli--print "Usage: scratch sync [--force-tangle] [--rebuild]")
+  (scratch-cli--print "")
+  (scratch-cli--print "Re-tangle config.org and install all declared packages.")
+  (scratch-cli--print "Run this after editing your literate config or adding modules.")
+  (scratch-cli--print "")
+  (scratch-cli--print "Options:")
+  (scratch-cli--print "  --force-tangle  Re-tangle config.org even if outputs look fresh.")
+  (scratch-cli--print "  --rebuild       Rebuild byte-compiled output of every installed package")
+  (scratch-cli--print "                  (useful after upgrading Emacs)."))
+
+(defun scratch-cli-sync (args)
+  "Tangle the user config and install/build all declared packages."
+  (let ((force-tangle nil)
+        (rebuild nil))
+    (while args
+      (pcase (car args)
+        ("--force-tangle" (setq force-tangle t args (cdr args)))
+        ("--rebuild"      (setq rebuild t      args (cdr args)))
+        ((or "-h" "--help") (scratch-cli--sync-help) (kill-emacs 0))
+        (arg (scratch-cli--die "sync: unknown option: %s" arg))))
+
+    ;; If chemacs/init normally sets `user-emacs-directory' to the framework
+    ;; dir, mirror that here so straight installs into the right place.
+    (setq user-emacs-directory scratch-cli--emacs-dir)
+
+    ;; Force-tangle by removing the outputs so the framework's staleness check
+    ;; trips. This works without us having to know whether `org' is loadable
+    ;; before the framework's init runs.
+    (when force-tangle
+      (let* ((user-dir (file-name-as-directory
+                        (expand-file-name (or (getenv "SCRATCHDIR")
+                                              scratch-cli--default-user-dir))))
+             (config   (expand-file-name "config.el"   user-dir))
+             (packages (expand-file-name "packages.el" user-dir)))
+        (when (file-exists-p config)
+          (scratch-cli--print "Removing %s" config)
+          (delete-file config))
+        (when (file-exists-p packages)
+          (scratch-cli--print "Removing %s" packages)
+          (delete-file packages))))
+
+    (scratch-cli--print "Loading framework...")
+    (load (expand-file-name "init.el" scratch-cli--emacs-dir) nil 'nomessage)
+
+    (when rebuild
+      (scratch-cli--print "")
+      (scratch-cli--print "Rebuilding all straight packages...")
+      (when (fboundp 'straight-rebuild-all)
+        (straight-rebuild-all)))
+
+    (scratch-cli--print "")
+    (scratch-cli--print "Sync complete.")))
+
+;;; Dispatch ------------------------------------------------------------------
+
+(defun scratch-cli--usage ()
+  (scratch-cli--print "scratch -- CLI for the scratch Emacs framework.")
+  (scratch-cli--print "")
+  (scratch-cli--print "Usage:")
+  (scratch-cli--print "  scratch <command> [options]")
+  (scratch-cli--print "")
+  (scratch-cli--print "Commands:")
+  (scratch-cli--print "  install [--user-dir DIR] [--force]   Bootstrap the user overrides dir")
+  (scratch-cli--print "  sync [--force-tangle] [--rebuild]    Re-tangle and install all packages")
+  (scratch-cli--print "  help                                 Show this message")
+  (scratch-cli--print "")
+  (scratch-cli--print "Run `scratch <command> --help' for command-specific options."))
+
+(let ((argv (cdr (member "--" command-line-args))))
+  (pcase (car argv)
+    ('nil           (scratch-cli--usage) (kill-emacs 2))
+    ((or "help" "-h" "--help")
+                    (scratch-cli--usage) (kill-emacs 0))
+    ("install"      (scratch-cli-install (cdr argv)) (kill-emacs 0))
+    ("sync"         (scratch-cli-sync    (cdr argv)) (kill-emacs 0))
+    (cmd
+     (scratch-cli--print "scratch: unknown command: %s" cmd)
+     (scratch-cli--print "")
+     (scratch-cli--usage)
+     (kill-emacs 2))))
