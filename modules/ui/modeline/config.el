@@ -12,12 +12,33 @@
 (use-package doom-modeline
   :demand t
   :init
-  ;; Auto-disable icons in TTY frames; show them on GUI. Mirror's the
+  ;; Auto-disable icons in TTY frames; show them on GUI. Mirrors the
   ;; setting from your existing Doom config.
   (setq doom-modeline-icon              (display-graphic-p)
         doom-modeline-major-mode-icon   t
         doom-modeline-major-mode-color-icon t
         doom-modeline-buffer-state-icon t
-        doom-modeline-env-version       nil)   ; the lang-version part is too noisy
+        doom-modeline-env-version       nil)   ; lang-version segment is too noisy
   :config
-  (doom-modeline-mode 1))
+  (doom-modeline-mode 1)
+
+  ;; Modified-buffer indicator: orange + italic, so it stands out without
+  ;; looking like an error state. (From the old Doom config.)
+  (set-face-attribute 'doom-modeline-buffer-modified nil
+                      :foreground "Orange"
+                      :slant 'italic)
+
+  ;; Override doom-modeline's `window-number' segment (which expects winum)
+  ;; with one based on our native numbering from `lisp/scratch-window.el'.
+  ;; Only render when there are multiple windows; matches the doom-modeline
+  ;; built-in's behavior visually.
+  (require 'cl-lib)
+  (doom-modeline-def-segment window-number
+    "Window number based on `scratch-window--by-number' (native, no winum)."
+    (let* ((wins (window-list nil 'never (frame-first-window)))
+           (idx  (cl-position (selected-window) wins)))
+      (when (and idx (> (length wins) 1))
+        (propertize (format " %d " (1+ idx))
+                    'face (if (doom-modeline--active)
+                              'doom-modeline-buffer-major-mode
+                            'mode-line-inactive))))))

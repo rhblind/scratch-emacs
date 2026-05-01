@@ -114,3 +114,20 @@
    consult-source-recent-file consult-source-project-recent-file
    consult-source-bookmark
    :preview-key "C-SPC"))
+
+;;;; Leader bindings (this module owns SPC s, the yank-ring under SPC y,
+;;;; and upgrades a few of the leader's defaults to the consult variants.)
+
+(when (modulep! :editor leader)
+  (map! :leader
+    "b b" '(consult-buffer            :which-key "switch buffer")
+    "f r" '(consult-recent-file       :which-key "recent files")
+    "y"   '(consult-yank-pop          :which-key "yank ring")
+
+    "s"   '(:ignore t                 :which-key "search")
+    "s s" '(consult-line              :which-key "search buffer")
+    "s i" '(consult-imenu             :which-key "imenu")
+    "s p" '(consult-ripgrep           :which-key "search project (rg)")
+    "s f" '(consult-find              :which-key "find file (project)")
+
+    "p b" '(consult-project-buffer    :which-key "project buffers")))
