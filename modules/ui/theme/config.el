@@ -48,4 +48,9 @@ Override by `setq' BEFORE calling `scratch!'.")
     :config
     (setq auto-dark-themes (list (list scratch-theme-dark)
                                  (list scratch-theme-light)))
-    (auto-dark-mode))))
+    ;; In batch sessions (sync, scripts) there's no GUI to query for the
+    ;; OS appearance; skip auto-dark there and load the dark default so
+    ;; sync output stays quiet.
+    (if noninteractive
+        (load-theme scratch-theme-dark t)
+      (auto-dark-mode)))))

@@ -1,4 +1,4 @@
-;;; modules.el --- module system for the scratch framework -*- lexical-binding: t; -*-
+;;; scratch-modules.el --- module system for the scratch framework -*- lexical-binding: t; -*-
 ;;
 ;; Provides `scratch!' (declare + load modules) and `modulep!' (predicate).
 ;; Modules are directories containing optional `packages.el' and `config.el'

@@ -1,10 +1,9 @@
 ;;; init.el --- scratch framework init -*- lexical-binding: t; -*-
 ;;
-;; The framework lives in this directory: straight bootstrap, use-package
-;; setup, and a few sane defaults. The user's actual configuration lives in
-;; SCRATCHDIR (default ~/.scratch.d/) as a literate config.org that tangles
-;; to config.el + packages.el; both get loaded after the framework's own
-;; setup runs.
+;; Framework bootstrap. Topical setup lives under `lisp/' as
+;; `scratch-<topic>.el' files; this file just dispatches to them and
+;; then hands off to the user's literate config in $SCRATCHDIR
+;; (default ~/.scratch.d/).
 
 (require 'cl-lib)
 
@@ -16,6 +15,12 @@
   (file-name-as-directory
    (expand-file-name (or (getenv "SCRATCHDIR") "~/.scratch.d")))
   "Path to the user's config dir (analogue of DOOMDIR).")
+
+(defvar scratch-lisp-dir
+  (file-name-as-directory (expand-file-name "lisp" scratch-emacs-dir))
+  "Path to the framework's `lisp/' directory.")
+
+(add-to-list 'load-path scratch-lisp-dir)
 
 ;;; straight.el bootstrap (https://github.com/radian-software/straight.el)
 (defvar bootstrap-version)
@@ -38,13 +43,14 @@
 (straight-use-package 'use-package)
 (setq straight-use-package-by-default t)
 
-;;; Module system. Provides `scratch!' / `modulep!' macros. Defines no
-;;; modules itself; opt in by calling `scratch!' from your user config.
-(load (expand-file-name "modules.el" scratch-emacs-dir) nil 'nomessage)
-
-;;; Customize output stays under user-emacs-directory (i.e. this framework dir).
+;;; Customize output stays under user-emacs-directory (this framework dir).
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (when (file-exists-p custom-file) (load custom-file))
+
+;;; Framework topical setup
+(require 'scratch-modules)    ; scratch! / modulep! macros
+(require 'scratch-defaults)   ; recentf, savehist, save-place, file/format defaults
+(require 'scratch-buffer)     ; buffer helpers (scratch/scratch-buffer, ...)
 
 ;;; Literate user config: tangle $SCRATCHDIR/config.org -> config.el +
 ;;; packages.el on demand, then load the tangled output.

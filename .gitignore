@@ -21,6 +21,14 @@ ede-projects.el
 # Customize output (Emacs writes here at runtime)
 custom.el
 
+# Recentf, history, place, etc. -- runtime state files Emacs writes here.
+recentf
+history
+places
+bookmarks
+projects
+auto-save/
+
 # Byte-compiled / native-compiled output -- generated, never tracked
 *.elc
 *.eln

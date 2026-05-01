@@ -15,6 +15,7 @@
   (setq evil-want-integration t                                ; required by evil-collection
         evil-want-keybinding (not (modulep! +everywhere))      ; let evil-collection drive bindings
         evil-want-C-u-scroll t                                 ; vim-style scroll up
+        evil-want-C-d-scroll t                                 ; vim-style scroll down
         evil-want-C-i-jump nil                                 ; let TAB stay TAB in terminals
         evil-want-Y-yank-to-eol t                              ; Y == y$, like vim
         evil-want-fine-undo t                                  ; one undo step per insert-mode command
@@ -28,6 +29,10 @@
   (evil-mode 1))
 
 (when (modulep! +everywhere)
+  ;; Set evil-collection knobs BEFORE `evil-collection-init' runs so the
+  ;; bindings it generates pick them up.
+  (setq evil-collection-setup-minibuffer t                     ; full evil bindings in vertico, etc.
+        evil-collection-vertico-want-want-C-u-in-insert t)     ; C-u scroll-up while typing in minibuffer
   (use-package evil-collection
     :demand t
     :after evil
