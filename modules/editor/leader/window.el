@@ -11,4 +11,5 @@
   "w s" '(split-window-below       :which-key "split below")
   "w v" '(split-window-right       :which-key "split right")
   "w d" '(delete-window            :which-key "delete window")
-  "w D" '(delete-other-windows     :which-key "delete others"))
+  "w D" '(delete-other-windows     :which-key "delete others")
+  "w m" '(scratch/toggle-maximize-window :which-key "maximize (toggle)"))
