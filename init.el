@@ -50,9 +50,9 @@
 ;;; Framework topical setup
 (require 'scratch-modules)    ; scratch! / modulep! macros
 (require 'scratch-defaults)   ; recentf, savehist, save-place, file/format defaults
+(require 'scratch-keys)       ; general + the `map!' macro (framework-wide)
 (require 'scratch-buffer)     ; buffer helpers (scratch/scratch-buffer, ...)
 (require 'scratch-window)     ; window numbering + M-N bindings
-(require 'scratch-keys)       ; general + the `map!' macro (framework-wide)
 
 ;;; Literate user config: tangle $SCRATCHDIR/config.org -> config.el +
 ;;; packages.el on demand, then load the tangled output.

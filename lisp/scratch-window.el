@@ -61,6 +61,32 @@ If FOLLOW (or interactive prefix arg), select window N after swapping."
       (unrecord-window-buffer dest    dest-buf)
       (when follow (select-window dest))))))
 
+(defvar scratch-window--maximized-config nil
+  "Saved window configuration for `scratch/toggle-maximize-window'.
+Set when the user maximizes from a multi-window layout; cleared on
+restore.")
+
+(defun scratch/toggle-maximize-window ()
+  "Toggle between fullscreen current window and the previous layout.
+
+First call:  save the current window configuration and run
+             `delete-other-windows'.
+Second call: when only one window remains and a layout was saved,
+             restore that saved configuration.
+
+If you manually open a new split while maximized, the saved layout
+becomes stale -- the next call re-saves the current state and
+maximizes again."
+  (interactive)
+  (cond
+   ((and scratch-window--maximized-config
+         (= 1 (length (window-list nil 'never))))
+    (set-window-configuration scratch-window--maximized-config)
+    (setq scratch-window--maximized-config nil))
+   (t
+    (setq scratch-window--maximized-config (current-window-configuration))
+    (delete-other-windows))))
+
 ;; Generate scratch/select-window-N and scratch/buffer-to-window-N for
 ;; N in 1..9, plus bind M-N globally to the select-window variant.
 ;; Lexical binding is required: the lambdas close over `n' from each
@@ -79,8 +105,17 @@ If FOLLOW (or interactive prefix arg), select window N after swapping."
             (scratch/swap-buffers-with-window n t)
           (scratch/move-buffer-to-window n t)))
       (format "Move current buffer to window %d. With prefix ARG, swap." n))
-    ;; Override default `digit-argument' on M-N. Use C-u N for prefix args.
-    (global-set-key (kbd (format "M-%d" n)) select-cmd)))
+    ;; Bind M-N in general's override map AS state-aware bindings (via
+    ;; `:states'). evil checks state-specific aux maps before regular
+    ;; keymaps, so a binding only at the override-map root would lose to
+    ;; e.g. evil-collection-magit-section's normal-state aux map. With
+    ;; `:states' set, our binding lands in the override map's *intercept*
+    ;; aux map for each state -- a level above evil-collection's regular
+    ;; aux map -- which wins generically across all packages.
+    (general-define-key
+     :states '(normal visual motion emacs insert hybrid replace operator)
+     :keymaps 'override
+     (kbd (format "M-%d" n)) select-cmd)))
 
 (provide 'scratch-window)
 ;;; scratch-window.el ends here
