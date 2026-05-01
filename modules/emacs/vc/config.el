@@ -62,16 +62,16 @@
   ;; in a buffer where smerge-mode is active.
   (when (modulep! :editor leader)
     (map! :map smerge-mode-map :localleader
-          "n" #'smerge-next
-          "p" #'smerge-prev
-          "r" #'smerge-resolve
-          "a" #'smerge-keep-all
-          "b" #'smerge-keep-base
-          "l" #'smerge-keep-lower
-          "u" #'smerge-keep-upper
-          "E" #'smerge-ediff
-          "R" #'smerge-refine
-          "RET" #'smerge-keep-current)))
+          :desc "next conflict" "n"   #'smerge-next
+          :desc "prev conflict" "p"   #'smerge-prev
+          :desc "resolve"       "r"   #'smerge-resolve
+          :desc "keep all"      "a"   #'smerge-keep-all
+          :desc "keep base"     "b"   #'smerge-keep-base
+          :desc "keep lower"    "l"   #'smerge-keep-lower
+          :desc "keep upper"    "u"   #'smerge-keep-upper
+          :desc "ediff"         "E"   #'smerge-ediff
+          :desc "refine"        "R"   #'smerge-refine
+          :desc "keep current"  "RET" #'smerge-keep-current)))
 
 ;;;; log-view -- evil-friendly j/k navigation between commits
 
@@ -124,13 +124,13 @@
 
 (when (modulep! :editor leader)
   (map! :leader
-    "g"   '(:ignore t                :which-key "git")
-    "g g" '(magit-status             :which-key "magit status")
-    "g d" '(magit-dispatch           :which-key "magit dispatch")
-    "g l" '(magit-log-current        :which-key "log (current branch)")
-    "g L" '(magit-log-buffer-file    :which-key "log (buffer file)")
-    "g b" '(magit-blame              :which-key "blame")
-    "g f" '(magit-file-dispatch      :which-key "file dispatch")
-    "g r" '(browse-at-remote         :which-key "browse at remote")
-    "g R" '(browse-at-remote-kill    :which-key "copy remote URL")
-    "g t" '(git-timemachine          :which-key "timemachine")))
+    (:prefix-map ("g" . "git")
+     :desc "magit status"        "g" #'magit-status
+     :desc "magit dispatch"      "d" #'magit-dispatch
+     :desc "log (current)"       "l" #'magit-log-current
+     :desc "log (buffer file)"   "L" #'magit-log-buffer-file
+     :desc "blame"               "b" #'magit-blame
+     :desc "file dispatch"       "f" #'magit-file-dispatch
+     :desc "browse at remote"    "r" #'browse-at-remote
+     :desc "copy remote URL"     "R" #'browse-at-remote-kill
+     :desc "timemachine"         "t" #'git-timemachine)))

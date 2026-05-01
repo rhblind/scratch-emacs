@@ -3,13 +3,13 @@
 ;; SPC w -- window-related leader bindings. Loaded by leader/config.el.
 
 (map! :leader
-  "w"   '(:ignore t                :which-key "window")
-  "w h" '(windmove-left            :which-key "left")
-  "w j" '(windmove-down            :which-key "down")
-  "w k" '(windmove-up              :which-key "up")
-  "w l" '(windmove-right           :which-key "right")
-  "w s" '(split-window-below       :which-key "split below")
-  "w v" '(split-window-right       :which-key "split right")
-  "w d" '(delete-window            :which-key "delete window")
-  "w D" '(delete-other-windows     :which-key "delete others")
-  "w m" '(scratch/toggle-maximize-window :which-key "maximize (toggle)"))
+  (:prefix-map ("w" . "window")
+   :desc "left"             "h" #'windmove-left
+   :desc "down"             "j" #'windmove-down
+   :desc "up"               "k" #'windmove-up
+   :desc "right"            "l" #'windmove-right
+   :desc "split below"      "s" #'split-window-below
+   :desc "split right"      "v" #'split-window-right
+   :desc "delete window"    "d" #'delete-window
+   :desc "delete others"    "D" #'delete-other-windows
+   :desc "maximize (toggle)" "m" #'scratch/toggle-maximize-window))

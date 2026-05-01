@@ -18,13 +18,13 @@ wrapper around `project-known-project-roots'."
           (princ (format "  %s\n" root)))))))
 
 (map! :leader
-  "p"   '(:ignore t                :which-key "project")
-  "p p" '(project-switch-project   :which-key "switch project")
-  "p l" '(scratch/list-projects    :which-key "list projects")
-  "p f" '(project-find-file        :which-key "find file")
-  "p b" '(project-switch-to-buffer :which-key "switch buffer")
-  "p k" '(project-kill-buffers     :which-key "kill buffers")
-  "p s" '(project-find-regexp      :which-key "search (regexp)")
-  "p !" '(project-shell-command    :which-key "shell command")
-  "p d" '(project-dired            :which-key "dired")
-  "p F" '(project-forget-project   :which-key "forget project"))
+  (:prefix-map ("p" . "project")
+   :desc "switch project"  "p" #'project-switch-project
+   :desc "list projects"   "l" #'scratch/list-projects
+   :desc "find file"       "f" #'project-find-file
+   :desc "switch buffer"   "b" #'project-switch-to-buffer
+   :desc "kill buffers"    "k" #'project-kill-buffers
+   :desc "search (regexp)" "s" #'project-find-regexp
+   :desc "shell command"   "!" #'project-shell-command
+   :desc "dired"           "d" #'project-dired
+   :desc "forget project"  "F" #'project-forget-project))

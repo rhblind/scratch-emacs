@@ -61,13 +61,17 @@
 
   ;; Top-level shortcuts.
   (map! :leader
-    "SPC" '(execute-extended-command       :which-key "M-x")
-    ":"   '(execute-extended-command       :which-key "M-x")
-    "."   '(find-file                      :which-key "find file")
-    ","   '(switch-to-buffer               :which-key "switch buffer")
-    "TAB" '(scratch/switch-to-last-buffer  :which-key "last buffer"))
+    :desc "M-x"           "SPC" #'execute-extended-command
+    :desc "M-x"           ":"   #'execute-extended-command
+    :desc "find file"     "."   #'find-file
+    :desc "switch buffer" ","   #'switch-to-buffer
+    :desc "last buffer"   "TAB" #'scratch/switch-to-last-buffer)
 
-  ;; Per-topic submenus (each file installs its own `map! :leader' block).
-  (dolist (topic '("file" "buffer" "window" "help" "quit" "project"))
-    (load (expand-file-name (concat topic ".el") scratch-leader--dir)
-          nil 'nomessage)))
+  ;; Per-topic submenus -- auto-discovered. Drop a new `<topic>.el' in
+  ;; this directory and it gets loaded automatically. `config.el' (this
+  ;; file) and `packages.el' are excluded so they don't load themselves.
+  (let ((self (file-name-nondirectory (or load-file-name buffer-file-name))))
+    (dolist (file (directory-files scratch-leader--dir t "\\.el\\'"))
+      (unless (member (file-name-nondirectory file)
+                      (list self "packages.el"))
+        (load file nil 'nomessage)))))

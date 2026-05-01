@@ -120,14 +120,14 @@
 
 (when (modulep! :editor leader)
   (map! :leader
-    "b b" '(consult-buffer            :which-key "switch buffer")
-    "f r" '(consult-recent-file       :which-key "recent files")
-    "y"   '(consult-yank-pop          :which-key "yank ring")
-
-    "s"   '(:ignore t                 :which-key "search")
-    "s s" '(consult-line              :which-key "search buffer")
-    "s i" '(consult-imenu             :which-key "imenu")
-    "s p" '(consult-ripgrep           :which-key "search project (rg)")
-    "s f" '(consult-find              :which-key "find file (project)")
-
-    "p b" '(consult-project-buffer    :which-key "project buffers")))
+    ;; Upgrades of leader baselines to consult variants.
+    :desc "switch buffer"      "b b" #'consult-buffer
+    :desc "recent files"       "f r" #'consult-recent-file
+    :desc "yank ring"          "y"   #'consult-yank-pop
+    :desc "project buffers"    "p b" #'consult-project-buffer
+    ;; New SPC s search submenu.
+    (:prefix-map ("s" . "search")
+     :desc "search buffer"        "s" #'consult-line
+     :desc "imenu"                "i" #'consult-imenu
+     :desc "search project (rg)"  "p" #'consult-ripgrep
+     :desc "find file (project)"  "f" #'consult-find)))
