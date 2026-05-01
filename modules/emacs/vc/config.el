@@ -41,7 +41,14 @@
 ;; Forge -- GitHub / GitLab integration on top of magit.
 (when (modulep! +forge)
   (use-package forge
-    :after magit))
+    :after magit
+    :init
+    ;; Recent magit reorganized `magit-dispatch'; forge's auto-insert of
+    ;; its "N Forge" suffix can't find its anchor key and emits a
+    ;; "Cannot insert ... not found" warning. We don't need that auto
+    ;; binding (forge commands are reachable via M-x and their own
+    ;; bindings); turn the auto-bind off so forge never attempts it.
+    (setq forge-add-default-bindings nil)))
 
 ;;;; smerge -- auto-enable on conflict markers
 
