@@ -22,11 +22,10 @@
   :config
   (doom-modeline-mode 1)
 
-  ;; Modified-buffer indicator: orange + italic, so it stands out without
-  ;; looking like an error state. (From the old Doom config.)
-  (set-face-attribute 'doom-modeline-buffer-modified nil
-                      :foreground "Orange"
-                      :slant 'italic)
+  ;; Modified-buffer indicator: italic, with the foreground left to the
+  ;; theme's `doom-modeline-buffer-modified' default (modus-themes pick a
+  ;; high-contrast warning hue automatically).
+  (set-face-attribute 'doom-modeline-buffer-modified nil :slant 'italic)
 
   ;; Override doom-modeline's `window-number' segment (which expects winum)
   ;; with one based on our native numbering from `lisp/scratch-window.el'.
@@ -41,4 +40,25 @@
         (propertize (format " %d " (1+ idx))
                     'face (if (doom-modeline--active)
                               'doom-modeline-buffer-major-mode
-                            'mode-line-inactive))))))
+                            'mode-line-inactive)))))
+
+  ;; Refresh doom-modeline on theme change. doom-modeline caches its bar
+  ;; pixmap and various propertized segment strings, so a plain
+  ;; `load-theme' alone won't repaint everything. Toggling the mode off
+  ;; and back on rebuilds all of it cleanly. `enable-theme-functions'
+  ;; (Emacs 29+) fires on every successful `load-theme'/`enable-theme'.
+  (defun scratch-modeline--refresh-on-theme-change (&rest _)
+    (when (bound-and-true-p doom-modeline-mode)
+      (doom-modeline-mode -1)
+      (doom-modeline-mode 1)
+      (force-mode-line-update t)))
+  (when (boundp 'enable-theme-functions)
+    (add-hook 'enable-theme-functions
+              #'scratch-modeline--refresh-on-theme-change))
+  ;; auto-dark fires its own hooks when the OS appearance flips; cover
+  ;; that path too so +auto theme switches are caught.
+  (with-eval-after-load 'auto-dark
+    (add-hook 'auto-dark-dark-mode-hook
+              #'scratch-modeline--refresh-on-theme-change)
+    (add-hook 'auto-dark-light-mode-hook
+              #'scratch-modeline--refresh-on-theme-change)))
