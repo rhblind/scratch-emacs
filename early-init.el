@@ -28,6 +28,38 @@
 ;;   warnings still go to *Async-native-compile-log* if you need them.
 (setq native-comp-async-report-warnings-errors 'silent)
 
+;; PERF: Defer native-comp JIT until after startup. JIT compilation
+;;   triggered during init can stall the first frame paint; pushing it
+;;   to `emacs-startup-hook' lets the UI come up first, then async
+;;   compilation picks up in the background. Only relevant in graphical
+;;   sessions -- batch / sync runs don't need it.
+(setq native-comp-deferred-compilation nil
+      native-comp-jit-compilation nil)
+(unless noninteractive
+  (add-hook 'emacs-startup-hook
+            (lambda ()
+              (setq native-comp-deferred-compilation t
+                    native-comp-jit-compilation t))))
+
+;; PERF: Skip the frame-resize that fires when font/face attributes change
+;;   at startup. Halves startup time for users with custom fonts.
+(setq frame-inhibit-implied-resize t)
+
+;; PERF: Larger pipe for subprocess output. The default (4kb) is a
+;;   bottleneck for LSP servers, magit, eglot, etc. that emit big chunks.
+(setq read-process-output-max (* 3 1024 1024))   ; 3 MB
+
+;; UX: Stop prompting on every file over 10 MB -- the default threshold is
+;;   from another era. 100 MB is a more 2020s number for "are you sure?".
+(setq large-file-warning-threshold (* 100 1024 1024))
+
+;; PERF: Don't compact font caches during GC -- compacting them is slow
+;;   and they're rebuilt cheaply on demand.
+(setq inhibit-compacting-font-caches t)
+
+;; PERF: Skip distribution-level site-init.el. We don't rely on it.
+(setq site-run-file nil)
+
 ;; UX: Respect DEBUG envvar as an alternative to --debug-init.
 (let ((debug (getenv "DEBUG")))
   (when (and (stringp debug) (not (string-empty-p debug)))
