@@ -125,6 +125,8 @@
     :desc "recent files"       "f r" #'consult-recent-file
     :desc "yank ring"          "y"   #'consult-yank-pop
     :desc "project buffers"    "p b" #'consult-project-buffer
+    ;; Doom-style top-level shortcut for project-wide ripgrep search.
+    :desc "search project (rg)" "/"  #'consult-ripgrep
     ;; New SPC s search submenu.
     (:prefix-map ("s" . "search")
      :desc "search buffer"        "s" #'consult-line
