@@ -29,18 +29,15 @@ Override BEFORE calling `scratch!'.")
   "Leader prefix in insert / emacs evil states.
 Override BEFORE calling `scratch!'.")
 
-(defvar scratch-localleader-key "SPC m"
-  "Localleader prefix under the main leader, e.g. `SPC m n' for smerge-next.
+(defvar scratch-localleader-key ","
+  "Localleader prefix in evil normal / visual / motion states.
+For example `,n' for smerge-next when point is on a conflict marker.
 Override BEFORE calling `scratch!'.")
 
-(defvar scratch-localleader-alt-key ","
-  "Direct localleader prefix in normal state, e.g. `,n' for smerge-next.
-Only active in keymaps where `map!' has bound something under `:localleader'.
-Override BEFORE calling `scratch!'.")
-
-(defvar scratch-localleader-non-normal-key "M-SPC m"
-  "Localleader prefix in insert / emacs evil states.
-Override BEFORE calling `scratch!'.")
+(defvar scratch-localleader-non-normal-key "M-,"
+  "Localleader prefix in evil insert / emacs states.
+A separate key is needed because typing `,' in insert mode would
+otherwise insert a comma. Override BEFORE calling `scratch!'.")
 
 (defun scratch-keys--with-desc (def desc)
   "Return a binding form that combines DEF with `:which-key' DESC.
@@ -315,18 +312,15 @@ Examples:
        (localleader-p
         (when scoped
           (error "map!: state shorthand (e.g. :n) is not supported under :localleader"))
-        `(progn
-           (general-define-key
-            :states ',(quote (normal visual motion emacs insert))
-            :prefix scratch-localleader-key
-            :non-normal-prefix scratch-localleader-non-normal-key
-            ,@top-level
-            ,@default)
-           (general-define-key
-            :states ',(quote (normal visual))
-            :prefix scratch-localleader-alt-key
-            ,@top-level
-            ,@default)))
+        ;; Single general-define-key with `:prefix' (normal/visual/motion)
+        ;; and `:non-normal-prefix' (insert/emacs); mirrors Doom's
+        ;; `define-localleader-key!'.
+        `(general-define-key
+          :states ',(quote (normal visual motion emacs insert))
+          :prefix scratch-localleader-key
+          :non-normal-prefix scratch-localleader-non-normal-key
+          ,@top-level
+          ,@default))
        (t
         (let ((forms nil))
           (when default
