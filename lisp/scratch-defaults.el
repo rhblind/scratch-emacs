@@ -54,6 +54,16 @@
 ;; save-place -- remember point position when re-opening files.
 (save-place-mode 1)
 
+;;;; Auto-revert
+
+;; Pull external file changes into Emacs buffers automatically. Without
+;; this, switching branches (or any out-of-Emacs edit) leaves stale
+;; buffers around until you `M-x revert-buffer'.
+(setq auto-revert-verbose nil                ; don't echo "Reverting buffer X"
+      auto-revert-check-vc-info t            ; keep modeline VC info fresh
+      global-auto-revert-non-file-buffers t) ; dired, ibuffer, etc. too
+(global-auto-revert-mode 1)
+
 ;;;; Window display
 ;;
 ;; "If I ran a command that pops up a window, I'm probably about to
