@@ -4,12 +4,21 @@
 ;; (`set-popup-rule!', `define-key!', `after!') and modules we don't have
 ;; (projectile, persp, lsp-treemacs).
 
+;; Python: treemacs core is pure elisp and runs without python. Two
+;; opt-in features (extended/deferred git mode, directory collapsing
+;; via `treemacs-collapse-dirs') bundle a python helper and need
+;; `python3' on PATH. Our default below is `simple' git mode + no
+;; collapsing, so python is NOT required out of the box. If you opt
+;; into extended/deferred and python3 isn't found, the `:config'
+;; block falls back to `simple' silently.
+
 (defvar scratch-treemacs-git-mode 'simple
   "Type of git integration for `treemacs-git-mode'. One of:
 
   - `simple'   highlights only files based on git status; fastest.
-  - `extended' highlights both files and directories; needs python.
-  - `deferred' same as extended but async.
+                                                Pure elisp, no deps.
+  - `extended' highlights both files and directories. Needs `python3'.
+  - `deferred' same as extended but async.       Needs `python3'.
 
 Set this BEFORE `treemacs' loads.")
 
@@ -24,8 +33,7 @@ Set this BEFORE `treemacs' loads.")
         treemacs-last-error-persist-file
         (expand-file-name "treemacs-last-error-persist" user-emacs-directory))
   :config
-  ;; Don't follow the cursor (more disruptive than helpful as a default).
-  (treemacs-follow-mode -1)
+  (treemacs-follow-mode t)
 
   (when scratch-treemacs-git-mode
     ;; Fall back to `simple' if `extended' / `deferred' can't find python.
