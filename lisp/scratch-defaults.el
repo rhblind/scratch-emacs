@@ -54,5 +54,27 @@
 ;; save-place -- remember point position when re-opening files.
 (save-place-mode 1)
 
+;;;; Window display
+;;
+;; "If I ran a command that pops up a window, I'm probably about to
+;; interact with it." Steal focus for help-style buffers (built-in
+;; toggle) and a small allow-list of explicit-action listings.
+;; Compilation / messages / warnings are intentionally NOT included --
+;; those pop up in the background and shouldn't yank point mid-edit.
+
+(setq help-window-select t)               ; *Help*, *Apropos*, *info*, ...
+
+(dolist (name '("\\*Process List\\*"
+                "\\*Buffer List\\*"
+                "\\*Occur\\*"
+                "\\*Async Shell Command\\*"))
+  (add-to-list 'display-buffer-alist
+               `(,name
+                 (display-buffer-reuse-window display-buffer-pop-up-window)
+                 ;; Built-in alist key (Emacs 28+): selects the new window
+                 ;; on `post-command-hook' so any setup the command runs
+                 ;; first lands before focus shifts.
+                 (post-command-select-window . t))))
+
 (provide 'scratch-defaults)
 ;;; scratch-defaults.el ends here
