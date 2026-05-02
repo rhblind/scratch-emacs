@@ -36,9 +36,9 @@
                       (project-current))))
         t)
 
-  ;; Evil-friendly j/k in the error list buffer.
-  (with-eval-after-load 'evil
-    (when (modulep! :editor evil)
+  ;; Evil-friendly j/k in the error list buffer (normal state only).
+  (when (modulep! :editor evil)
+    (with-eval-after-load 'evil
       (map! :map flycheck-error-list-mode-map
         :n "j"      #'flycheck-error-list-next-error
         :n "k"      #'flycheck-error-list-previous-error
