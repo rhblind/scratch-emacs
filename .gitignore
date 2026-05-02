@@ -27,6 +27,9 @@ history
 places
 bookmarks
 projects
+treemacs-persist
+treemacs-last-error-persist
+/workspaces/
 auto-save/
 
 # Byte-compiled / native-compiled output -- generated, never tracked

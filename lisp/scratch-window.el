@@ -13,11 +13,22 @@
 ;;   `scratch/select-window-N'  (1..9)      -- focus shortcut, bound to `M-N' globally
 ;;   `scratch/buffer-to-window-N' (1..9)    -- move (no prefix) / swap (prefix arg)
 
+(defun scratch-window--numbered-list ()
+  "Return the windows that participate in the numbered enumeration.
+Side panels (windows with `no-other-window' set, e.g. treemacs) are
+excluded so they don't push the user's real windows down a slot. The
+list starts at `frame-first-window' to match a stable left-to-right,
+top-to-bottom order."
+  (cl-remove-if (lambda (w) (window-parameter w 'no-other-window))
+                (window-list nil 'never (frame-first-window))))
+
 (defun scratch-window--by-number (n)
   "Return the Nth window (1-based) of the current frame, or nil.
-Numbering follows `window-list' order starting from `frame-first-window'."
+Numbering follows `scratch-window--numbered-list', so side panels
+like treemacs are skipped (treemacs is conceptually \"window 0\",
+reachable via `M-0')."
   (when (and (integerp n) (> n 0))
-    (nth (1- n) (window-list nil 'never (frame-first-window)))))
+    (nth (1- n) (scratch-window--numbered-list))))
 
 (defun scratch/select-window-by-number (n)
   "Select window N (1-based) in the current frame."
@@ -80,7 +91,7 @@ maximizes again."
   (interactive)
   (cond
    ((and scratch-window--maximized-config
-         (= 1 (length (window-list nil 'never))))
+         (= 1 (length (scratch-window--numbered-list))))
     (set-window-configuration scratch-window--maximized-config)
     (setq scratch-window--maximized-config nil))
    (t

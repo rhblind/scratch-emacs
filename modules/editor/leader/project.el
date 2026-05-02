@@ -19,12 +19,12 @@ wrapper around `project-known-project-roots'."
 
 (map! :leader
   (:prefix-map ("p" . "project")
-   :desc "switch project"  "p" #'project-switch-project
-   :desc "list projects"   "l" #'scratch/list-projects
-   :desc "find file"       "f" #'project-find-file
-   :desc "switch buffer"   "b" #'project-switch-to-buffer
-   :desc "kill buffers"    "k" #'project-kill-buffers
-   :desc "search (regexp)" "s" #'project-find-regexp
-   :desc "shell command"   "!" #'project-shell-command
-   :desc "dired"           "d" #'project-dired
-   :desc "forget project"  "F" #'project-forget-project))
+   :desc "switch project"     "p" #'project-switch-project
+   :desc "list projects"      "l" #'scratch/list-projects
+   :desc "find file"          "f" #'project-find-file
+   :desc "switch buffer"      "b" #'project-switch-to-buffer
+   :desc "kill buffers"       "k" #'project-kill-buffers
+   :desc "search (regexp)"    "s" #'project-find-regexp
+   :desc "shell command"      "!" #'project-shell-command
+   :desc "dired"              "d" #'project-dired
+   :desc "forget project"     "F" #'project-forget-project))
