@@ -87,11 +87,81 @@ so users can override or shadow any module by mirroring the path under
    "Built-in modules" and append it to both example `scratch!` blocks
    (the active one and the commented-out one). The bootstrap template
    lives as a quoted org-mode string inside `scratch-cli--starter-config-org`.
-6. If the module persists state to disk, add the relevant ignore patterns
+6. **Update `README.md`** "What's in the box" table with category, flags,
+   and one-line summary; add bindings to the "Default leader bindings"
+   section if the module owns a top-level prefix.
+7. If the module persists state to disk, add the relevant ignore patterns
    to `.gitignore`. Anchor patterns that should only match the repo root
    with a leading `/` (e.g. `/workspaces/` to ignore the persp save dir
    without hiding `modules/ui/workspaces/`).
-7. Sanity check by byte-compiling with `map!` available (see Testing).
+8. **Cross-pollinate with existing modules** (see "Cross-module
+   integrations" below). Many packages have first-party companion
+   packages (e.g. treemacs has `lsp-treemacs`, `treemacs-magit`,
+   `treemacs-evil`). Wire these up in BOTH directions when adding
+   anything new.
+9. **Run `bin/scratch sync` then `bin/scratch freeze`** to install the new
+   package(s) and pin them in `straight/versions/default.el`. Commit the
+   updated lockfile alongside the module.
+10. Sanity check by byte-compiling with `map!` available (see Testing).
+
+## Cross-module integrations
+
+Most upstream packages ship companion packages or expose hooks
+specifically for pairing with other ecosystems. When you add or
+modify a module, you MUST check both directions for these:
+
+1. **What new integrations does my new package enable in modules
+   we already have?** E.g. adding `lsp-mode` (`:tools lsp`) means
+   `:ui treemacs` should pull in `lsp-treemacs`, `:completion vertico`
+   should consider `consult-lsp`, `:checkers syntax` may want to
+   defer to lsp-mode's diagnostics.
+2. **Which modules we already have benefit from MY new module's
+   companions?** E.g. when adding treemacs, we wired in
+   `treemacs-evil` (when `:editor evil +everywhere` is on) and
+   `treemacs-magit` (when `:emacs vc` is on).
+
+The pattern is: gate the integration package install on
+`(modulep! :other-category other-name)` in `packages.el`, then
+require / configure it under the same gate in `config.el`. Use
+`with-eval-after-load` if the load order isn't guaranteed.
+
+Currently wired integrations to use as references:
+
+| When you have ... | ... and ... | the integration is |
+|---|---|---|
+| `:ui treemacs` | `:editor evil +everywhere` | `treemacs-evil` |
+| `:ui treemacs` | `:emacs vc` | `treemacs-magit` |
+| `:ui treemacs` | `:ui workspaces` | `treemacs-persp` (sets `Perspectives` scope) |
+| `:ui treemacs` | `:tools lsp` | `lsp-treemacs` (loads after `treemacs-nerd-icons`) |
+| `:emacs vc +gutter` | `:emacs vc` (magit) | `magit-post-refresh-hook` -> `diff-hl-magit-post-refresh` |
+| `:ui smooth-scroll` | `:ui hl-todo`, `diff-hl` | added to `ultra-scroll-hide-functions` |
+| `:ui workspaces` | `project.el` | advice on `project-switch-project` for per-project workspaces |
+| `:completion vertico` | (consult) | replaces leader's `b b` / `f r` with consult variants; `SPC /` -> `consult-ripgrep` |
+
+Common companion packages to check for when adding a new module:
+
+- **lsp-mode**: `lsp-treemacs`, `lsp-ui`, `consult-lsp`, optional
+  `flycheck` deferral.
+- **eglot** (alt to lsp-mode): consult-eglot, but eglot uses flymake
+  by default rather than flycheck.
+- **magit**: `forge`, `magit-todos`, `diff-hl-magit-post-refresh`.
+- **flycheck**: `flycheck-posframe`, `flycheck-popup-tip`,
+  `consult-flycheck`.
+- **vertico**: `marginalia`, `orderless`, `consult`, `embark`,
+  `embark-consult`, `vertico-posframe`.
+- **corfu**: `corfu-history`, `corfu-popupinfo`, `nerd-icons-corfu`,
+  `cape`, `corfu-terminal`.
+- **evil**: `evil-collection`, `evil-surround`, `evil-commentary`,
+  `evil-snipe`, package-specific `evil-X` variants.
+- **treemacs**: `treemacs-evil`, `treemacs-magit`, `treemacs-persp`,
+  `treemacs-projectile` (we use project.el; skip), `treemacs-icons-dired`,
+  `lsp-treemacs`.
+- **dired**: `dired-x`, `diredfl`, `nerd-icons-dired`, `dired-subtree`.
+
+Search the codebase before assuming nothing exists:
+`grep -r "modulep! :NEW" modules/` finds existing gates referencing
+the new module by name; `grep -r "PACKAGE-X" modules/` finds places
+that already touch a related package.
 
 ## Bindings: the `map!` macro
 
@@ -101,7 +171,7 @@ keywords:
 | keyword | meaning |
 |---|---|
 | `:leader` | bind under leader prefix; auto-applies states + override map |
-| `:localleader` | bind under localleader (works at `SPC m KEY` and direct `, KEY`) |
+| `:localleader` | bind under localleader: `,` in normal/visual/motion, `M-,` in insert/emacs (configurable via `scratch-localleader-key` / `scratch-localleader-non-normal-key`) |
 | `:map MAP` | shorthand for `:keymaps MAP` |
 | `:mode org` | shorthand for `:keymaps 'org-mode-map` |
 | anything else (`:states`, `:after`, ...) | passes through to general |
@@ -281,6 +351,13 @@ These are load-bearing; preserve them when refactoring.
 - **gitignore anchoring.** Patterns like `workspaces/` (no leading `/`)
   match anywhere in the tree. Anchor with `/workspaces/` if you only
   mean the repo root.
+- **Package pinning.** All installed packages are pinned to commit SHAs
+  in `straight/versions/default.el` (the straight lockfile). The file
+  is tracked despite `straight/*` being gitignored, via a `!straight/versions/`
+  negation rule. `init.el` calls `straight-thaw-versions` right after
+  bootstrap, so existing packages are restored to their locked commits
+  before any module loads. **After adding a new package or intentionally
+  upgrading one, run `bin/scratch freeze` and commit the updated lockfile.**
 
 ## Style preferences (from user's CLAUDE.md)
 

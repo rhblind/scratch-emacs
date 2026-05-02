@@ -1,8 +1,10 @@
 # macOS noise
 .DS_Store
 
-# Generated package state
-straight/
+# Generated package state -- but keep the versions lockfile, which pins
+# every package to a specific commit and IS meant to be tracked.
+straight/*
+!straight/versions/
 eln-cache/
 var/
 .cache/
@@ -29,8 +31,8 @@ bookmarks
 projects
 treemacs-persist
 treemacs-last-error-persist
-/workspaces/
 auto-save/
+/workspaces/
 
 # Byte-compiled / native-compiled output -- generated, never tracked
 *.elc

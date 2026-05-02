@@ -60,6 +60,12 @@
    "outputs. To force a re-tangle and pre-install everything, run ~scratch sync~\n"
    "from the shell. ~scratch sync --force-tangle~ re-tangles even when mtimes lie.\n"
    "\n"
+   "Every installed package is pinned to a commit SHA in\n"
+   "~straight/versions/default.el~ (tracked in git). Emacs thaws to those\n"
+   "commits on startup, so daily use is reproducible. After adding a new\n"
+   "package or intentionally upgrading one, run ~scratch freeze~ to refresh\n"
+   "the lockfile, then commit it.\n"
+   "\n"
    "* Module system\n"
    "Modules live under ~modules/<category>/<name>/~ in the framework dir\n"
    "(~~/.config/emacs-scratch/~) or under the same path in this user dir;\n"
@@ -103,7 +109,9 @@
    "in any order), [[https://github.com/minad/marginalia][marginalia]] (rich annotations), and [[https://github.com/minad/consult][consult]] (richer\n"
    "completing-read commands). When the leader is also enabled, surfaces\n"
    "consult commands under ~SPC s~ (search), ~SPC y~ (yank ring), and\n"
-   "upgrades ~SPC b b~ / ~SPC f r~ to the consult-aware variants.\n"
+   "upgrades ~SPC b b~ / ~SPC f r~ to the consult-aware variants. ~SPC /~\n"
+   "is wired to `consult-ripgrep' for project-wide search (requires the\n"
+   "[[https://github.com/BurntSushi/ripgrep][ripgrep]] binary on PATH).\n"
    "\n"
    "*** :completion corfu -- in-buffer popup completion\n"
    "[[https://github.com/minad/corfu][corfu]] -- minimalist at-point completion popup. Auto-pops after 2 chars\n"
@@ -124,14 +132,29 @@
    "#+end_src\n"
    "\n"
    "Override (set BEFORE ~scratch!~):\n"
-   "- ~scratch-leader-key~            -- default ~\"SPC\"~ (evil normal/visual/motion + non-evil global)\n"
-   "- ~scratch-leader-non-normal-key~ -- default ~\"M-SPC\"~ (evil insert/emacs states)\n"
+   "- ~scratch-leader-key~                 -- default ~\"SPC\"~ (evil normal/visual/motion + non-evil global)\n"
+   "- ~scratch-leader-non-normal-key~      -- default ~\"M-SPC\"~ (evil insert/emacs states)\n"
+   "- ~scratch-localleader-key~            -- default ~\",\"~ (per-mode menu in normal/visual/motion)\n"
+   "- ~scratch-localleader-non-normal-key~ -- default ~\"M-,\"~ (per-mode menu in insert/emacs states)\n"
    "\n"
    "Bundled bindings include ~SPC f f~ (find file), ~SPC b b~ (switch buffer),\n"
    "~SPC w h/j/k/l~ (windmove), ~SPC h f~ (describe function), ~SPC q q~\n"
    "(quit), ~SPC g g~ (magit-status, when ~:emacs vc~ is enabled), and a\n"
-   "~SPC p~ project submenu backed by built-in ~project.el~ (~p p~ switch,\n"
-   "~p l~ list, ~p f~ find file, ~p b~ switch buffer, ~p s~ search, ...).\n"
+   "~SPC p~ project submenu backed by built-in ~project.el~, with a\n"
+   "projectile-style search-path / discovery layer on top:\n"
+   "\n"
+   "- ~p p~ switch project (jumps straight to find-file, no transient)\n"
+   "- ~p f~ find file in project, ~p b~ switch buffer, ~p s~ search regexp\n"
+   "- ~p d~ dired at project root, ~p k~ kill buffers, ~p !~ shell command\n"
+   "- ~p l~ pick from known projects (completing-read, no help buffer),\n"
+   "  ~p D~ discover under search path,\n"
+   "  ~p C~ forget projects whose dirs are gone, ~p A~ add a directory,\n"
+   "  ~p F~ forget current project\n"
+   "\n"
+   "Override (set BEFORE ~scratch!~ or in your config.org):\n"
+   "- ~scratch-projects-search-path~ -- list of dirs to scan for git repos\n"
+   "  (e.g. ~'(\"~/code\" \"~/work\")~). Discovered on startup and via ~p D~.\n"
+   "- ~scratch-projects-search-depth~ -- max subdir depth (default 2).\n"
    "\n"
    "*** :emacs vc -- version control\n"
    "Git-focused VC stack: built-in ~vc~ trimmed to Git only, magit (always),\n"
@@ -181,11 +204,16 @@
    "No flags.\n"
    "\n"
    "*** :ui treemacs -- side-pane file/project tree\n"
-   "[[https://github.com/Alexander-Miller/treemacs][treemacs]] with sensible defaults: git status overlay (simple mode by\n"
-   "default; bumps to extended when python3 is available), nerd-icons,\n"
+   "[[https://github.com/Alexander-Miller/treemacs][treemacs]] with sensible defaults: git status overlay, nerd-icons,\n"
    "evil bindings (when ~:editor evil +everywhere~ is on), magit\n"
    "integration (when ~:emacs vc~ is on), workspace scope (when\n"
    "~:ui workspaces~ is on). No flags.\n"
+   "\n"
+   "Treemacs core is pure elisp -- no python required. Two opt-in\n"
+   "features (extended/deferred git mode, directory collapsing) bundle a\n"
+   "python helper. To opt in, set ~scratch-treemacs-git-mode~ to\n"
+   "~'extended~ or ~'deferred~ before ~scratch!~. If ~python3~ isn't on\n"
+   "PATH the module falls back to ~'simple~ silently.\n"
    "\n"
    "Bindings:\n"
    "- ~M-0~     -- focus / pop up the treemacs window (acts as \"window 0\")\n"
@@ -489,6 +517,35 @@
     (scratch-cli--print "")
     (scratch-cli--print "Sync complete.")))
 
+;;; freeze --------------------------------------------------------------------
+
+(defun scratch-cli--freeze-help ()
+  (scratch-cli--print "Usage: scratch freeze")
+  (scratch-cli--print "")
+  (scratch-cli--print "Capture the current commit SHA of every installed package into")
+  (scratch-cli--print "straight/versions/default.el (the lockfile, tracked in git).")
+  (scratch-cli--print "")
+  (scratch-cli--print "Run this after adding a new package or after intentionally")
+  (scratch-cli--print "upgrading one. Subsequent `scratch sync' calls will pin to the")
+  (scratch-cli--print "captured SHAs."))
+
+(defun scratch-cli-freeze (args)
+  "Write straight's versions lockfile."
+  (while args
+    (pcase (car args)
+      ((or "-h" "--help") (scratch-cli--freeze-help) (kill-emacs 0))
+      (arg (scratch-cli--die "freeze: unknown option: %s" arg))))
+  (setq user-emacs-directory scratch-cli--emacs-dir)
+  (scratch-cli--print "Loading framework...")
+  (load (expand-file-name "init.el" scratch-cli--emacs-dir) nil 'nomessage)
+  (unless (fboundp 'straight-freeze-versions)
+    (scratch-cli--die "freeze: straight.el not loaded; run `scratch sync' first"))
+  (scratch-cli--print "Writing straight/versions/default.el...")
+  ;; Pass `force' to skip the interactive "push unsynced packages" step --
+  ;; we want to record the LOCAL commit each repo is at, not push anything.
+  (straight-freeze-versions t)
+  (scratch-cli--print "Freeze complete."))
+
 ;;; Dispatch ------------------------------------------------------------------
 
 (defun scratch-cli--usage ()
@@ -500,6 +557,7 @@
   (scratch-cli--print "Commands:")
   (scratch-cli--print "  install [--user-dir DIR] [--force]   Bootstrap the user overrides dir")
   (scratch-cli--print "  sync [--force-tangle] [--rebuild]    Re-tangle and install all packages")
+  (scratch-cli--print "  freeze                               Pin every installed package to its current commit")
   (scratch-cli--print "  help                                 Show this message")
   (scratch-cli--print "")
   (scratch-cli--print "Run `scratch <command> --help' for command-specific options."))
@@ -511,6 +569,7 @@
                     (scratch-cli--usage) (kill-emacs 0))
     ("install"      (scratch-cli-install (cdr argv)) (kill-emacs 0))
     ("sync"         (scratch-cli-sync    (cdr argv)) (kill-emacs 0))
+    ("freeze"       (scratch-cli-freeze  (cdr argv)) (kill-emacs 0))
     (cmd
      (scratch-cli--print "scratch: unknown command: %s" cmd)
      (scratch-cli--print "")
