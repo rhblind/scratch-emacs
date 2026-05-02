@@ -15,3 +15,7 @@
 
 ;; Major modes for .gitconfig, .gitignore, .gitattributes.
 (straight-use-package 'git-modes)
+
+;; +gutter -- live VCS hunk indicators in the fringe / margin via diff-hl.
+(when (modulep! +gutter)
+  (straight-use-package 'diff-hl))

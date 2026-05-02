@@ -11,6 +11,10 @@
 ;;   +forge  -- enable forge (GitHub / GitLab issues + PRs inside magit).
 ;;              Requires an authinfo entry for your forge token; see
 ;;              C-h f forge-add-repository.
+;;   +gutter -- show VCS hunk indicators (added/modified/deleted) in the
+;;              fringe (or margin in TTY) via diff-hl, with live updates
+;;              before the file is saved (`diff-hl-flydiff-mode'). Adds
+;;              hunk-navigation / stage / revert under `SPC g h'.
 
 ;;;; Built-in vc
 
@@ -127,6 +131,47 @@
 
 (use-package git-modes :defer t)
 
+;;;; diff-hl -- VCS hunk indicators (gated on +gutter)
+
+(when (modulep! +gutter)
+  (use-package diff-hl
+    ;; Enable globally as soon as Emacs is up. `global-diff-hl-mode' is
+    ;; autoloaded, so the hook itself will pull diff-hl in -- no separate
+    ;; :defer / :commands plumbing needed.
+    :hook (emacs-startup . global-diff-hl-mode)
+    ;; Live updates without requiring a save; activates whenever
+    ;; diff-hl-mode turns on in a buffer.
+    :hook (diff-hl-mode  . diff-hl-flydiff-mode)
+    ;; Same indicators inside dired listings.
+    :hook (dired-mode    . diff-hl-dired-mode-unless-remote)
+    ;; And inside vc-dir buffers.
+    :hook (vc-dir-mode   . turn-on-diff-hl-mode)
+    :init
+    (setq vc-git-diff-switches '("--histogram")
+          ;; Conservative refresh delay; default 0.3 trips on rapid edits.
+          diff-hl-flydiff-delay 0.5
+          ;; Realistic feedback: hunks vanish from the gutter as you stage.
+          diff-hl-show-staged-changes nil
+          ;; Skip image / pdf buffers -- nothing useful to show there.
+          diff-hl-global-modes '(not image-mode pdf-view-mode))
+
+    :config
+    ;; TTY frames have no fringe; fall back to margin indicators.
+    (unless (display-graphic-p)
+      (diff-hl-margin-mode 1))
+
+    ;; Update gutter when magit alters git state (commit, stage, stash, ...).
+    (with-eval-after-load 'magit
+      (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh))
+
+    ;; Reverting a hunk shouldn't move point far from the hunk you targeted.
+    (defun scratch-vc--diff-hl-revert-save-pt (orig-fn &rest args)
+      (let ((pt (point)))
+        (prog1 (apply orig-fn args)
+          (goto-char pt))))
+    (advice-add 'diff-hl-revert-hunk :around
+                #'scratch-vc--diff-hl-revert-save-pt)))
+
 ;;;; Leader bindings (this module owns the SPC g submenu)
 
 (when (modulep! :editor leader)
@@ -140,4 +185,17 @@
      :desc "file dispatch"       "f" #'magit-file-dispatch
      :desc "browse at remote"    "r" #'browse-at-remote
      :desc "copy remote URL"     "R" #'browse-at-remote-kill
-     :desc "timemachine"         "t" #'git-timemachine)))
+     :desc "timemachine"         "t" #'git-timemachine))
+  (when (modulep! +gutter)
+    (map! :leader
+      (:prefix-map ("g" . "git")
+       (:prefix-map ("h" . "hunk")
+        :desc "next hunk"      "n" #'diff-hl-next-hunk
+        :desc "prev hunk"      "p" #'diff-hl-previous-hunk
+        :desc "next hunk"      "j" #'diff-hl-next-hunk
+        :desc "prev hunk"      "k" #'diff-hl-previous-hunk
+        :desc "stage hunk"     "s" #'diff-hl-stage-current-hunk
+        :desc "revert hunk"    "r" #'diff-hl-revert-hunk
+        :desc "show hunk"      "S" #'diff-hl-show-hunk
+        :desc "set ref"        "R" #'diff-hl-set-reference-rev
+        :desc "reset ref"      "X" #'diff-hl-reset-reference-rev)))))
