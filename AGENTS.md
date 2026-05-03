@@ -99,10 +99,14 @@ so users can override or shadow any module by mirroring the path under
    packages (e.g. treemacs has `lsp-treemacs`, `treemacs-magit`,
    `treemacs-evil`). Wire these up in BOTH directions when adding
    anything new.
-9. **Run `bin/scratch sync` then `bin/scratch freeze`** to install the new
+9. **Confirm TTY compatibility** (see "Terminal (TTY) compatibility"
+   below). If the package touches frames / faces / fringes / popups /
+   pixel scrolling / fonts, test under `emacs -nw` and gate any
+   graphics-only behaviour appropriately.
+10. **Run `bin/scratch sync` then `bin/scratch freeze`** to install the new
    package(s) and pin them in `straight/versions/default.el`. Commit the
    updated lockfile alongside the module.
-10. Sanity check by byte-compiling with `map!` available (see Testing).
+11. Sanity check by byte-compiling with `map!` available (see Testing).
 
 ## Cross-module integrations
 
@@ -364,6 +368,45 @@ These are load-bearing; preserve them when refactoring.
   bootstrap, so existing packages are restored to their locked commits
   before any module loads. **After adding a new package or intentionally
   upgrading one, run `bin/scratch freeze` and commit the updated lockfile.**
+
+## Terminal (TTY) compatibility
+
+The framework is meant to work cleanly under both `emacs` (GUI) and
+`emacs -nw` / `emacsclient -t` (TTY). **Anything you add must degrade
+gracefully when there is no graphics layer.** Common pitfalls and the
+patterns we already use:
+
+| Concern | Guard | Where it's done today |
+|---|---|---|
+| Child-frame popups (posframe, vertico-posframe, flycheck-posframe) | The packages themselves no-op in TTY; don't add explicit graphic-only conditional unless the package fails loudly | `:checkers syntax` (flycheck-posframe) |
+| Pixel scrolling (ultra-scroll, pixel-scroll-precision-mode) | `:when (fboundp 'pixel-scroll-precision-mode)` -- function only exists where pixel scroll works (Emacs 29+) | `:ui smooth-scroll` |
+| Fringe indicators (`diff-hl-mode`, flycheck) | Fall back to margin indicators in TTY: `(unless (display-graphic-p) (diff-hl-margin-mode 1))` | `:emacs vc +gutter` |
+| In-buffer popup (corfu) | Lazy-load `corfu-terminal` when the frame is TTY (handles daemon → first GUI frame too via `after-make-frame-functions`) | `:completion corfu` |
+| Frame chrome (titlebars, traffic lights, transparency) | Wrap in `(when (display-graphic-p) ...)` | `:os macos` |
+| Icon glyphs (nerd-icons in modeline / treemacs) | Set `doom-modeline-icon` to `(display-graphic-p)`; nerd-icons auto-detects font availability | `:ui modeline` |
+| Mode-line / face heights tied to font pixels | Defer to `after-make-frame-functions` in daemon mode (faces aren't realised before the first frame exists) | `:ui fonts` |
+| Variable / fixed-pitch differentiation (`mixed-pitch`) | Harmless in TTY -- both pitches resolve to the same glyph-cell -- so no guard needed | `:ui fonts` |
+
+**When adding a new module:**
+
+1. Test in `emacs -nw` if the package touches faces, fringes, frames,
+   posframes, child frames, fonts, scrolling, or anything graphics-y.
+2. If the package needs a GUI to function, gate activation with one of:
+   - `(when (display-graphic-p) ...)` -- per-frame check, but watch out
+     in daemon mode where the FIRST frame is sometimes nil; use
+     `after-make-frame-functions` for daemon-safe activation.
+   - `(when (or (daemonp) (display-graphic-p)) ...)` -- enable in
+     daemons (which can serve GUI clients later) plus current GUI
+     sessions.
+   - `:when (fboundp 'SOME-GUI-ONLY-FN)` -- bypass the package
+     entirely on Emacs versions / builds that lack the underlying API.
+3. If the package has a TTY-specific companion (e.g. `corfu-terminal`,
+   `diff-hl-margin-mode`), wire the companion lazily for TTY frames
+   so GUI-only sessions don't pay the load cost.
+4. Daemon mode is the awkward middle case: the daemon process has
+   no display, but `emacsclient` may attach either a TTY or a GUI
+   frame later. Prefer hooks on `after-make-frame-functions` over
+   one-shot `display-graphic-p` checks at module-load time.
 
 ## Style preferences (from user's CLAUDE.md)
 
