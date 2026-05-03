@@ -108,14 +108,16 @@ you don't want, then run `scratch sync`.
 | `:emacs`      | `vc`            | `+forge`, `+gutter`        | magit + magit-todos, browse-at-remote, git-timemachine, smerge auto-enable; +forge for GH/GL issues+PRs; +gutter for diff-hl |
 | `:checkers`   | `syntax`        | --                         | `flycheck` global + `flycheck-posframe` tooltips; uses `consult-flycheck` when vertico is enabled                            |
 | `:lang`       | `org`           | `+roam`                    | `org-modern` + `org-appear` + `org-cliplink` + `org-download`, scaled headings, hidden emphasis markers; +roam adds org-roam |
+| `:lang`       | `markdown`      | --                         | `markdown-mode` with native code-block highlighting + scaled headings; tables / pre / HRs stay fixed-pitch in mixed-pitch    |
 | `:os`         | `macos`         | --                         | undecorated frame, `Cmd-=/-/0` text scale, native pop-up handling                                                            |
 | `:ui`         | `theme`         | `+auto`, `+light`, `+dark` | modus-themes; +auto follows OS appearance via `auto-dark`                                                                    |
 | `:ui`         | `modeline`      | --                         | doom-modeline with theme-aware refresh                                                                                       |
-| `:ui`         | `fonts`         | --                         | sane default heights for default / fixed-pitch / variable-pitch                                                              |
+| `:ui`         | `fonts`         | --                         | sane default heights for default / fixed-pitch / variable-pitch + `mixed-pitch-mode` in prose buffers                        |
 | `:ui`         | `treemacs`      | --                         | side-pane file tree (also brings nerd-icons into dired); auto-integrates with vc / workspaces / lsp                          |
 | `:ui`         | `workspaces`    | --                         | named buffer sets via persp-mode; auto-creates per-project workspace                                                         |
 | `:ui`         | `smooth-scroll` | `+interpolate`             | pixel-precise wheel scrolling via ultra-scroll; +interpolate adds keyboard smoothing                                         |
 | `:ui`         | `hl-todo`       | --                         | highlight TODO / FIXME / NOTE / HACK / etc.; `consult-todo` picker when vertico is on                                        |
+| `:ui`         | `info-colors`   | --                         | colorize headings / refs / keys in Info manual pages                                                                         |
 
 Full feature docs and override variables for each module live in
 `bin/scratch` (the literate bootstrap template, copied to
@@ -135,7 +137,7 @@ Open `~/.scratch.d/config.org` in Emacs and edit. Three blocks matter:
           :checkers   syntax
           :lang       org
           :os         macos
-          :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo)
+          :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors)
 #+end_src
 ```
 
@@ -192,7 +194,7 @@ Swap in any other theme package by installing it eagerly in
 
 (scratch! :editor (evil +everywhere) leader
           ;; ... rest of your modules ...
-          :ui     theme modeline fonts treemacs workspaces smooth-scroll hl-todo)
+          :ui     theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors)
 #+end_src
 ```
 
