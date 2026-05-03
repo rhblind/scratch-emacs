@@ -31,6 +31,8 @@ changes whenever I feel like it.
   machine) if you want the modeline and treemacs glyphs.
 - **[ripgrep](https://github.com/BurntSushi/ripgrep)** (`rg` on PATH)
   for `SPC /` project-wide search via `consult-ripgrep`.
+- **`cmake`** and **`libtool`** (macOS: `brew install cmake libtool`)
+  for `:term vterm` — vterm builds a native module on first load.
 
 ## Install
 
@@ -109,6 +111,7 @@ you don't want, then run `scratch sync`.
 | `:checkers`   | `syntax`        | --                         | `flycheck` global + `flycheck-posframe` tooltips; uses `consult-flycheck` when vertico is enabled                            |
 | `:lang`       | `org`           | `+roam`                    | `org-modern` + `org-appear` + `org-cliplink` + `org-download`, scaled headings, hidden emphasis markers; +roam adds org-roam |
 | `:lang`       | `markdown`      | --                         | `markdown-mode` with native code-block highlighting + scaled headings; tables / pre / HRs stay fixed-pitch in mixed-pitch    |
+| `:term`       | `vterm`         | --                         | libvterm-backed terminal; project-aware `SPC o t` toggle popup + `SPC o T` here; needs `cmake` + `libtool` + `libvterm`      |
 | `:os`         | `macos`         | --                         | undecorated frame, `Cmd-=/-/0` text scale, native pop-up handling                                                            |
 | `:ui`         | `theme`         | `+auto`, `+light`, `+dark` | modus-themes; +auto follows OS appearance via `auto-dark`                                                                    |
 | `:ui`         | `modeline`      | --                         | doom-modeline with theme-aware refresh                                                                                       |

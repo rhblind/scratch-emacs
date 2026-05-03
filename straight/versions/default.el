@@ -19,6 +19,7 @@
  ("doom-modeline" . "871f91fad58aefa9e549cbff1929e0dd328021c7")
  ("el-get" . "b966060fd99c2bdf1aae76be190f2e26473cb298")
  ("emacs-async" . "5faab28916603bb324d9faba057021ce028ca847")
+ ("emacs-libvterm" . "54c29d14bca05bdd8ae60cda01715d727831e3f9")
  ("emacs-shift-number" . "ab412a7af647c230fa1d316dc0e6a0c289986e16")
  ("emacs-which-key" . "38d4308d1143b61e4004b6e7a940686784e51500")
  ("emacsmirror-mirror" . "04b45f0ffc0441893e7a33f90626a2787b06f7d8")
