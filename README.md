@@ -101,21 +101,21 @@ you don't want, then run `scratch sync`.
 
 | Category      | Module          | Flags                      | Summary                                                                                                        |
 |---------------|-----------------|----------------------------|----------------------------------------------------------------------------------------------------------------|
-| `:editor`     | `evil`          | `+everywhere`              | vim emulation; flag adds evil-collection                                                                       |
+| `:editor`     | `evil`          | `+everywhere`              | vim emulation + evil-surround / evil-numbers / evil-nerd-commenter / evil-matchit / evil-args + avy            |
 | `:editor`     | `leader`        | --                         | `SPC` leader, which-key, `general.el`, `map!` macro                                                            |
-| `:completion` | `vertico`       | --                         | vertical minibuffer + orderless + marginalia + consult                                                         |
+| `:completion` | `vertico`       | --                         | vertical minibuffer + orderless + marginalia + consult + embark                                                |
 | `:completion` | `corfu`         | --                         | in-buffer popup completion + cape + nerd-icons + corfu-terminal                                                |
-| `:emacs`      | `vc`            | `+forge`, `+gutter`        | magit, browse-at-remote, git-timemachine, smerge auto-enable; +forge for GH/GL issues+PRs; +gutter for diff-hl |
-| `:checkers`   | `syntax`        | --                         | `flycheck` global, right-fringe indicators, j/k in error list                                                  |
-| `:lang`       | `org`           | --                         | `org-modern`, scaled headings, hidden emphasis markers                                                         |
+| `:emacs`      | `vc`            | `+forge`, `+gutter`        | magit + magit-todos, browse-at-remote, git-timemachine, smerge auto-enable; +forge for GH/GL issues+PRs; +gutter for diff-hl |
+| `:checkers`   | `syntax`        | --                         | `flycheck` global + `flycheck-posframe` tooltips; uses `consult-flycheck` when vertico is enabled              |
+| `:lang`       | `org`           | `+roam`                    | `org-modern` + `org-appear` + `org-cliplink` + `org-download`, scaled headings, hidden emphasis markers; +roam adds org-roam |
 | `:os`         | `macos`         | --                         | undecorated frame, `Cmd-=/-/0` text scale, native pop-up handling                                              |
 | `:ui`         | `theme`         | `+auto`, `+light`, `+dark` | modus-themes; +auto follows OS appearance via `auto-dark`                                                      |
 | `:ui`         | `modeline`      | --                         | doom-modeline with theme-aware refresh                                                                         |
 | `:ui`         | `fonts`         | --                         | sane default heights for default / fixed-pitch / variable-pitch                                                |
-| `:ui`         | `treemacs`      | --                         | side-pane file tree; auto-integrates with vc / workspaces / lsp                                                |
+| `:ui`         | `treemacs`      | --                         | side-pane file tree (also brings nerd-icons into dired); auto-integrates with vc / workspaces / lsp            |
 | `:ui`         | `workspaces`    | --                         | named buffer sets via persp-mode; auto-creates per-project workspace                                           |
 | `:ui`         | `smooth-scroll` | `+interpolate`             | pixel-precise wheel scrolling via ultra-scroll; +interpolate adds keyboard smoothing                           |
-| `:ui`         | `hl-todo`       | --                         | highlight TODO / FIXME / NOTE / HACK / etc. in comments                                                        |
+| `:ui`         | `hl-todo`       | --                         | highlight TODO / FIXME / NOTE / HACK / etc.; `consult-todo` picker when vertico is on                          |
 
 Full feature docs and override variables for each module live in
 `bin/scratch` (the literate bootstrap template, copied to
@@ -234,6 +234,7 @@ A flavor (full list in `bin/scratch`):
 | `SPC .`                 | find file                                                        |
 | `SPC ,`                 | switch buffer (workspace-restricted when `:ui workspaces` is on) |
 | `SPC /`                 | project-wide search (consult-ripgrep, requires `rg`)             |
+| `SPC a`                 | embark act on candidate / thing at point (also `C-.` globally)   |
 | `SPC TAB`               | last buffer                                                      |
 | `SPC b b/N/k/r/...`     | buffer ops                                                       |
 | `SPC f f/r/s/...`       | file ops                                                         |
@@ -248,6 +249,19 @@ A flavor (full list in `bin/scratch`):
 | `SPC q q/Q`             | quit                                                             |
 
 Plus `M-1` ... `M-9` for native window numbering, `M-0` for the treemacs side panel.
+
+Evil-side niceties beyond stock evil:
+
+| Key | Action |
+|---|---|
+| `gc` / `gcc` | comment operator (motion / current line) -- `gc{motion}`, visual `gc` |
+| `g=` / `g-` | increment / decrement number at point (visual variants count up) |
+| `gs s` / `gs SPC` | avy: jump to 2-char location / type chars until timer fires |
+| `gs c` / `gs l` / `gs w` | avy: jump to char / line / word starting with char |
+| `%` | language-aware jump between matching pair (parens, tags, function start/end) |
+| `ys`/`cs`/`ds` | add / change / delete a surround pair |
+| `cia` / `caa` | change inside / around the function-argument under point |
+| `SPC s t` / `SPC s T` | TODO/FIXME picker (current buffer / project) via consult-todo |
 
 ## Differences from Doom
 

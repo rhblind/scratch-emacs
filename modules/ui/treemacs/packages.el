@@ -2,6 +2,7 @@
 
 (straight-use-package 'treemacs)
 (straight-use-package 'treemacs-nerd-icons)
+(straight-use-package 'treemacs-icons-dired)
 
 (when (modulep! :editor evil +everywhere)
   (straight-use-package 'treemacs-evil))

@@ -1,6 +1,7 @@
 ;;; modules/emacs/vc/packages.el -*- lexical-binding: t; no-byte-compile: t; -*-
 
 (straight-use-package 'magit)
+(straight-use-package 'magit-todos)
 
 (when (modulep! +forge)
   (straight-use-package 'forge))

@@ -47,6 +47,26 @@
         :n "RET"    #'flycheck-error-list-goto-error
         :n [return] #'flycheck-error-list-goto-error))))
 
+;; flycheck-posframe: show error message in a child-frame near point
+;; instead of only in the echo area. Auto-no-ops in TTY frames (no
+;; child-frame support).
+(use-package flycheck-posframe
+  :hook (flycheck-mode . flycheck-posframe-mode)
+  :config
+  ;; Use nerd-icons-style prefixes when icons are available.
+  (setq flycheck-posframe-warning-prefix "! "
+        flycheck-posframe-error-prefix   "x "
+        flycheck-posframe-info-prefix    "i ")
+  ;; Don't show the popup in cases where it'd be disruptive.
+  (when (modulep! :editor evil)
+    (with-eval-after-load 'evil
+      (add-hook 'flycheck-posframe-inhibit-functions #'evil-insert-state-p)
+      (add-hook 'flycheck-posframe-inhibit-functions #'evil-replace-state-p)))
+  ;; Avoid stacking the posframe on top of an active corfu popup.
+  (when (modulep! :completion corfu)
+    (add-hook 'flycheck-posframe-inhibit-functions
+              (lambda () (and (boundp 'corfu--index) (>= corfu--index 0))))))
+
 ;;;; Bindings
 
 ;; Next / prev error work via the standard `next-error' machinery, which
@@ -62,7 +82,12 @@
 (when (modulep! :editor leader)
   (map! :leader
     (:prefix-map ("c" . "code")
-     :desc "list errors"        "x" #'flycheck-list-errors
+     ;; If consult is enabled, route the error-list key through
+     ;; `consult-flycheck' (richer picker / preview). Falls back to
+     ;; flycheck's built-in list otherwise.
+     :desc "list errors"        "x" (if (modulep! :completion vertico)
+                                        #'consult-flycheck
+                                      #'flycheck-list-errors)
      :desc "recheck buffer"     "X" #'flycheck-buffer
      :desc "next error"         "n" #'next-error
      :desc "prev error"         "p" #'previous-error

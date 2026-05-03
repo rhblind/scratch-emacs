@@ -134,9 +134,15 @@ Currently wired integrations to use as references:
 | `:ui treemacs` | `:ui workspaces` | `treemacs-persp` (sets `Perspectives` scope) |
 | `:ui treemacs` | `:tools lsp` | `lsp-treemacs` (loads after `treemacs-nerd-icons`) |
 | `:emacs vc +gutter` | `:emacs vc` (magit) | `magit-post-refresh-hook` -> `diff-hl-magit-post-refresh` |
+| `:emacs vc` | (always) | `magit-todos` adds a TODO/FIXME section to `magit-status` |
 | `:ui smooth-scroll` | `:ui hl-todo`, `diff-hl` | added to `ultra-scroll-hide-functions` |
 | `:ui workspaces` | `project.el` | advice on `project-switch-project` for per-project workspaces |
-| `:completion vertico` | (consult) | replaces leader's `b b` / `f r` with consult variants; `SPC /` -> `consult-ripgrep` |
+| `:ui treemacs` | (always; via dired) | `treemacs-icons-dired` brings the same nerd-icons into dired listings |
+| `:completion vertico` | (consult) | replaces leader's `b b` / `f r` with consult variants; `SPC /` -> `consult-ripgrep`; `embark-consult` for richer collect-mode |
+| `:checkers syntax` | `:completion vertico` | `consult-flycheck` overrides `SPC c x` (consult-driven error picker with preview) |
+| `:checkers syntax` | `:editor evil` | `flycheck-posframe` inhibited in insert / replace state |
+| `:checkers syntax` | `:completion corfu` | `flycheck-posframe` inhibited while a corfu candidate is selected (avoids overlapping popups) |
+| `:ui hl-todo` | `:completion vertico` | `consult-todo` for `SPC s t` (buffer) and `SPC s T` (project-wide) |
 
 Common companion packages to check for when adding a new module:
 

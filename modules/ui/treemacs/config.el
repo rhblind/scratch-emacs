@@ -57,6 +57,11 @@ Set this BEFORE `treemacs' loads.")
   :config
   (treemacs-load-theme "nerd-icons"))
 
+;; treemacs-icons-dired: same icon theme (loaded by treemacs-nerd-icons
+;; above) in `dired' listings.
+(use-package treemacs-icons-dired
+  :hook (dired-mode . treemacs-icons-dired-enable-once))
+
 (when (modulep! :editor evil +everywhere)
   (use-package treemacs-evil
     :defer t

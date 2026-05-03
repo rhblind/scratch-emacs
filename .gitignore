@@ -56,3 +56,4 @@ auto-save/
 .tern-port
 .yas-compiled-snippets.el
 flycheck_*.el
+org-roam.db

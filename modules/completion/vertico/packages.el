@@ -4,3 +4,5 @@
 (straight-use-package 'orderless)
 (straight-use-package 'marginalia)
 (straight-use-package 'consult)
+(straight-use-package 'embark)
+(straight-use-package 'embark-consult)

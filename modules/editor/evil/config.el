@@ -38,3 +38,85 @@
     :after evil
     :config
     (evil-collection-init)))
+
+;; evil-surround: `ys' / `cs' / `ds' to add / change / delete the
+;; surround pair around a text object. Universally expected by anyone
+;; coming from vim's tpope/vim-surround.
+(use-package evil-surround
+  :after evil
+  :config
+  (global-evil-surround-mode 1))
+
+;; evil-numbers: increment / decrement the integer at point. Bound
+;; under `g' to avoid stomping on `C-a' / `C-x' (terminal / tmux). Same
+;; bindings Doom uses by default.
+(use-package evil-numbers
+  :after evil
+  :commands (evil-numbers/inc-at-pt
+             evil-numbers/dec-at-pt
+             evil-numbers/inc-at-pt-incremental
+             evil-numbers/dec-at-pt-incremental)
+  :init
+  (with-eval-after-load 'evil
+    (map! :n "g=" #'evil-numbers/inc-at-pt
+          :n "g-" #'evil-numbers/dec-at-pt
+          :v "g=" #'evil-numbers/inc-at-pt-incremental
+          :v "g-" #'evil-numbers/dec-at-pt-incremental)))
+
+;; evil-nerd-commenter: `gc' as a vim-style comment operator. `gcc'
+;; toggles the current line, `gc{motion}' / `gc` in visual toggles a
+;; region.
+(use-package evil-nerd-commenter
+  :after evil
+  :commands (evilnc-comment-operator
+             evilnc-inner-comment
+             evilnc-outer-commenter)
+  :init
+  (with-eval-after-load 'evil
+    (map! :nv "gc"  #'evilnc-comment-operator)))
+
+;; avy: jump anywhere visible by typing a few characters and selecting
+;; a candidate via single-key picks (e.g. type `gss' then 2 chars,
+;; avy decorates every match with a letter -- press the letter to
+;; jump). Replaces the role evil-snipe used to play, without rebinding
+;; foundational motion keys (`f'/`t'/`,'/`;'/`s' all stay vim-classic).
+(use-package avy
+  :defer t
+  :commands (avy-goto-char
+             avy-goto-char-2
+             avy-goto-char-timer
+             avy-goto-line
+             avy-goto-word-0
+             avy-goto-word-1)
+  :init
+  (setq avy-timeout-seconds 0.3            ; how long the timer variant waits
+        avy-style          'at-full        ; show overlay over the matched chars
+        avy-all-windows    nil))           ; only the selected window by default
+
+;; Bindings outside `use-package' so they install as soon as evil
+;; loads, not deferred until avy itself is required. avy commands are
+;; autoloaded, so the first `gs s' press loads + runs the package.
+(with-eval-after-load 'evil
+  (map! :nv "gs s"   #'avy-goto-char-2
+        :nv "gs SPC" #'avy-goto-char-timer
+        :nv "gs c"   #'avy-goto-char
+        :nv "gs l"   #'avy-goto-line
+        :nv "gs w"   #'avy-goto-word-1
+        :nv "gs W"   #'avy-goto-word-0))
+
+;; evil-matchit: `%' jumps between matching pairs (parens, brackets,
+;; HTML tags, function start/end, language-specific delimiters).
+(use-package evil-matchit
+  :after evil
+  :config
+  (global-evil-matchit-mode 1))
+
+;; evil-args: text object for function arguments. `cia' changes the
+;; argument under point (without the surrounding comma); `caa' changes
+;; with the comma. Bind under `a' in the inner / outer text-object
+;; maps so `ia' / `aa' compose with any operator (`d', `c', `y', ...).
+(use-package evil-args
+  :after evil
+  :config
+  (define-key evil-inner-text-objects-map "a" #'evil-inner-arg)
+  (define-key evil-outer-text-objects-map "a" #'evil-outer-arg))

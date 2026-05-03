@@ -115,6 +115,28 @@
    consult-source-bookmark
    :preview-key "C-SPC"))
 
+;; embark: context-aware actions on completion candidates and at point.
+;; `embark-act' (SPC a or C-.) opens an action menu for whatever's
+;; under point or selected in the minibuffer.
+(use-package embark
+  :defer t
+  :commands (embark-act embark-dwim embark-bindings)
+  :init
+  ;; Use embark's prefix-help variant, which presents prefix maps via
+  ;; completing-read instead of the default text dump.
+  (setq prefix-help-command #'embark-prefix-help-command)
+  :bind
+  (("C-." . embark-act)
+   ("M-." . embark-dwim)
+   ("C-h B" . embark-bindings)))
+
+;; embark-consult bridges embark with consult so previewing /
+;; collecting / exporting consult results gets richer.
+(use-package embark-consult
+  :after (embark consult)
+  :demand t
+  :hook (embark-collect-mode . consult-preview-at-point-mode))
+
 ;;;; Leader bindings (this module owns SPC s, the yank-ring under SPC y,
 ;;;; and upgrades a few of the leader's defaults to the consult variants.)
 
@@ -127,6 +149,8 @@
     :desc "project buffers"    "p b" #'consult-project-buffer
     ;; Doom-style top-level shortcut for project-wide ripgrep search.
     :desc "search project (rg)" "/"  #'consult-ripgrep
+    ;; Embark "act on candidate / thing at point" (Doom default).
+    :desc "embark act"          "a"  #'embark-act
     ;; New SPC s search submenu.
     (:prefix-map ("s" . "search")
      :desc "search buffer"        "s" #'consult-line

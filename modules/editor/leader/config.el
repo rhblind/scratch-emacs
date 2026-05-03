@@ -66,7 +66,8 @@
     :desc "find file"      "."   #'find-file
     :desc "switch buffer"  ","   #'switch-to-buffer
     :desc "list processes" "P"   #'list-processes
-    :desc "last buffer"    "TAB" #'scratch/switch-to-last-buffer)
+    :desc "last buffer"    "TAB" #'scratch/switch-to-last-buffer
+    :desc "*scratch*"      "x"   #'scratch/scratch-buffer)
 
   ;; Per-topic submenus -- auto-discovered. Drop a new `<topic>.el' in
   ;; this directory and it gets loaded automatically. `config.el' (this

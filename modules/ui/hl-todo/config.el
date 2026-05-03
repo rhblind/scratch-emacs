@@ -31,3 +31,16 @@
           ("BUG" error bold)
           ("WARN" warning bold)
           ("XXX" font-lock-constant-face bold))))
+
+;; consult-todo: project-wide TODO picker via consult. Bound under
+;; the search prefix so it lives next to `consult-line', `consult-imenu',
+;; etc. owned by `:completion vertico'.
+(when (modulep! :completion vertico)
+  (use-package consult-todo
+    :defer t
+    :commands (consult-todo consult-todo-project)
+    :init
+    (when (modulep! :editor leader)
+      (map! :leader
+        :desc "search todos (buffer)"  "s t" #'consult-todo
+        :desc "search todos (project)" "s T" #'consult-todo-project))))

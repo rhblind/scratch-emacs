@@ -42,6 +42,15 @@
   (setq magit-diff-refine-hunk t                  ; fine-grained diffs within hunks
         magit-save-repository-buffers 'dontask))  ; auto-save buffers, no prompt
 
+;; magit-todos: surface project TODO / FIXME / HACK / etc. as a
+;; section in `magit-status'. Keyword set is shared with hl-todo.
+(use-package magit-todos
+  :after magit
+  :config
+  (setq magit-todos-keyword-suffix "[: ]"     ; require ":" or " " after keyword
+        magit-todos-max-items 50)
+  (magit-todos-mode 1))
+
 ;; Forge -- GitHub / GitLab integration on top of magit.
 (when (modulep! +forge)
   (use-package forge
