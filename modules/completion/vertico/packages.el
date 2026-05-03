@@ -6,3 +6,6 @@
 (straight-use-package 'consult)
 (straight-use-package 'embark)
 (straight-use-package 'embark-consult)
+;; wgrep makes consult-grep / consult-ripgrep results editable in
+;; place via embark-export -> wgrep-change-to-wgrep-mode.
+(straight-use-package 'wgrep)

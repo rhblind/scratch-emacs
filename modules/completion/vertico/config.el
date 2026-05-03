@@ -37,6 +37,16 @@
   (add-hook 'rfn-eshadow-update-overlay-hook #'vertico-directory-tidy)
   (add-hook 'minibuffer-setup-hook #'vertico-repeat-save)
 
+  ;; Page-by-page scrolling (vim/less style); vertico's own
+  ;; `vertico-scroll-up' moves UP toward older candidates -- inverted
+  ;; from the user's mental model where C-d goes "down the list",
+  ;; so we swap them.
+  (define-key vertico-map (kbd "C-u") #'vertico-scroll-down)
+  (define-key vertico-map (kbd "C-d") #'vertico-scroll-up)
+  ;; M-RET: accept whatever's typed, even if it doesn't match a
+  ;; candidate (useful when typing a new project / file path).
+  (define-key vertico-map (kbd "M-RET") #'vertico-exit-input)
+
   ;; evil-collection-vertico already binds C-n/C-p (insert) and j/k/gg/G/gj/gk
   ;; (normal). Add C-j/C-k aliases on top, plus group-jump and file-aware
   ;; C-h/C-l. Bind via evil-collection-define-key for proper state precedence.
@@ -136,6 +146,52 @@
   :after (embark consult)
   :demand t
   :hook (embark-collect-mode . consult-preview-at-point-mode))
+
+;; wgrep makes consult-grep / consult-ripgrep results editable in
+;; place: after `embark-export', `wgrep-change-to-wgrep-mode' makes
+;; the buffer writable; edit lines, `C-c C-c' applies edits to the
+;; underlying files in batch.
+(use-package wgrep
+  :commands wgrep-change-to-wgrep-mode
+  :config
+  (setq wgrep-auto-save-buffer t))
+
+;; Smart "export to writable buffer": picks wgrep / wdired / occur-edit
+;; based on the candidate type. Bound to `C-c e' inside the minibuffer.
+;; Ported from Doom's `+vertico/embark-export-write'.
+(defun scratch/vertico-embark-export-write ()
+  "Export the current vertico results to a writable buffer.
+Routes to:
+  - `wgrep-change-to-wgrep-mode'    for `consult-grep' results
+  - `wdired-change-to-wdired-mode'  for file lists
+  - `occur-edit-mode'               for `consult-location' (line) results"
+  (interactive)
+  (require 'embark)
+  (require 'wgrep)
+  (let* ((edit-command
+          (pcase-let ((`(,type . ,_)
+                       (run-hook-with-args-until-success 'embark-candidate-collectors)))
+            (pcase type
+              ('consult-grep     #'wgrep-change-to-wgrep-mode)
+              ('file             #'wdired-change-to-wdired-mode)
+              ('consult-location #'occur-edit-mode)
+              (other (user-error "Embark category %S doesn't support writable export" other)))))
+         (embark-after-export-hook (cons edit-command embark-after-export-hook)))
+    (embark-export)))
+
+;; Minibuffer-side embark bindings (Doom-shaped):
+;;   C-c C-o  embark-export       (snapshot to *Embark Export*)
+;;   C-c C-e  smart export-write  (wgrep / wdired / occur-edit dispatcher)
+;;   C-c C-l  embark-collect      (snapshot to a live *Embark Collect* buffer)
+;;
+;; Bound at top level (not under `with-eval-after-load embark') so the
+;; keys exist in `minibuffer-local-map' from startup -- which-key can
+;; then show the `C-c' prefix popup the moment you press `C-c' inside
+;; a consult picker, even before embark has been loaded. The targets
+;; are autoloaded; they pull in embark on first invocation.
+(define-key minibuffer-local-map (kbd "C-c C-o") #'embark-export)
+(define-key minibuffer-local-map (kbd "C-c C-e") #'scratch/vertico-embark-export-write)
+(define-key minibuffer-local-map (kbd "C-c C-l") #'embark-collect)
 
 ;;;; Leader bindings (this module owns SPC s, the yank-ring under SPC y,
 ;;;; and upgrades a few of the leader's defaults to the consult variants.)

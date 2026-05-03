@@ -76,6 +76,13 @@ Set to nil or 1.0 to keep org at the global font size. Override by
         org-appear-autosubmarkers t     ; sub_script, super^script
         org-appear-autolinks      nil)) ; leave [[link][text]] folded
 
+;; Auto-pair `<<...>>' (org radio-target syntax) when smartparens is
+;; enabled. Insert-only -- doesn't try to wrap regions or balance on
+;; delete, so non-target uses of `<' aren't disturbed.
+(when (modulep! :editor smartparens)
+  (with-eval-after-load 'smartparens
+    (sp-local-pair '(org-mode) "<<" ">>" :actions '(insert))))
+
 ;; org-cliplink: insert the URL on the kill ring as an org link with
 ;; the page's title fetched live. Useful inside captures where you've
 ;; just yanked a URL from the browser. Override `transport-implementation'

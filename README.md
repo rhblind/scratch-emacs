@@ -101,26 +101,35 @@ package: bump the version locally, then `scratch freeze` to record it.
 The default `(scratch! ...)` call enables these modules. Comment any
 you don't want, then run `scratch sync`.
 
-| Category      | Module          | Flags                      | Summary                                                                                                                      |
-|---------------|-----------------|----------------------------|------------------------------------------------------------------------------------------------------------------------------|
-| `:editor`     | `evil`          | `+everywhere`              | vim emulation + evil-surround / evil-numbers / evil-nerd-commenter / evil-matchit / evil-args + avy                          |
-| `:editor`     | `leader`        | --                         | `SPC` leader, which-key, `general.el`, `map!` macro                                                                          |
-| `:completion` | `vertico`       | --                         | vertical minibuffer + orderless + marginalia + consult + embark                                                              |
-| `:completion` | `corfu`         | --                         | in-buffer popup completion + cape + nerd-icons + corfu-terminal                                                              |
-| `:emacs`      | `vc`            | `+forge`, `+gutter`        | magit + magit-todos, browse-at-remote, git-timemachine, smerge auto-enable; +forge for GH/GL issues+PRs; +gutter for diff-hl |
-| `:checkers`   | `syntax`        | --                         | `flycheck` global + `flycheck-posframe` tooltips; uses `consult-flycheck` when vertico is enabled                            |
-| `:lang`       | `org`           | `+roam`                    | `org-modern` + `org-appear` + `org-cliplink` + `org-download`, scaled headings, hidden emphasis markers; +roam adds org-roam |
-| `:lang`       | `markdown`      | --                         | `markdown-mode` with native code-block highlighting + scaled headings; tables / pre / HRs stay fixed-pitch in mixed-pitch    |
-| `:term`       | `vterm`         | --                         | libvterm-backed terminal; project-aware `SPC o t` toggle popup + `SPC o T` here; needs `cmake` + `libtool` + `libvterm`      |
-| `:os`         | `macos`         | --                         | undecorated frame, `Cmd-=/-/0` text scale, native pop-up handling                                                            |
-| `:ui`         | `theme`         | `+auto`, `+light`, `+dark` | modus-themes; +auto follows OS appearance via `auto-dark`                                                                    |
-| `:ui`         | `modeline`      | --                         | doom-modeline with theme-aware refresh                                                                                       |
-| `:ui`         | `fonts`         | --                         | sane default heights for default / fixed-pitch / variable-pitch + `mixed-pitch-mode` in prose buffers                        |
-| `:ui`         | `treemacs`      | --                         | side-pane file tree (also brings nerd-icons into dired); auto-integrates with vc / workspaces / lsp                          |
-| `:ui`         | `workspaces`    | --                         | named buffer sets via persp-mode; auto-creates per-project workspace                                                         |
-| `:ui`         | `smooth-scroll` | `+interpolate`             | pixel-precise wheel scrolling via ultra-scroll; +interpolate adds keyboard smoothing                                         |
-| `:ui`         | `hl-todo`       | --                         | highlight TODO / FIXME / NOTE / HACK / etc.; `consult-todo` picker when vertico is on                                        |
-| `:ui`         | `info-colors`   | --                         | colorize headings / refs / keys in Info manual pages                                                                         |
+| Category      | Module               | Flags                      | Summary                                                                                                                      |
+|---------------|----------------------|----------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| `:editor`     | `evil`               | `+everywhere`              | vim emulation + evil-surround / evil-numbers / evil-nerd-commenter / evil-matchit / evil-args + avy                          |
+| `:editor`     | `leader`             | --                         | `SPC` leader, which-key, `general.el`, `map!` macro                                                                          |
+| `:editor`     | `smartparens`        | --                         | structured editing for `()` / `[]` / `{}` / quotes / tags via `smartparens-global-mode` (auto-pair, navigate, slurp/barf)    |
+| `:editor`     | `ws-butler`          | --                         | trim trailing whitespace on save, but only on lines you've edited this session                                               |
+| `:editor`     | `drag-stuff`         | --                         | move line / region with `M-↑` / `M-↓`, words with `M-←` / `M-→`                                                              |
+| `:editor`     | `tree-sitter`        | --                         | `treesit-auto` discovers installed grammars and remaps to `<lang>-ts-mode`; pre-computed lang list to keep file-open snappy  |
+| `:editor`     | `vlf`                | --                         | very-large-file support (multi-GB files load in chunks); lazy, no overhead until needed                                      |
+| `:editor`     | `symbol-overlay`     | --                         | `M-i` highlight every occurrence of symbol at point; `M-n`/`M-p` jump between them                                           |
+| `:editor`     | `outshine`           | --                         | org-style folding / nav in non-org modes (`;;; foo` headings in elisp etc.) via `outline-minor-mode`                         |
+| `:completion` | `vertico`            | --                         | vertical minibuffer + orderless + marginalia + consult + embark                                                              |
+| `:completion` | `corfu`              | --                         | in-buffer popup completion + cape + nerd-icons + corfu-terminal                                                              |
+| `:emacs`      | `vc`                 | `+forge`, `+gutter`        | magit + magit-todos, browse-at-remote, git-timemachine, smerge auto-enable; +forge for GH/GL issues+PRs; +gutter for diff-hl |
+| `:checkers`   | `syntax`             | --                         | `flycheck` global + `flycheck-posframe` tooltips; uses `consult-flycheck` when vertico is enabled                            |
+| `:lang`       | `org`                | `+roam`                    | `org-modern` + `org-appear` + `org-cliplink` + `org-download`, scaled headings, hidden emphasis markers; +roam adds org-roam |
+| `:lang`       | `markdown`           | --                         | `markdown-mode` with native code-block highlighting + scaled headings; tables / pre / HRs stay fixed-pitch in mixed-pitch    |
+| `:term`       | `vterm`              | --                         | libvterm-backed terminal; project-aware `SPC o t` toggle popup + `SPC o T` here; needs `cmake` + `libtool` + `libvterm`      |
+| `:os`         | `macos`              | --                         | undecorated frame, `Cmd-=/-/0` text scale, native pop-up handling                                                            |
+| `:ui`         | `theme`              | `+auto`, `+light`, `+dark` | modus-themes; +auto follows OS appearance via `auto-dark`                                                                    |
+| `:ui`         | `modeline`           | --                         | doom-modeline with theme-aware refresh                                                                                       |
+| `:ui`         | `fonts`              | --                         | sane default heights for default / fixed-pitch / variable-pitch + `mixed-pitch-mode` in prose buffers                        |
+| `:ui`         | `treemacs`           | --                         | side-pane file tree (also brings nerd-icons into dired); auto-integrates with vc / workspaces / lsp                          |
+| `:ui`         | `workspaces`         | --                         | named buffer sets via persp-mode; auto-creates per-project workspace                                                         |
+| `:ui`         | `smooth-scroll`      | `+interpolate`             | pixel-precise wheel scrolling via ultra-scroll; +interpolate adds keyboard smoothing                                         |
+| `:ui`         | `hl-todo`            | --                         | highlight TODO / FIXME / NOTE / HACK / etc.; `consult-todo` picker when vertico is on                                        |
+| `:ui`         | `info-colors`        | --                         | colorize headings / refs / keys in Info manual pages                                                                         |
+| `:ui`         | `rainbow`            | --                         | `rainbow-mode` paints CSS color literals (`#ff7f50` etc.) with their actual color in CSS / web / lisp / conf buffers         |
+| `:ui`         | `default-text-scale` | --                         | `C-M-=` / `C-M--` / `C-M-0` zooms every buffer in lockstep (cross-platform; `:os macos` already binds per-buffer Cmd-=)      |
 
 Full feature docs and override variables for each module live in
 `bin/scratch` (the literate bootstrap template, copied to
@@ -134,13 +143,15 @@ Open `~/.scratch.d/config.org` in Emacs and edit. Three blocks matter:
 * Packages
 
 #+begin_src emacs-lisp :tangle packages.el
-(scratch! :editor     (evil +everywhere) leader
+(scratch! :editor     (evil +everywhere) leader smartparens
+                      ws-butler drag-stuff tree-sitter vlf
+                      symbol-overlay outshine
           :completion vertico corfu
           :emacs      (vc +forge +gutter)
           :checkers   syntax
           :lang       org
           :os         macos
-          :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors)
+          :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors rainbow default-text-scale)
 #+end_src
 ```
 
@@ -197,7 +208,7 @@ Swap in any other theme package by installing it eagerly in
 
 (scratch! :editor (evil +everywhere) leader
           ;; ... rest of your modules ...
-          :ui     theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors)
+          :ui     theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors rainbow default-text-scale)
 #+end_src
 ```
 
@@ -257,16 +268,16 @@ Plus `M-1` ... `M-9` for native window numbering, `M-0` for the treemacs side pa
 
 Evil-side niceties beyond stock evil:
 
-| Key | Action |
-|---|---|
-| `gc` / `gcc` | comment operator (motion / current line) -- `gc{motion}`, visual `gc` |
-| `g=` / `g-` | increment / decrement number at point (visual variants count up) |
-| `gs s` / `gs SPC` | avy: jump to 2-char location / type chars until timer fires |
-| `gs c` / `gs l` / `gs w` | avy: jump to char / line / word starting with char |
-| `%` | language-aware jump between matching pair (parens, tags, function start/end) |
-| `ys`/`cs`/`ds` | add / change / delete a surround pair |
-| `cia` / `caa` | change inside / around the function-argument under point |
-| `SPC s t` / `SPC s T` | TODO/FIXME picker (current buffer / project) via consult-todo |
+| Key                      | Action                                                                       |
+|--------------------------|------------------------------------------------------------------------------|
+| `gc` / `gcc`             | comment operator (motion / current line) -- `gc{motion}`, visual `gc`        |
+| `g=` / `g-`              | increment / decrement number at point (visual variants count up)             |
+| `gs s` / `gs SPC`        | avy: jump to 2-char location / type chars until timer fires                  |
+| `gs c` / `gs l` / `gs w` | avy: jump to char / line / word starting with char                           |
+| `%`                      | language-aware jump between matching pair (parens, tags, function start/end) |
+| `ys`/`cs`/`ds`           | add / change / delete a surround pair                                        |
+| `cia` / `caa`            | change inside / around the function-argument under point                     |
+| `SPC s t` / `SPC s T`    | TODO/FIXME picker (current buffer / project) via consult-todo                |
 
 ## Differences from Doom
 
