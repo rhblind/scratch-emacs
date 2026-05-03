@@ -56,7 +56,12 @@
         (kbd "C-j")   'vertico-next
         (kbd "C-k")   'vertico-previous
         (kbd "C-M-j") 'vertico-next-group
-        (kbd "C-M-k") 'vertico-previous-group)
+        (kbd "C-M-k") 'vertico-previous-group
+        ;; Page scroll: evil-collection only wires C-u/C-d in normal
+        ;; state, but vertico minibuffers are in insert state. Bind
+        ;; them here so page-up / page-down work while typing.
+        (kbd "C-u")   'vertico-scroll-down
+        (kbd "C-d")   'vertico-scroll-up)
       (evil-collection-define-key 'insert 'vertico-map
         (kbd "C-h")
         (lambda ()
