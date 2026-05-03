@@ -22,6 +22,16 @@
 
 (add-to-list 'load-path scratch-lisp-dir)
 
+;;; Shell-environment snapshot. `<user-emacs-directory>/env' is generated
+;;; by the `scratch env' CLI command and contains a `read'-able list of
+;;; `KEY=VALUE' strings captured from the user's shell. Loaded BEFORE
+;;; straight (so git / curl / dotnet are findable on PATH) and BEFORE
+;;; modules (so LSP servers, formatters, ripgrep are findable). Skip
+;;; gracefully when absent -- env capture is opt-in.
+(require 'scratch-env)
+(scratch-load-envvars-file
+ (expand-file-name "env" user-emacs-directory) 'noerror)
+
 ;;; straight.el bootstrap (https://github.com/radian-software/straight.el)
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -73,7 +83,9 @@
 (require 'scratch-defaults)   ; recentf, savehist, save-place, file/format defaults
 (require 'scratch-keys)       ; general + the `map!' macro (framework-wide)
 (require 'scratch-buffer)     ; buffer helpers (scratch/scratch-buffer, ...)
+(require 'scratch-code)       ; prog-mode dispatchers (format, ...)
 (require 'scratch-window)     ; window numbering + M-N bindings
+(require 'scratch-treesit)    ; `scratch-treesit-want' (consumed by :editor tree-sitter)
 
 ;;; Literate user config: tangle $SCRATCHDIR/config.org -> config.el +
 ;;; packages.el on demand, then load the tangled output.

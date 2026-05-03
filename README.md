@@ -1,9 +1,8 @@
-# scratch
+# Scratch Emacs
 
 A light-weight, [Doom](https://github.com/doomemacs/doomemacs)-inspired
-Emacs configuration framework. Personal, opinionated, and meant to live
-side-by-side with a Doom profile via
-[chemacs2](https://github.com/plexus/chemacs2).
+Emacs configuration framework. Personal and opinionated, meant to be used
+primarliy by my for my own entertainment.
 
 ## Why this exists
 
@@ -15,12 +14,9 @@ is a minimal alternative that keeps the parts I like:
 - A leader / localleader workflow that feels like home.
 - A literate user config that tangles to elisp.
 
-And drops the rest. The framework is ~500 lines of elisp; modules are
-each a few dozen lines on top of well-maintained packages.
-
 This is a personal project. It evolves with my own preferences. Use it
 as a reference if useful, fork it if you want, but expect breaking
-changes whenever I feel like it.
+changes at any point.
 
 ## Requirements
 
@@ -41,7 +37,7 @@ The repo is the framework. The user config lives elsewhere
 
 ### As a side-by-side profile with chemacs2
 
-If you already have a Doom config and want to keep it as the default:
+If you already have another emacs config and want to keep it as the default:
 
 ```bash
 git clone https://github.com/<you>/emacs-scratch ~/.config/emacs-scratch
@@ -51,7 +47,7 @@ git clone https://github.com/<you>/emacs-scratch ~/.config/emacs-scratch
 Then in `~/.emacs-profiles.el`:
 
 ```elisp
-(("default" . ((user-emacs-directory . "~/.config/emacs-doom")))
+(("default" . ((user-emacs-directory . "~/.config/emacs")))
  ("scratch" . ((user-emacs-directory . "~/.config/emacs-scratch")
                (env . (("SCRATCHDIR" . "~/.scratch.d/"))))))
 ```
@@ -96,40 +92,65 @@ Commit the changed `straight/versions/default.el` alongside the
 package addition. Same workflow when you intentionally upgrade a
 package: bump the version locally, then `scratch freeze` to record it.
 
+### Shell environment for GUI Emacs
+
+GUI Emacs (Dock / Finder / launchd, also Linux app launchers) doesn't
+inherit your shell environment, so `PATH` additions you made in
+`.zshrc` / `.zprofile` (Homebrew, `~/.local/bin`, asdf, mise, ...) go
+missing. That breaks LSP server lookup, formatters, ripgrep, and so on.
+
+```bash
+~/.config/emacs-scratch/bin/scratch env
+```
+
+Snapshots the current shell environment to `<emacs-dir>/env`. The file
+is loaded by `init.el` before any module so subprocesses inherit the
+same `PATH` / `MANPATH` / language-version vars as a terminal-launched
+Emacs. Run from the same shell whose env you want captured; re-run
+after editing your shell rc files. `scratch env clear` removes it.
+
+The snapshot is filtered through a blocklist (volatile vars: PWD,
+SSH sockets, X11/Wayland session IDs, etc.). Override with
+`-a/--allow REGEXP` to force-include or `-b/--block REGEXP` to
+exclude additional vars.
+
 ## What's in the box
 
 The default `(scratch! ...)` call enables these modules. Comment any
 you don't want, then run `scratch sync`.
 
-| Category      | Module               | Flags                      | Summary                                                                                                                      |
-|---------------|----------------------|----------------------------|------------------------------------------------------------------------------------------------------------------------------|
-| `:editor`     | `evil`               | `+everywhere`              | vim emulation + evil-surround / evil-numbers / evil-nerd-commenter / evil-matchit / evil-args + avy                          |
-| `:editor`     | `leader`             | --                         | `SPC` leader, which-key, `general.el`, `map!` macro                                                                          |
-| `:editor`     | `smartparens`        | --                         | structured editing for `()` / `[]` / `{}` / quotes / tags via `smartparens-global-mode` (auto-pair, navigate, slurp/barf)    |
-| `:editor`     | `ws-butler`          | --                         | trim trailing whitespace on save, but only on lines you've edited this session                                               |
-| `:editor`     | `drag-stuff`         | --                         | move line / region with `M-↑` / `M-↓`, words with `M-←` / `M-→`                                                              |
-| `:editor`     | `tree-sitter`        | --                         | `treesit-auto` discovers installed grammars and remaps to `<lang>-ts-mode`; pre-computed lang list to keep file-open snappy  |
-| `:editor`     | `vlf`                | --                         | very-large-file support (multi-GB files load in chunks); lazy, no overhead until needed                                      |
-| `:editor`     | `symbol-overlay`     | --                         | `M-i` highlight every occurrence of symbol at point; `M-n`/`M-p` jump between them                                           |
-| `:editor`     | `outshine`           | --                         | org-style folding / nav in non-org modes (`;;; foo` headings in elisp etc.) via `outline-minor-mode`                         |
-| `:completion` | `vertico`            | --                         | vertical minibuffer + orderless + marginalia + consult + embark                                                              |
-| `:completion` | `corfu`              | --                         | in-buffer popup completion + cape + nerd-icons + corfu-terminal                                                              |
-| `:emacs`      | `vc`                 | `+forge`, `+gutter`        | magit + magit-todos, browse-at-remote, git-timemachine, smerge auto-enable; +forge for GH/GL issues+PRs; +gutter for diff-hl |
-| `:checkers`   | `syntax`             | --                         | `flycheck` global + `flycheck-posframe` tooltips; uses `consult-flycheck` when vertico is enabled                            |
-| `:lang`       | `org`                | `+roam`                    | `org-modern` + `org-appear` + `org-cliplink` + `org-download`, scaled headings, hidden emphasis markers; +roam adds org-roam |
-| `:lang`       | `markdown`           | --                         | `markdown-mode` with native code-block highlighting + scaled headings; tables / pre / HRs stay fixed-pitch in mixed-pitch    |
-| `:term`       | `vterm`              | --                         | libvterm-backed terminal; project-aware `SPC o t` toggle popup + `SPC o T` here; needs `cmake` + `libtool` + `libvterm`      |
-| `:os`         | `macos`              | --                         | undecorated frame, `Cmd-=/-/0` text scale, native pop-up handling                                                            |
-| `:ui`         | `theme`              | `+auto`, `+light`, `+dark` | modus-themes; +auto follows OS appearance via `auto-dark`                                                                    |
-| `:ui`         | `modeline`           | --                         | doom-modeline with theme-aware refresh                                                                                       |
-| `:ui`         | `fonts`              | --                         | sane default heights for default / fixed-pitch / variable-pitch + `mixed-pitch-mode` in prose buffers                        |
-| `:ui`         | `treemacs`           | --                         | side-pane file tree (also brings nerd-icons into dired); auto-integrates with vc / workspaces / lsp                          |
-| `:ui`         | `workspaces`         | --                         | named buffer sets via persp-mode; auto-creates per-project workspace                                                         |
-| `:ui`         | `smooth-scroll`      | `+interpolate`             | pixel-precise wheel scrolling via ultra-scroll; +interpolate adds keyboard smoothing                                         |
-| `:ui`         | `hl-todo`            | --                         | highlight TODO / FIXME / NOTE / HACK / etc.; `consult-todo` picker when vertico is on                                        |
-| `:ui`         | `info-colors`        | --                         | colorize headings / refs / keys in Info manual pages                                                                         |
-| `:ui`         | `rainbow`            | --                         | `rainbow-mode` paints CSS color literals (`#ff7f50` etc.) with their actual color in CSS / web / lisp / conf buffers         |
-| `:ui`         | `default-text-scale` | --                         | `C-M-=` / `C-M--` / `C-M-0` zooms every buffer in lockstep (cross-platform; `:os macos` already binds per-buffer Cmd-=)      |
+| Category      | Module               | Flags                      | Summary                                                                                                                                                                                                                                                                            |
+|---------------|----------------------|----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `:editor`     | `evil`               | `+everywhere`              | vim emulation + evil-surround / evil-numbers / evil-nerd-commenter / evil-matchit / evil-args + avy                                                                                                                                                                                |
+| `:editor`     | `leader`             | --                         | `SPC` leader, which-key, `general.el`, `map!` macro                                                                                                                                                                                                                                |
+| `:editor`     | `smartparens`        | --                         | structured editing for `()` / `[]` / `{}` / quotes / tags via `smartparens-global-mode` (auto-pair, navigate, slurp/barf)                                                                                                                                                          |
+| `:editor`     | `ws-butler`          | --                         | trim trailing whitespace on save, but only on lines you've edited this session                                                                                                                                                                                                     |
+| `:editor`     | `drag-stuff`         | --                         | move line / region with `M-↑` / `M-↓`, words with `M-←` / `M-→`                                                                                                                                                                                                                    |
+| `:editor`     | `tree-sitter`        | --                         | `treesit-auto` discovers installed grammars and remaps to `<lang>-ts-mode`; pre-computed lang list to keep file-open snappy                                                                                                                                                        |
+| `:editor`     | `vlf`                | --                         | very-large-file support (multi-GB files load in chunks); lazy, no overhead until needed                                                                                                                                                                                            |
+| `:editor`     | `symbol-overlay`     | --                         | `M-i` highlight every occurrence of symbol at point; `M-n`/`M-p` jump between them                                                                                                                                                                                                 |
+| `:editor`     | `outshine`           | --                         | org-style folding / nav in non-org modes (`;;; foo` headings in elisp etc.) via `outline-minor-mode`                                                                                                                                                                               |
+| `:editor`     | `snippets`           | --                         | `yasnippet` + `yasnippet-snippets` (built-in collection); user snippets under `$SCRATCHDIR/snippets/`; `consult-yasnippet` picker (vertico); `SPC i s/S/e/r` leader bindings                                                                                                       |
+| `:completion` | `vertico`            | --                         | vertical minibuffer + orderless + marginalia + consult + embark                                                                                                                                                                                                                    |
+| `:completion` | `corfu`              | --                         | in-buffer popup completion + cape + nerd-icons + corfu-terminal                                                                                                                                                                                                                    |
+| `:emacs`      | `vc`                 | `+forge`, `+gutter`        | magit + magit-todos, browse-at-remote, git-timemachine, smerge auto-enable; +forge for GH/GL issues+PRs; +gutter for diff-hl                                                                                                                                                       |
+| `:checkers`   | `syntax`             | --                         | `flycheck` global + `flycheck-posframe` tooltips; uses `consult-flycheck` when vertico is enabled                                                                                                                                                                                  |
+| `:lang`       | `org`                | `+roam`                    | `org-modern` + `org-appear` + `org-cliplink` + `org-download`, scaled headings, hidden emphasis markers; +roam adds org-roam                                                                                                                                                       |
+| `:lang`       | `markdown`           | --                         | `markdown-mode` with native code-block highlighting + scaled headings; tables / pre / HRs stay fixed-pitch in mixed-pitch                                                                                                                                                          |
+| `:lang`       | `csharp`             | --                         | `csharp-ts-mode` for `.cs` (when grammar is installed; falls back to `csharp-mode`), `dotnet` build/run/test minor mode + `,` localleader, `.csproj`/`.props`/`.targets` as XML; project-local `csharp-ls` auto-detected; auto-LSP via `:tools lsp`                                |
+| `:tools`      | `lsp`                | `+peek`                    | `lsp-mode` + `lsp-ui` + `consult-lsp` (vertico) + `lsp-treemacs` (treemacs); `scratch-lsp-auto-modes` auto-attaches per language; `SPC c` bindings; performance tuned: 1 MB read buffer, 64 MB GC during sessions, deferred shutdown, no JSON-RPC log, raised file-watch threshold; `+peek` routes `c d/D/i/S` through `lsp-ui-peek` |
+| `:term`       | `vterm`              | --                         | libvterm-backed terminal; project-aware `SPC o t` toggle popup + `SPC o T` here; needs `cmake` + `libtool` + `libvterm`                                                                                                                                                            |
+| `:os`         | `macos`              | --                         | undecorated frame, `Cmd-=/-/0` text scale, native pop-up handling                                                                                                                                                                                                                  |
+| `:ui`         | `theme`              | `+auto`, `+light`, `+dark` | modus-themes; +auto follows OS appearance via `auto-dark`                                                                                                                                                                                                                          |
+| `:ui`         | `modeline`           | --                         | doom-modeline with theme-aware refresh                                                                                                                                                                                                                                             |
+| `:ui`         | `fonts`              | --                         | sane default heights for default / fixed-pitch / variable-pitch + `mixed-pitch-mode` in prose buffers                                                                                                                                                                              |
+| `:ui`         | `treemacs`           | --                         | side-pane file tree (also brings nerd-icons into dired); auto-integrates with vc / workspaces / lsp                                                                                                                                                                                |
+| `:ui`         | `workspaces`         | --                         | named buffer sets via persp-mode; auto-creates per-project workspace                                                                                                                                                                                                               |
+| `:ui`         | `smooth-scroll`      | `+interpolate`             | pixel-precise wheel scrolling via ultra-scroll; +interpolate adds keyboard smoothing                                                                                                                                                                                               |
+| `:ui`         | `hl-todo`            | --                         | highlight TODO / FIXME / NOTE / HACK / etc.; `consult-todo` picker when vertico is on                                                                                                                                                                                              |
+| `:ui`         | `info-colors`        | --                         | colorize headings / refs / keys in Info manual pages                                                                                                                                                                                                                               |
+| `:ui`         | `rainbow`            | --                         | `rainbow-mode` paints CSS color literals (`#ff7f50` etc.) with their actual color in CSS / web / lisp / conf buffers                                                                                                                                                               |
+| `:ui`         | `default-text-scale` | --                         | `C-M-=` / `C-M--` / `C-M-0` zooms every buffer in lockstep (cross-platform; `:os macos` already binds per-buffer Cmd-=)                                                                                                                                                            |
 
 Full feature docs and override variables for each module live in
 `bin/scratch` (the literate bootstrap template, copied to
@@ -145,11 +166,12 @@ Open `~/.scratch.d/config.org` in Emacs and edit. Three blocks matter:
 #+begin_src emacs-lisp :tangle packages.el
 (scratch! :editor     (evil +everywhere) leader smartparens
                       ws-butler drag-stuff tree-sitter vlf
-                      symbol-overlay outshine
+                      symbol-overlay outshine snippets
           :completion vertico corfu
           :emacs      (vc +forge +gutter)
           :checkers   syntax
-          :lang       org
+          :tools      lsp
+          :lang       org markdown csharp
           :os         macos
           :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors rainbow default-text-scale)
 #+end_src
@@ -258,7 +280,13 @@ A flavor (full list in `bin/scratch`):
 | `SPC p p/f/b/D/A/...`   | project ops + projectile-style discovery layer                   |
 | `SPC g g/d/l/L/b/h/...` | git (magit, browse-at-remote, hunk submenu)                      |
 | `SPC h f/v/k/...`       | help                                                             |
-| `SPC c x/X/n/p/...`     | code (flycheck)                                                  |
+| `SPC c c/C`             | compile / recompile                                              |
+| `SPC c d/D/i/t/k/K`     | jump to def / refs / impl / type def / describe / ui-doc popup   |
+| `SPC c a/r/o`           | code action / rename / organize imports (lsp)                    |
+| `SPC c f/F/w/W`         | format buffer / region / trim trailing ws / trim trailing nl     |
+| `SPC c j/J/s/X`         | workspace symbols / all-workspaces / file symbols / diagnostics  |
+| `SPC c l ...`           | full lsp-command-map (workspaces / folders / toggles / peeks)    |
+| `SPC c x/n/p/e`         | flycheck list / next / prev / explain                            |
 | `SPC l l/./n/r/d/...`   | workspace                                                        |
 | `SPC o p/P`             | open project tree (treemacs)                                     |
 | `SPC s ...`             | consult search commands                                          |

@@ -12,6 +12,8 @@
 
 ;;; scratch -- CLI for the scratch Emacs framework.
 
+(require 'cl-lib)
+
 ;;; Bookkeeping ---------------------------------------------------------------
 
 (defvar scratch-cli--script-path
@@ -66,6 +68,23 @@
    "package or intentionally upgrading one, run ~scratch freeze~ to refresh\n"
    "the lockfile, then commit it.\n"
    "\n"
+   "** Shell env (GUI Emacs)\n"
+   "GUI Emacs (Dock / Finder / launchd, also Linux app launchers) doesn't\n"
+   "inherit your shell environment, so PATH additions in ~.zshrc~ / ~.zprofile~\n"
+   "(Homebrew, ~~/.local/bin~, asdf, mise, ...) go missing -- which breaks\n"
+   "LSP server lookup, formatters, ripgrep, and so on. Run:\n"
+   "\n"
+   "#+begin_src sh :tangle no\n"
+   "scratch env\n"
+   "#+end_src\n"
+   "\n"
+   "from a terminal in the shell whose env you want captured. The snapshot\n"
+   "lives at ~<emacs-dir>/env~ and is loaded by ~init.el~ before any module.\n"
+   "Re-run after editing your shell rc files. ~scratch env clear~ removes it.\n"
+   "Filter with ~-a/--allow REGEXP~ (force include) and ~-b/--block REGEXP~\n"
+   "(exclude). The default blocklist drops volatile vars (PWD, SSH sockets,\n"
+   "X11/Wayland session IDs, ...).\n"
+   "\n"
    "* Module system\n"
    "Modules live under ~modules/<category>/<name>/~ in the framework dir\n"
    "(~~/.config/emacs-scratch/~) or under the same path in this user dir;\n"
@@ -83,11 +102,12 @@
    "#+begin_src emacs-lisp :tangle no\n"
    "(scratch! :editor     (evil +everywhere) leader smartparens\n"
    "                      ws-butler drag-stuff tree-sitter vlf\n"
-   "                      symbol-overlay outshine\n"
+   "                      symbol-overlay outshine snippets\n"
    "          :completion vertico corfu\n"
    "          :emacs      (vc +forge +gutter)\n"
    "          :checkers   syntax\n"
-   "          :lang       org markdown\n"
+   "          :tools      lsp\n"
+   "          :lang       org markdown csharp\n"
    "          :term       vterm\n"
    "          :os         macos\n"
    "          :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors rainbow default-text-scale)\n"
@@ -393,6 +413,118 @@
    "to fixed-pitch so tables and HRs keep their alignment under\n"
    "~mixed-pitch-mode~. No flags.\n"
    "\n"
+   "*** :tools lsp -- language servers via lsp-mode\n"
+   "[[https://emacs-lsp.github.io/lsp-mode/][lsp-mode]] + [[https://emacs-lsp.github.io/lsp-ui/][lsp-ui]] (sideline / docs / peek), opt-in [[https://github.com/gagbo/consult-lsp][consult-lsp]] when\n"
+   "~:completion vertico~ is enabled, and a small set of Doom-shaped sanity\n"
+   "defaults (~lsp-keep-workspace-alive nil~, no on-type-formatting,\n"
+   "no headerline breadcrumb, signature popup opt-in, plist data shape\n"
+   "for speed).\n"
+   "\n"
+   "Performance defaults adapted from Doom's `+lsp-optimization-mode':\n"
+   "while a workspace is alive, ~read-process-output-max~ rises to 1 MB\n"
+   "(vs the OS's 4 KB default) so JSON-RPC replies arrive in one read,\n"
+   "and ~gc-cons-threshold~ rises to 64 MB so a full GC doesn't fire\n"
+   "mid-completion. Both restore on the last workspace shutdown. Server\n"
+   "shutdown is deferred ~scratch-lsp-defer-shutdown~ seconds (default 3)\n"
+   "so a quick ~revert-buffer~ doesn't pay the full restart cost. The\n"
+   "JSON-RPC log is off (~lsp-log-io nil~); flip it with ~M-x lsp-toggle-\n"
+   "trace-io~ when debugging. ~lsp-file-watch-threshold~ is raised to 1M;\n"
+   "~:lang~ modules ship per-language `lsp-file-watch-ignored-directories'\n"
+   "additions for build artifacts (~bin~/~obj~/~packages~ etc. in csharp).\n"
+   "\n"
+   "Completion: when ~:completion corfu~ is enabled, the framework sets\n"
+   "~lsp-completion-provider :none~ so lsp-mode doesn't try to autoconfigure\n"
+   "company-mode (which would warn on every connect). corfu picks up the\n"
+   "CAPF natively. Snippet expansion is enabled iff ~:editor snippets~ is\n"
+   "enabled (otherwise lsp-mode warns about a missing yasnippet).\n"
+   "\n"
+   "Storage paths live under ~user-emacs-directory~ so they survive\n"
+   "~straight/~ wipes:\n"
+   "\n"
+   "- ~lsp-servers/~ -- downloaded language servers (~M-x lsp-install-server~)\n"
+   "- ~lsp-session~  -- workspace state\n"
+   "\n"
+   "Modes that auto-attach ~lsp-deferred~ on entry are listed in\n"
+   "~scratch-lsp-auto-modes~. Defaults cover the common ~*-ts-mode~ flavors\n"
+   "(csharp, elixir, erlang, go, js, ts, tsx, python, rust, bash, web,\n"
+   "html, css, yaml, json) plus their classic counterparts where useful.\n"
+   "Override BEFORE ~scratch!~ to add modes:\n"
+   "\n"
+   "#+begin_src emacs-lisp :tangle no\n"
+   "(setq scratch-lsp-auto-modes\n"
+   "      (cons 'java-ts-mode scratch-lsp-auto-modes))\n"
+   "#+end_src\n"
+   "\n"
+   "Servers themselves are not bundled; install per-language. For most\n"
+   "servers ~M-x lsp~ on a buffer will offer to download into\n"
+   "~lsp-servers/~ on first use.\n"
+   "\n"
+   "Leader bindings under ~SPC c~ (code prefix; layered: `:editor leader'\n"
+   "ships xref-based baselines, `:checkers syntax' adds error nav,\n"
+   "`:tools lsp' overrides with LSP-aware variants when a server is up):\n"
+   "- ~c c~ / ~c C~ compile / recompile\n"
+   "- ~c d~ / ~c D~ jump to definition / find references\n"
+   "- ~c i~ / ~c t~ find implementation / type definition\n"
+   "- ~c k~ / ~c K~ describe symbol / lsp-ui doc popup\n"
+   "- ~c r~ / ~c a~ / ~c o~ rename / code action / organize imports\n"
+   "- ~c f~ / ~c F~ format buffer / region\n"
+   "- ~c j~ / ~c J~ / ~c s~ / ~c X~ workspace / all-workspaces / file\n"
+   "  symbols / diagnostics (vertico+consult-lsp)\n"
+   "- ~c x~ / ~c n~ / ~c p~ / ~c e~ list errors / next / prev / explain\n"
+   "  (flycheck)\n"
+   "- ~c w~ / ~c W~ trim trailing whitespace / blank lines\n"
+   "- ~c l~ -- sub-prefix into upstream's full ~lsp-command-map~:\n"
+   "  workspaces (~c l w *~), folders (~c l F *~), toggles (~c l T *~),\n"
+   "  goto (~c l g *~), peeks (~c l G *~), refactoring (~c l r *~), and\n"
+   "  more. which-key surfaces the menu on press.\n"
+   "\n"
+   "When ~:ui treemacs~ is on, ~lsp-treemacs~ lights up automatically\n"
+   "(symbol tree, error list, etc.).\n"
+   "\n"
+   "| flag    | effect                                                        |\n"
+   "|---------+---------------------------------------------------------------|\n"
+   "| ~+peek~  | route ~c d~ / ~c D~ / ~c i~ through ~lsp-ui-peek-find-*~ (inline |\n"
+   "|         | popup with j/k / C-j/C-k navigation; ~c S~ peek workspace      |\n"
+   "|         | symbol). Without the flag, navigation goes through xref.      |\n"
+   "\n"
+   "*** :lang csharp -- C# / .NET\n"
+   "Built-in ~csharp-ts-mode~ (Emacs 29+, tree-sitter-based) for ~.cs~,\n"
+   "with the legacy ~csharp-mode~ remapped to it WHEN the c-sharp\n"
+   "tree-sitter grammar is installed (otherwise ~csharp-mode~ runs\n"
+   "natively -- no broken tree-sitter buffer). ~prettify-symbols-mode~\n"
+   "is suppressed in C# buffers because it mangles operators like ~=>~.\n"
+   "[[https://github.com/julienXX/dotnet.el][dotnet]] minor mode lazily activates a few seconds after a C# buffer\n"
+   "opens, exposing ~M-x dotnet-build~ / ~dotnet-run~ / ~dotnet-test~ /\n"
+   "~dotnet-add-package~ etc. (lazy because resolving the project root\n"
+   "on a big solution can stall file-open). ~.csproj~ / ~.props~ /\n"
+   "~.targets~ open in ~xml-mode~.\n"
+   "\n"
+   "First-time setup: the c-sharp tree-sitter grammar isn't bundled.\n"
+   "On first ~.cs~ open, the framework offers to install it. To do all\n"
+   "wanted grammars at once (covers every enabled ~:lang~ module that\n"
+   "registered with ~scratch-treesit-want~), run ~M-x treesit-auto-\n"
+   "install-all~. Single-grammar variant: ~M-x scratch-csharp-install-\n"
+   "grammar~.\n"
+   "\n"
+   "When paired with ~:tools lsp~, ~lsp-deferred~ attaches in\n"
+   "~csharp-ts-mode~ via ~scratch-lsp-auto-modes~. Pick your server in\n"
+   "your config.org -- the module ships no server but special-cases\n"
+   "[[https://github.com/razzmatazz/csharp-language-server][csharp-ls]]: when a project's ~.config/dotnet-tools.json~ manifest\n"
+   "declares ~csharp-ls~, the framework runs it via ~dotnet tool run~\n"
+   "instead of the global one (so per-project pinned versions just\n"
+   "work). With no manifest, lsp-csharp's normal lookup runs and\n"
+   "expects ~csharp-ls~ on ~$PATH~. OmniSharp / Roslyn users are\n"
+   "unaffected (the advice only fires when ~lsp-csharp~ loads).\n"
+   "\n"
+   "Localleader (~,~ in C# buffers; ~M-,~ in insert/emacs state):\n"
+   "- ~, b~ build, ~, c~ clean, ~, t~ test, ~, r~ run, ~, A~ run with args\n"
+   "- ~, R~ restore, ~, p~ publish, ~, n~ new project\n"
+   "- ~, a p~ / ~, a r~ add package / reference\n"
+   "- ~, s a/r/l/n~ solution add / remove / list / new\n"
+   "- ~, g p~ / ~, g s~ jump to csproj / sln file\n"
+   "\n"
+   "No flags.\n"
+   "\n"
    "*** :ui modeline -- doom-modeline\n"
    "Polished, icon-rich modeline from [[https://github.com/seagle0128/doom-modeline][doom-modeline]] -- the same one Doom\n"
    "Emacs ships with. Shows buffer state, file path, major mode, vc branch,\n"
@@ -460,11 +592,12 @@
    "#+begin_src emacs-lisp :tangle packages.el\n"
    ";; (scratch! :editor     (evil +everywhere) leader smartparens\n"
    ";;                       ws-butler drag-stuff tree-sitter vlf\n"
-   ";;                       symbol-overlay outshine\n"
+   ";;                       symbol-overlay outshine snippets\n"
    ";;           :completion vertico corfu\n"
    ";;           :emacs      (vc +forge +gutter)\n"
    ";;           :checkers   syntax\n"
-   ";;           :lang       org markdown\n"
+   ";;           :tools      lsp\n"
+   ";;           :lang       org markdown csharp\n"
    ";;           :term       vterm\n"
    ";;           :os         macos\n"
    ";;           :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors rainbow default-text-scale)\n"
@@ -646,6 +779,152 @@
   (straight-freeze-versions t)
   (scratch-cli--print "Freeze complete."))
 
+;;; env -----------------------------------------------------------------------
+;;
+;; Snapshot the current shell environment to `<emacs-dir>/env' so GUI
+;; Emacs (launched from Dock / Finder / launchd) sees the same vars as
+;; a terminal-launched Emacs. Without this, tools on `~/.local/bin',
+;; `/opt/homebrew/bin', etc. that the user added in their shell rc go
+;; missing under the GUI -- breaking LSP server lookups, formatters,
+;; ripgrep, dotnet, and so on.
+;;
+;; Mirrors `doom env'. The CLI script is itself launched from the user's
+;; shell, so `process-environment' already contains the right vars --
+;; we just dump it to a file (filtered through a blocklist) without
+;; spawning a sub-shell. The env file lives next to the other generated
+;; framework state (straight/, lsp-session, ...) so it's per-profile and
+;; never pollutes the user's `$SCRATCHDIR' (which they may version).
+
+(defvar scratch-cli--env-blocklist
+  '(;; Unix/shell state that shouldn't be persisted
+    "^HOME$" "^\\(OLD\\)?PWD$" "^SHLVL$" "^PS1$" "^R?PROMPT$" "^TERM\\(CAP\\)?$"
+    "^USER$" "^GIT_CONFIG" "^INSIDE_EMACS$"
+    ;; X server, Wayland, or services' env that shouldn't be persisted
+    "^\\(WAYLAND_\\)?DISPLAY$" "^DBUS_SESSION_BUS_ADDRESS$" "^XAUTHORITY$"
+    ;; Windows+WSL envvars that shouldn't be persisted
+    "^WSL_INTEROP$"
+    ;; XDG variables that are best not persisted
+    "^XDG_CURRENT_DESKTOP$" "^XDG_RUNTIME_DIR$"
+    "^XDG_\\(VTNR$\\|SEAT$\\|BACKEND$\\|SESSION_\\)"
+    ;; Socket envvars (I3SOCK, GREETD_SOCK, SWAYSOCK, NIRI_SOCKET, ...)
+    "SOCK\\(ET\\)?$"
+    ;; ssh / gpg vars that go stale fast
+    "^SSH_\\(AUTH_SOCK\\|AGENT_PID\\)$" "^\\(SSH\\|GPG\\)_TTY$"
+    "^GPG_AGENT_INFO$"
+    ;; Internal markers
+    "^DEBUG$" "^INSECURE$" "^EMACSDIR$" "^SCRATCHDIR$" "^__")
+  "Regexes matching env vars to omit from the env file.
+Adapted from Doom's `doom-env-deny'.")
+
+(defvar scratch-cli--env-allowlist nil
+  "Regexes that override `scratch-cli--env-blocklist' (i.e. always include).")
+
+(defun scratch-cli--env-help ()
+  (scratch-cli--print "Usage: scratch env [<subcommand>] [options]")
+  (scratch-cli--print "")
+  (scratch-cli--print "Snapshot (or remove) the current shell environment so GUI Emacs")
+  (scratch-cli--print "(launched from Dock/Finder/launchd) sees the same PATH, MANPATH, etc.")
+  (scratch-cli--print "as a terminal-launched Emacs. The snapshot lives next to the rest of")
+  (scratch-cli--print "the generated framework state (default %senv)" scratch-cli--emacs-dir)
+  (scratch-cli--print "and is loaded by init.el before any module.")
+  (scratch-cli--print "")
+  (scratch-cli--print "The CLI inherits its env from the shell that launched it -- run this")
+  (scratch-cli--print "from the same shell whose env you want captured. Re-run after editing")
+  (scratch-cli--print ".zshrc / .zprofile / etc. to refresh.")
+  (scratch-cli--print "")
+  (scratch-cli--print "Subcommands:")
+  (scratch-cli--print "  (none)    Generate / refresh the env file (default).")
+  (scratch-cli--print "  clear     Remove the env file. Emacs falls back to inherited env.")
+  (scratch-cli--print "")
+  (scratch-cli--print "Options:")
+  (scratch-cli--print "  -o, --output PATH   Write env to PATH instead of the default location.")
+  (scratch-cli--print "  -a, --allow RE      Always include vars matching RE (overrides block). Repeatable.")
+  (scratch-cli--print "  -b, --block RE      Exclude vars matching RE. Repeatable."))
+
+(defun scratch-cli--env-write (env-file allow block)
+  "Dump `process-environment' to ENV-FILE.
+ALLOW and BLOCK are lists of regexps; ALLOW overrides BLOCK."
+  (let ((all-block (append block scratch-cli--env-blocklist))
+        (all-allow (append allow scratch-cli--env-allowlist))
+        (kept 0)
+        (skipped 0))
+    (with-temp-file env-file
+      (setq-local coding-system-for-write 'utf-8-unix)
+      (insert
+       ";;; -*- mode: lisp-interaction; coding: utf-8-unix; -*-\n"
+       ";;;\n"
+       ";;; This file was generated by `scratch env' on "
+       (format-time-string "%Y-%m-%d %H:%M:%S %z") ".\n"
+       ";;; It contains a snapshot of the shell environment that\n"
+       ";;; launched the CLI, filtered through `scratch-cli--env-blocklist'.\n"
+       ";;;\n"
+       ";;; Loaded by init.el before any module starts so subprocesses\n"
+       ";;; (LSP servers, formatters, magit, vterm, ...) inherit the\n"
+       ";;; same env as a terminal-launched Emacs. Re-run `scratch env'\n"
+       ";;; to refresh; `scratch env clear' to remove.\n"
+       "\n"
+       "(")
+      ;; `initial-value' on `process-environment' is what Emacs saw at
+      ;; startup, before any in-session mutation -- exactly the shell env.
+      (dolist (entry (or (get 'process-environment 'initial-value)
+                         process-environment))
+        (catch 'skip
+          (let* ((var (car (split-string entry "=")))
+                 (matches (lambda (re) (string-match-p re var))))
+            (when (seq-find matches all-block)
+              (if (seq-find matches all-allow)
+                  nil
+                (cl-incf skipped)
+                (throw 'skip t)))
+            (cl-incf kept)
+            (insert (prin1-to-string entry) "\n "))))
+      (insert ")\n"))
+    (cons kept skipped)))
+
+(defun scratch-cli-env (args)
+  "Generate or remove the env file."
+  (let ((env-file (expand-file-name "env" scratch-cli--emacs-dir))
+        (subcmd   nil)
+        allow block)
+    (while args
+      (pcase (car args)
+        ((or "-h" "--help") (scratch-cli--env-help) (kill-emacs 0))
+        ((or "-o" "--output")
+         (unless (cadr args)
+           (scratch-cli--die "env: --output requires a path"))
+         (setq env-file (expand-file-name (cadr args))
+               args     (cddr args)))
+        ((or "-a" "--allow")
+         (unless (cadr args)
+           (scratch-cli--die "env: --allow requires a regexp"))
+         (push (cadr args) allow)
+         (setq args (cddr args)))
+        ((or "-b" "--block")
+         (unless (cadr args)
+           (scratch-cli--die "env: --block requires a regexp"))
+         (push (cadr args) block)
+         (setq args (cddr args)))
+        ("clear"
+         (when subcmd
+           (scratch-cli--die "env: only one subcommand allowed"))
+         (setq subcmd "clear" args (cdr args)))
+        (arg (scratch-cli--die "env: unknown option: %s" arg))))
+    (cond
+     ((equal subcmd "clear")
+      (cond ((file-exists-p env-file)
+             (delete-file env-file)
+             (scratch-cli--print "Removed %s" env-file))
+            (t
+             (scratch-cli--print "No env file at %s; nothing to do." env-file))))
+     (t
+      (scratch-cli--print "%s %s..."
+                          (if (file-exists-p env-file) "Refreshing" "Generating")
+                          env-file)
+      (pcase-let ((`(,kept . ,skipped)
+                   (scratch-cli--env-write env-file allow block)))
+        (scratch-cli--print "Wrote %s (%d vars kept, %d filtered)"
+                            env-file kept skipped))))))
+
 ;;; Dispatch ------------------------------------------------------------------
 
 (defun scratch-cli--usage ()
@@ -658,6 +937,7 @@
   (scratch-cli--print "  install [--user-dir DIR] [--force]   Bootstrap the user overrides dir")
   (scratch-cli--print "  sync [--force-tangle] [--rebuild]    Re-tangle and install all packages")
   (scratch-cli--print "  freeze                               Pin every installed package to its current commit")
+  (scratch-cli--print "  env [clear] [--shell SHELL]          Snapshot shell env (PATH etc.) for GUI Emacs")
   (scratch-cli--print "  help                                 Show this message")
   (scratch-cli--print "")
   (scratch-cli--print "Run `scratch <command> --help' for command-specific options."))
@@ -670,6 +950,7 @@
     ("install"      (scratch-cli-install (cdr argv)) (kill-emacs 0))
     ("sync"         (scratch-cli-sync    (cdr argv)) (kill-emacs 0))
     ("freeze"       (scratch-cli-freeze  (cdr argv)) (kill-emacs 0))
+    ("env"          (scratch-cli-env     (cdr argv)) (kill-emacs 0))
     (cmd
      (scratch-cli--print "scratch: unknown command: %s" cmd)
      (scratch-cli--print "")

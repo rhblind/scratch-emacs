@@ -88,10 +88,10 @@
      :desc "list errors"        "x" (if (modulep! :completion vertico)
                                         #'consult-flycheck
                                       #'flycheck-list-errors)
-     :desc "recheck buffer"     "X" #'flycheck-buffer
      :desc "next error"         "n" #'next-error
      :desc "prev error"         "p" #'previous-error
-     :desc "explain error"      "e" #'flycheck-explain-error-at-point
-     :desc "verify checkers"    "v" #'flycheck-verify-setup
-     :desc "select checker"     "s" #'flycheck-select-checker
-     :desc "disable checker"    "d" #'flycheck-disable-checker)))
+     :desc "explain error"      "e" #'flycheck-explain-error-at-point)))
+;; Less-frequent flycheck commands (recheck-buffer, verify-setup,
+;; select-checker, disable-checker) are reachable via `M-x flycheck-*'.
+;; They were dropped from the leader to keep `SPC c' tidy: `c C' is
+;; recompile (baseline), `c d' is jump-to-definition (baseline), etc.

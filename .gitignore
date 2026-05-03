@@ -23,6 +23,13 @@ ede-projects.el
 # Customize output (Emacs writes here at runtime)
 custom.el
 
+# Shell-env snapshot from `scratch env' -- machine-specific paths
+env
+
+# LSP state -- workspace cache and per-machine downloaded servers.
+lsp-session
+lsp-servers/
+
 # Recentf, history, place, etc. -- runtime state files Emacs writes here.
 recentf
 history
