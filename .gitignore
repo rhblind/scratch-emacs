@@ -57,3 +57,6 @@ auto-save/
 .yas-compiled-snippets.el
 flycheck_*.el
 org-roam.db
+forge-database.sqlite
+forge-database.sqlite-wal
+forge-database.sqlite-shm
