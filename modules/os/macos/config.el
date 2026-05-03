@@ -22,6 +22,7 @@
   (setq ns-pop-up-frames nil)
 
   ;; Keys: Cmd-= / Cmd-- / Cmd-0 for text-scale, matching macOS apps.
+  ;; FIXME We should use default-text-scale for macOS as well - it's better
   (global-set-key (kbd "s-=") #'text-scale-increase)
   (global-set-key (kbd "s--") #'text-scale-decrease)
   (global-set-key (kbd "s-0") (lambda () (interactive) (text-scale-set 0))))

@@ -40,7 +40,17 @@
          ("C-c M-g" . magit-file-dispatch))
   :config
   (setq magit-diff-refine-hunk t                  ; fine-grained diffs within hunks
-        magit-save-repository-buffers 'dontask))  ; auto-save buffers, no prompt
+        magit-save-repository-buffers 'dontask)   ; auto-save buffers, no prompt
+  ;; Upstream magit binds `Z' to `magit-worktree' on `magit-mode-map',
+  ;; but in evil normal state `Z' is the vim save-and-quit prefix
+  ;; (`ZZ' / `ZQ'), and evil-state maps win over mode-maps. evil-
+  ;; collection only overrides `Z' here when `evil-collection-magit-
+  ;; use-z-for-folds' is set, which we don't (we keep `z' for stash).
+  ;; So restore magit's intended `Z' shortcut explicitly.
+  (when (modulep! :editor evil)
+    (with-eval-after-load 'evil
+      (evil-define-key '(normal visual) magit-mode-map
+        (kbd "Z") #'magit-worktree))))
 
 ;; magit-todos: surface project TODO / FIXME / HACK / etc. as a
 ;; section in `magit-status'. Keyword set is shared with hl-todo.

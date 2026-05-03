@@ -18,6 +18,6 @@
    :desc "find implementations"    "i" #'scratch/find-implementations
    :desc "find symbol (apropos)"   "/" #'xref-find-apropos
    :desc "describe symbol"         "k" #'scratch/describe-symbol-or-lsp
-   :desc "format buffer/region"    "f" #'scratch/format-region-or-buffer
+   :desc "format buffer/region"    "f" #'scratch/format
    :desc "trim trailing whitespace"   "w" #'delete-trailing-whitespace
    :desc "trim trailing blank lines"  "W" #'scratch/delete-trailing-newlines))

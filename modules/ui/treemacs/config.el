@@ -25,15 +25,31 @@ Set this BEFORE `treemacs' loads.")
 (use-package treemacs
   :defer t
   :init
-  (setq treemacs-follow-after-init t
-        treemacs-is-never-other-window t
+  (setq treemacs-is-never-other-window t
         treemacs-sorting 'alphabetic-case-insensitive-asc
         treemacs-persist-file
         (expand-file-name "treemacs-persist" user-emacs-directory)
         treemacs-last-error-persist-file
         (expand-file-name "treemacs-last-error-persist" user-emacs-directory))
   :config
-  (treemacs-follow-mode t)
+  ;; Don't enable `treemacs-follow-mode' (the cursor-follow timer
+  ;; that highlights the current file in the tree). It races with
+  ;; `treemacs-project-follow-mode' below: while the latter is
+  ;; swapping projects, the tree is briefly empty, and the cursor-
+  ;; follow timer trips with `wrong-type-argument arrayp nil'.
+  ;; Project-follow already gives us the "treemacs follows the
+  ;; current buffer" UX without that race. (Doom disables it for
+  ;; similar reasons.)
+  (treemacs-follow-mode -1)
+
+  ;; Auto-display the current buffer's project (via `project.el') in
+  ;; treemacs. When you switch buffers across projects -- including
+  ;; jumping between a main repo and one of its `.worktrees/<branch>/'
+  ;; checkouts -- treemacs swaps to that project's tree without any
+  ;; manual `treemacs-add-and-display-current-project'. Detection
+  ;; uses project.el's known projects, so each git worktree (with its
+  ;; `.git' worktree-marker file) is treated as its own project.
+  (treemacs-project-follow-mode 1)
 
   (when scratch-treemacs-git-mode
     ;; Fall back to `simple' if `extended' / `deferred' can't find python.

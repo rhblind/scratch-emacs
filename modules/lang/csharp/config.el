@@ -108,6 +108,16 @@ root (which can be slow on large solutions)."
 (dolist (pat '("\\.csproj\\'" "\\.props\\'" "\\.targets\\'"))
   (add-to-list 'auto-mode-alist `(,pat . xml-mode)))
 
+;; CSharpier integration with apheleia. Apheleia ships a default
+;; `csharpier' formatter that calls the global `csharpier' binary;
+;; override to call `dotnet csharpier format --write-stdout' so the
+;; per-project local tool install (`dotnet tool install csharpier'
+;; in `.config/dotnet-tools.json') is preferred over the global one
+;; -- mirrors the project-local `csharp-ls' resolution above.
+(with-eval-after-load 'apheleia
+  (setf (alist-get 'csharpier apheleia-formatters)
+        '("dotnet" "csharpier" "format" "--write-stdout")))
+
 ;; LSP file-watching: the .NET build artifacts are huge and noisy. Ship
 ;; sensible ignores so opening a solution doesn't blow past
 ;; `lsp-file-watch-threshold' and so the file-system watcher isn't

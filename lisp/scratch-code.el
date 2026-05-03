@@ -5,25 +5,59 @@
 ;; modules currently active -- so a single `c f' / `c x' / etc. binding
 ;; works whether or not LSP / flycheck is attached.
 
-(defun scratch/format-region-or-buffer ()
+(defun scratch/format ()
   "Format the active region (or whole buffer) using the best handler.
-Prefers `lsp-format-region' / `lsp-format-buffer' when an LSP server
-attached to the buffer can handle formatting; falls back to the
-mode's `indent-region-function' (typically the major-mode's indent
-rules)."
+
+Dispatch is capability-aware: it asks the attached LSP server
+(via `lsp-feature?') exactly what it supports, picks the right
+formatter, and gracefully degrades when a request can't be served.
+
+Region selected:
+  1. LSP `textDocument/rangeFormatting' -- format just the region.
+  2. LSP `textDocument/formatting' -- whole-buffer (apheleia can't do
+     regions either, so this is the next-best thing).
+  3. `apheleia-format-buffer' -- whole-buffer via the mode's CLI
+     formatter (prettier / gofmt / mix format / ...).
+  4. `indent-region' on the region.
+
+No region:
+  1. LSP `textDocument/formatting'.
+  2. `apheleia-format-buffer'.
+  3. `indent-region' on the whole buffer.
+
+Bound to `SPC c f' under `:editor leader' and discoverable via
+`M-x format'."
   (interactive)
-  (let ((beg (if (use-region-p) (region-beginning) (point-min)))
-        (end (if (use-region-p) (region-end)       (point-max))))
+  (let* ((region-active (use-region-p))
+         (beg (if region-active (region-beginning) (point-min)))
+         (end (if region-active (region-end)       (point-max)))
+         (lsp-on (and (bound-and-true-p lsp-mode)
+                      (fboundp 'lsp-feature?)))
+         (lsp-can-format (and lsp-on (lsp-feature? "textDocument/formatting")))
+         (lsp-can-range  (and lsp-on (lsp-feature? "textDocument/rangeFormatting")))
+         (apheleia-can-format
+          (and (bound-and-true-p apheleia-mode)
+               (fboundp 'apheleia-format-buffer)
+               (apheleia--get-formatters))))
     (cond
-     ((and (bound-and-true-p lsp-mode)
-           (fboundp 'lsp-feature?)
-           (or (lsp-feature? "textDocument/rangeFormatting")
-               (lsp-feature? "textDocument/formatting")))
-      (if (use-region-p)
-          (lsp-format-region beg end)
-        (lsp-format-buffer)))
+     ((and region-active lsp-can-range)
+      (lsp-format-region beg end))
+     ((and region-active lsp-can-format)
+      (message "LSP server doesn't support range formatting; formatting buffer.")
+      (lsp-format-buffer))
+     ((and (not region-active) lsp-can-format)
+      (lsp-format-buffer))
+     (apheleia-can-format
+      (when region-active
+        (message "apheleia doesn't support range formatting; formatting buffer."))
+      (apheleia-format-buffer (apheleia--get-formatters)))
      (t
       (indent-region beg end)))))
+
+;; Old name kept as an alias so nothing breaks for callers that wired
+;; the verbose form (and so `M-x format-region-or-buffer' still finds
+;; it). New code should use `scratch/format'.
+(defalias 'scratch/format-region-or-buffer 'scratch/format)
 
 (defun scratch/find-implementations ()
   "Find implementations of the symbol at point.

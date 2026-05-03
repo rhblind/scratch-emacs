@@ -85,7 +85,23 @@ Override BEFORE calling `scratch!' to add / remove modes; e.g.:
   ;; Auto-enable lsp in the modes the user has opted into.
   (dolist (mode scratch-lsp-auto-modes)
     (let ((hook (intern (format "%s-hook" mode))))
-      (add-hook hook #'lsp-deferred))))
+      (add-hook hook #'lsp-deferred)))
+
+  ;; Don't watch / index files inside `.worktrees/' subdirectories.
+  ;; The framework convention (and Doom's) puts git worktrees under
+  ;; `.worktrees/<branch>/' inside the main repo, but each worktree
+  ;; is itself a complete checkout -- file watchers and LSP refs that
+  ;; descend into them double-count symbols and pollute search/peek
+  ;; results from the main project. project.el already treats each
+  ;; worktree as its own project (the `.git' worktree-marker file is
+  ;; recognised by `project-try-vc'), so opening a file inside
+  ;; `.worktrees/feature/' gets the worktree as its LSP root cleanly.
+  ;; This ignore handles the inverse direction: when working IN the
+  ;; main repo, the worktree subdir is silenced.
+  (with-eval-after-load 'lsp-mode
+    (dolist (pat '("[/\\\\]\\.worktrees\\'"
+                   "[/\\\\]\\.worktrees[/\\\\]"))
+      (add-to-list 'lsp-file-watch-ignored-directories pat))))
 
 ;; ---------------------------------------------------------------------------
 ;; Performance: GC + IPC tuning while LSP is in use.

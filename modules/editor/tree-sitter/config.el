@@ -33,29 +33,48 @@ already built locally."
             scratch-treesit-want))))
 
   (defun scratch-treesit--strip-unready-from-auto-mode-alist ()
-    "Drop `auto-mode-alist' entries pointing at `*-ts-mode' for unready grammars.
-`treesit-auto-add-to-auto-mode-alist' with `all' adds entries for
-every fboundp ts-mode in `treesit-auto-langs', regardless of whether
-the grammar is actually installed. Routing a `.cs' / `.yaml' / etc.
-file directly to a ts-mode that signals \"tree-sitter for X isn't
-available\" (csharp-ts-mode does exactly this) leaves the buffer
-broken AND skips `change-major-mode-after-body-hook' (the body
-errored before reaching it), which means treesit-auto's install
-prompt never fires. Strip those entries so the file falls back to
-its legacy mode -- where the prompt path can run normally."
-    (setq auto-mode-alist
-          (cl-remove-if
-           (lambda (entry)
-             (let* ((mode (cdr entry))
-                    (recipe (and (symbolp mode)
-                                 (cl-find mode treesit-auto-recipe-list
-                                          :key #'treesit-auto-recipe-ts-mode))))
-               (and recipe
-                    (memq (treesit-auto-recipe-lang recipe)
-                          treesit-auto-langs)
-                    (not (treesit-language-available-p
-                          (treesit-auto-recipe-lang recipe))))))
-           auto-mode-alist)))
+    "Drop `auto-mode-alist' entries pointing at `*-ts-mode' for unready grammars,
+BUT ONLY when another entry already handles the same regex pattern
+(i.e. there's a fallback mode). Without that guard we'd orphan
+languages that have no legacy mode (e.g. `elixir-ts-mode' has no
+upstream `elixir-mode' in built-in Emacs; stripping `.ex' / `.exs'
+/ `.heex' would route them to fundamental-mode silently).
+
+When a fallback exists (the dual-mode case, e.g. `csharp-mode' for
+`.cs'), the strip routes the file there pre-install, where treesit
+-auto's prompt path can fire cleanly without a `dlopen' warning.
+
+When no fallback exists, the file goes to `*-ts-mode' as upstream
+intends; the user gets a single warning followed by treesit-auto's
+install prompt, then a `revert-buffer' once the grammar lands."
+    (let ((same-pattern-p
+           (lambda (pat)
+             (cl-some
+              (lambda (other)
+                (and (not (eq (cdr other) (cdr (assoc pat auto-mode-alist))))
+                     (equal (car other) pat)
+                     (symbolp (cdr other))
+                     ;; Don't count another *-ts-mode entry for the same
+                     ;; lang as a "fallback" -- it'd just route somewhere
+                     ;; equally broken.
+                     (not (cl-find (cdr other) treesit-auto-recipe-list
+                                   :key #'treesit-auto-recipe-ts-mode))))
+              auto-mode-alist))))
+      (setq auto-mode-alist
+            (cl-remove-if
+             (lambda (entry)
+               (let* ((pat (car entry))
+                      (mode (cdr entry))
+                      (recipe (and (symbolp mode)
+                                   (cl-find mode treesit-auto-recipe-list
+                                            :key #'treesit-auto-recipe-ts-mode))))
+                 (and recipe
+                      (memq (treesit-auto-recipe-lang recipe)
+                            treesit-auto-langs)
+                      (not (treesit-language-available-p
+                            (treesit-auto-recipe-lang recipe)))
+                      (funcall same-pattern-p pat))))
+             auto-mode-alist))))
 
   (defun scratch-treesit--refresh-after-install (lang &rest _)
     "After grammar install, refresh `auto-mode-alist' and global remaps.
