@@ -32,7 +32,7 @@
 (use-package which-key
   :demand t
   :init
-  (setq which-key-idle-delay 0.3
+  (setq which-key-idle-delay 0.2
         which-key-popup-type 'side-window
         which-key-side-window-location 'bottom
         which-key-side-window-max-height 0.4)

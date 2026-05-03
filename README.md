@@ -99,23 +99,23 @@ package: bump the version locally, then `scratch freeze` to record it.
 The default `(scratch! ...)` call enables these modules. Comment any
 you don't want, then run `scratch sync`.
 
-| Category      | Module          | Flags                      | Summary                                                                                                        |
-|---------------|-----------------|----------------------------|----------------------------------------------------------------------------------------------------------------|
-| `:editor`     | `evil`          | `+everywhere`              | vim emulation + evil-surround / evil-numbers / evil-nerd-commenter / evil-matchit / evil-args + avy            |
-| `:editor`     | `leader`        | --                         | `SPC` leader, which-key, `general.el`, `map!` macro                                                            |
-| `:completion` | `vertico`       | --                         | vertical minibuffer + orderless + marginalia + consult + embark                                                |
-| `:completion` | `corfu`         | --                         | in-buffer popup completion + cape + nerd-icons + corfu-terminal                                                |
+| Category      | Module          | Flags                      | Summary                                                                                                                      |
+|---------------|-----------------|----------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| `:editor`     | `evil`          | `+everywhere`              | vim emulation + evil-surround / evil-numbers / evil-nerd-commenter / evil-matchit / evil-args + avy                          |
+| `:editor`     | `leader`        | --                         | `SPC` leader, which-key, `general.el`, `map!` macro                                                                          |
+| `:completion` | `vertico`       | --                         | vertical minibuffer + orderless + marginalia + consult + embark                                                              |
+| `:completion` | `corfu`         | --                         | in-buffer popup completion + cape + nerd-icons + corfu-terminal                                                              |
 | `:emacs`      | `vc`            | `+forge`, `+gutter`        | magit + magit-todos, browse-at-remote, git-timemachine, smerge auto-enable; +forge for GH/GL issues+PRs; +gutter for diff-hl |
-| `:checkers`   | `syntax`        | --                         | `flycheck` global + `flycheck-posframe` tooltips; uses `consult-flycheck` when vertico is enabled              |
+| `:checkers`   | `syntax`        | --                         | `flycheck` global + `flycheck-posframe` tooltips; uses `consult-flycheck` when vertico is enabled                            |
 | `:lang`       | `org`           | `+roam`                    | `org-modern` + `org-appear` + `org-cliplink` + `org-download`, scaled headings, hidden emphasis markers; +roam adds org-roam |
-| `:os`         | `macos`         | --                         | undecorated frame, `Cmd-=/-/0` text scale, native pop-up handling                                              |
-| `:ui`         | `theme`         | `+auto`, `+light`, `+dark` | modus-themes; +auto follows OS appearance via `auto-dark`                                                      |
-| `:ui`         | `modeline`      | --                         | doom-modeline with theme-aware refresh                                                                         |
-| `:ui`         | `fonts`         | --                         | sane default heights for default / fixed-pitch / variable-pitch                                                |
-| `:ui`         | `treemacs`      | --                         | side-pane file tree (also brings nerd-icons into dired); auto-integrates with vc / workspaces / lsp            |
-| `:ui`         | `workspaces`    | --                         | named buffer sets via persp-mode; auto-creates per-project workspace                                           |
-| `:ui`         | `smooth-scroll` | `+interpolate`             | pixel-precise wheel scrolling via ultra-scroll; +interpolate adds keyboard smoothing                           |
-| `:ui`         | `hl-todo`       | --                         | highlight TODO / FIXME / NOTE / HACK / etc.; `consult-todo` picker when vertico is on                          |
+| `:os`         | `macos`         | --                         | undecorated frame, `Cmd-=/-/0` text scale, native pop-up handling                                                            |
+| `:ui`         | `theme`         | `+auto`, `+light`, `+dark` | modus-themes; +auto follows OS appearance via `auto-dark`                                                                    |
+| `:ui`         | `modeline`      | --                         | doom-modeline with theme-aware refresh                                                                                       |
+| `:ui`         | `fonts`         | --                         | sane default heights for default / fixed-pitch / variable-pitch                                                              |
+| `:ui`         | `treemacs`      | --                         | side-pane file tree (also brings nerd-icons into dired); auto-integrates with vc / workspaces / lsp                          |
+| `:ui`         | `workspaces`    | --                         | named buffer sets via persp-mode; auto-creates per-project workspace                                                         |
+| `:ui`         | `smooth-scroll` | `+interpolate`             | pixel-precise wheel scrolling via ultra-scroll; +interpolate adds keyboard smoothing                                         |
+| `:ui`         | `hl-todo`       | --                         | highlight TODO / FIXME / NOTE / HACK / etc.; `consult-todo` picker when vertico is on                                        |
 
 Full feature docs and override variables for each module live in
 `bin/scratch` (the literate bootstrap template, copied to

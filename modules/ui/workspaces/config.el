@@ -266,12 +266,26 @@ Uses the basename of DIRECTORY (e.g. `/path/to/foo/' -> `foo')."
   (when-let ((persp (if name (persp-get-by-name name) (get-current-persp))))
     (null (persp-buffers persp))))
 
+(defun scratch-workspaces--remember-project (directory)
+  "Persist DIRECTORY to project.el's known list when it's a real project.
+Workaround for `project-prompt-project-dir' only registering subdirs of
+the entered path -- it never adds the path itself, so projects switched
+to via `SPC p p' don't survive Emacs restarts."
+  (when-let ((proj (project--find-in-directory
+                    (file-name-as-directory (expand-file-name directory)))))
+    (project-remember-project proj)))
+
 (defun scratch-workspaces--project-switch-a (orig-fn directory)
   "Around-advice for `project-switch-project': route the switch through
 a workspace named after the project. If the workspace already exists,
 just switch to it (the project's last buffers come back). If we're
 sitting in `scratch-workspaces-main' (or any empty workspace), recycle
-that workspace by renaming it instead of leaving an empty shell behind."
+that workspace by renaming it instead of leaving an empty shell behind.
+
+Also registers DIRECTORY in project.el's known-projects list so it
+sticks across restarts (project.el's own prompter only registers
+subdirectories of the path you typed, not the path itself)."
+  (scratch-workspaces--remember-project directory)
   (cond
    ((not (bound-and-true-p persp-mode))
     (funcall orig-fn directory))
