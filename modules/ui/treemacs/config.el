@@ -51,6 +51,27 @@ Set this BEFORE `treemacs' loads.")
   ;; `.git' worktree-marker file) is treated as its own project.
   (treemacs-project-follow-mode 1)
 
+  ;; Upstream's debounce defaults to 1.5s; lower it for snappier
+  ;; tree-switching after `find-file' / `consult-buffer'.
+  (setq treemacs--project-follow-delay 0.3)
+
+  ;; The debounced timer is fine for buffer-switch via window changes,
+  ;; but a brand-new `find-file' (visiting a file in another project
+  ;; for the first time) sometimes lands before the debounce fires --
+  ;; giving the impression treemacs ignored the change. Trigger the
+  ;; project-follow logic synchronously on `find-file-hook' so the
+  ;; tree is always in sync once the file's buffer is created.
+  (defun scratch-treemacs--follow-now ()
+    "Force `treemacs-project-follow-mode' to run for the current buffer.
+Useful as a hook on `find-file-hook'; the upstream debounce can miss
+quick-jumps between projects."
+    (when (and treemacs-project-follow-mode
+               (fboundp 'treemacs-get-local-window)
+               (treemacs-get-local-window)
+               (fboundp 'treemacs--do-follow-project))
+      (ignore-errors (treemacs--do-follow-project))))
+  (add-hook 'find-file-hook #'scratch-treemacs--follow-now)
+
   (when scratch-treemacs-git-mode
     ;; Fall back to `simple' if `extended' / `deferred' can't find python.
     (when (and (memq scratch-treemacs-git-mode '(deferred extended))

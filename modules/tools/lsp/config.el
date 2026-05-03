@@ -87,21 +87,178 @@ Override BEFORE calling `scratch!' to add / remove modes; e.g.:
     (let ((hook (intern (format "%s-hook" mode))))
       (add-hook hook #'lsp-deferred)))
 
-  ;; Don't watch / index files inside `.worktrees/' subdirectories.
-  ;; The framework convention (and Doom's) puts git worktrees under
+  ;; Don't watch files inside `.worktrees/' subdirectories. The
+  ;; framework convention puts git worktrees under
   ;; `.worktrees/<branch>/' inside the main repo, but each worktree
-  ;; is itself a complete checkout -- file watchers and LSP refs that
-  ;; descend into them double-count symbols and pollute search/peek
-  ;; results from the main project. project.el already treats each
-  ;; worktree as its own project (the `.git' worktree-marker file is
-  ;; recognised by `project-try-vc'), so opening a file inside
-  ;; `.worktrees/feature/' gets the worktree as its LSP root cleanly.
-  ;; This ignore handles the inverse direction: when working IN the
-  ;; main repo, the worktree subdir is silenced.
+  ;; is itself a complete checkout -- file watchers that descend into
+  ;; them are wasted work. `lsp-file-watch-ignored-directories' only
+  ;; controls Emacs-side file watchers; it does NOT tell the LSP
+  ;; server to skip those paths. Many servers index the workspace
+  ;; root regardless of what the client says, so worktree files come
+  ;; back in xref / peek results. We handle that with the response-
+  ;; filter advice below -- universal, language-server-agnostic.
   (with-eval-after-load 'lsp-mode
     (dolist (pat '("[/\\\\]\\.worktrees\\'"
                    "[/\\\\]\\.worktrees[/\\\\]"))
       (add-to-list 'lsp-file-watch-ignored-directories pat))))
+
+;; ---------------------------------------------------------------------------
+;; Universal worktree filter for LSP responses.
+;;
+;; Per-server `excludePaths' / `excludePatterns' configs are too varied
+;; to maintain (every LSP has its own format, some don't expose one).
+;; Instead, filter at the client-side conversion layer: when LSP returns
+;; a list of `Location' / `LocationLink' objects (references, defs,
+;; impls, peek results, ...), drop entries that don't belong to the
+;; current buffer's worktree. Works for ANY LSP server.
+;;
+;; Bidirectional:
+;;   - From the main repo: drops results under `<main>/.worktrees/.../'.
+;;   - From a worktree:    drops results in the main repo (and in
+;;                          sibling worktrees).
+;; External paths (libraries outside the tree-group) are always kept --
+;; jump-to-definition into a dependency under `~/.cache/...' or `_build'
+;; still works.
+
+(defvar scratch-lsp-worktree-dir-name ".worktrees"
+  "Directory name (relative to the main repo) that holds git worktrees.
+Used by the LSP response filter to identify the worktree-group root.
+Defaults to `.worktrees', matching the framework convention.")
+
+(defun scratch-lsp--location-uri (loc)
+  "Return the URI string for a Location / LocationLink LOC, or nil."
+  (or (ignore-errors (lsp:location-uri loc))
+      (ignore-errors (lsp:location-link-target-uri loc))))
+
+(defun scratch-lsp--scope-for-path (path)
+  "Return (MAIN-ROOT . WORKTREE-LABEL) describing PATH's worktree scope.
+
+MAIN-ROOT is the directory above `.worktrees/' (i.e. the main repo).
+WORKTREE-LABEL is the immediate worktree subdir name, or nil when
+PATH is in the main repo. Returns nil when PATH isn't part of a
+worktree-organized project at all (no `.worktrees/' anywhere visible)."
+  (when path
+    (let* ((expanded (expand-file-name path))
+           (worktree-re (concat "\\(.*?\\)/"
+                                (regexp-quote scratch-lsp-worktree-dir-name)
+                                "/\\([^/]+\\)\\(?:/\\|\\'\\)")))
+      (cond
+       ;; Path is INSIDE `<main>/.worktrees/<X>/'.
+       ((string-match worktree-re expanded)
+        (cons (file-name-as-directory (match-string 1 expanded))
+              (match-string 2 expanded)))
+       ;; Path's parent dir has a `.worktrees/' sibling -- main repo.
+       ((when-let* ((dir (file-name-directory expanded))
+                    (root (locate-dominating-file
+                           dir scratch-lsp-worktree-dir-name)))
+          (cons (file-name-as-directory (expand-file-name root)) nil)))))))
+
+(defun scratch-lsp--keep-location-p (path our-main our-label)
+  "Return non-nil when PATH should be kept given the buffer's scope.
+OUR-MAIN is the buffer's main-repo root (with trailing slash), OUR
+-LABEL is the buffer's worktree subdir name (or nil for main-repo)."
+  (let ((p (expand-file-name path))
+        (worktree-prefix (concat (file-name-as-directory our-main)
+                                 scratch-lsp-worktree-dir-name "/")))
+    (cond
+     ;; External path (library, dependency, ...) -- keep.
+     ((not (string-prefix-p our-main p)) t)
+     ;; Inside `.worktrees/'.
+     ((string-prefix-p worktree-prefix p)
+      (and our-label
+           (string-prefix-p (concat worktree-prefix our-label "/") p)))
+     ;; Inside the tree-group root, not under `.worktrees/' -- main.
+     (t (null our-label)))))
+
+(defun scratch-lsp--filter-worktree-locations (locations)
+  "Drop LOCATIONS that don't belong to the current buffer's worktree.
+LOCATIONS may be a list, vector, or singleton; returns a list."
+  (let ((buffer-path (or buffer-file-name
+                         (and (eq major-mode 'dired-mode) default-directory))))
+    (cond
+     ((null buffer-path) locations)
+     (t
+      (let ((our-scope (scratch-lsp--scope-for-path buffer-path)))
+        (if (null our-scope)
+            ;; Not in a worktree-organized project; nothing to filter.
+            locations
+          (let ((our-main (car our-scope))
+                (our-label (cdr our-scope))
+                (locs (cond ((vectorp locations) (append locations nil))
+                            ((listp locations)   locations)
+                            (t                   (list locations)))))
+            (cl-remove-if-not
+             (lambda (loc)
+               (when-let* ((uri (scratch-lsp--location-uri loc))
+                           (path (lsp--uri-to-path uri)))
+                 (scratch-lsp--keep-location-p path our-main our-label)))
+             locs))))))))
+
+(with-eval-after-load 'lsp-mode
+  ;; Covers `lsp-find-references' / `lsp-find-definition' / `lsp-find-
+  ;; implementation' / etc. (and anything else that routes through
+  ;; xref). Filter the Location[] before lsp-mode converts to xref items.
+  (advice-add 'lsp--locations-to-xref-items :filter-args
+              (lambda (args)
+                (list (scratch-lsp--filter-worktree-locations (car args))))))
+
+(with-eval-after-load 'lsp-ui-peek
+  ;; lsp-ui-peek has its own response handler that bypasses
+  ;; `lsp--locations-to-xref-items'. Its return value is a list of
+  ;; plists `(:file PATH :xrefs (...))', already grouped by file.
+  ;; Drop groups whose `:file' isn't in our worktree.
+  (advice-add 'lsp-ui-peek--get-references :filter-return
+              (lambda (groups)
+                (when-let* ((buffer-path (buffer-file-name))
+                            (scope (scratch-lsp--scope-for-path buffer-path)))
+                  (let ((our-main (car scope))
+                        (our-label (cdr scope)))
+                    (setq groups
+                          (cl-remove-if-not
+                           (lambda (g)
+                             (when-let ((file (plist-get g :file)))
+                               (scratch-lsp--keep-location-p
+                                file our-main our-label)))
+                           groups))))
+                groups)))
+
+;; ---------------------------------------------------------------------------
+;; lsp-ui-peek path display: filename FIRST, dir trailing.
+;;
+;; The default `lsp-ui--workspace-path' returns the workspace-relative
+;; path verbatim, so a peek list gets entries like
+;;   .worktrees/199-fix-policies-for-producer-api-endpoint/lib/x.ex
+;; which truncates to a useless `.worktrees/199-fix...' before the
+;; filename appears. We override to emit "filename  dir/" so the
+;; filename always survives truncation; the dir is still there for
+;; context but takes the truncation hit.
+;;
+;; Used by lsp-ui-peek's reference list AND lsp-ui-flycheck's error
+;; list -- both see the improvement.
+
+(defun scratch-lsp-ui--workspace-path-filename-first-a (path)
+  "Override of `lsp-ui--workspace-path': render PATH as `FILE  DIR/'.
+Falls through to the upstream behaviour when the path has no dir
+component (file at workspace root) or `lsp-workspace-root' is unset."
+  (let* ((true (file-truename path))
+         (root (and (fboundp 'lsp-workspace-root) (lsp-workspace-root true)))
+         (rel  (if (and root (string-prefix-p root true))
+                   (substring true (length root))
+                 true))
+         (file (file-name-nondirectory rel))
+         (dir  (file-name-directory rel)))
+    (cond
+     ((or (null dir) (string= dir "")) file)
+     (t (concat file "  " (propertize dir 'face 'shadow))))))
+
+(with-eval-after-load 'lsp-ui
+  (advice-add 'lsp-ui--workspace-path :override
+              #'scratch-lsp-ui--workspace-path-filename-first-a))
+
+;; Give the peek list a touch more room so the trailing dir hint
+;; survives a few extra characters before truncation. Default is 50.
+(with-eval-after-load 'lsp-ui-peek
+  (setq lsp-ui-peek-list-width 70))
 
 ;; ---------------------------------------------------------------------------
 ;; Performance: GC + IPC tuning while LSP is in use.

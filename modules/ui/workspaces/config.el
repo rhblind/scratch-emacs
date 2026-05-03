@@ -171,7 +171,14 @@ workspace's project after the switch."
       (persp-add-new name)))
   (persp-frame-switch name)
   (when-let ((root (scratch-workspaces--known-project-root-by-name name)))
-    (scratch-workspaces--ensure-in-project root))
+    (scratch-workspaces--ensure-in-project root)
+    ;; Pull treemacs along so its tree matches the new workspace's
+    ;; project. `treemacs-project-follow-mode' will already do this
+    ;; on the next buffer-change, but firing it explicitly avoids the
+    ;; 1.5s debounce window where treemacs shows the previous tree.
+    (when (and (modulep! :ui treemacs)
+               (fboundp 'treemacs-display-current-project-exclusively))
+      (ignore-errors (treemacs-display-current-project-exclusively))))
   (scratch/workspace-display))
 
 (defun scratch/workspace-new (&optional name)
