@@ -127,8 +127,42 @@
                 " ")))
     (let (message-log-max) (message "%s" line))))
 
+(defun scratch-workspaces--known-project-root-by-name (name)
+  "Return the project root whose basename matches workspace NAME, or nil.
+Looks at `project.el's known-projects list. Used to keep the active
+project in sync with the active workspace -- workspaces created by
+`scratch-workspaces--project-switch-a' are named after the project's
+basename, so this is the inverse lookup."
+  (require 'project)
+  (cl-find-if
+   (lambda (root)
+     (equal (scratch-workspaces--project-name root) name))
+   (project-known-project-roots)))
+
+(defun scratch-workspaces--ensure-in-project (root)
+  "Ensure the visible buffer in the current workspace lives under ROOT.
+If a workspace buffer is already inside ROOT, switch to it; else
+fall back to opening ROOT in `dired'. No-op when the current buffer
+is already inside ROOT (so we don't yank focus away from a buffer
+that's already correct)."
+  (unless (and default-directory
+               (file-in-directory-p default-directory root))
+    (let ((match (cl-find-if
+                  (lambda (buf)
+                    (when-let ((file (buffer-file-name buf)))
+                      (file-in-directory-p file root)))
+                  (persp-buffer-list))))
+      (cond
+       (match (switch-to-buffer match))
+       (t (dired root))))))
+
 (defun scratch/workspace-switch (name)
-  "Switch to workspace NAME, prompting if called interactively."
+  "Switch to workspace NAME, prompting if called interactively.
+When NAME matches a known project, also pulls the project context
+along: the visible buffer is brought to one inside that project's
+root (or `dired' on the root when the workspace has no project
+buffers yet). This keeps `SPC p ...' commands targeting the
+workspace's project after the switch."
   (interactive
    (list (completing-read "Switch to workspace: "
                           (scratch-workspaces--names))))
@@ -136,6 +170,8 @@
     (when (y-or-n-p (format "Workspace %S doesn't exist. Create it? " name))
       (persp-add-new name)))
   (persp-frame-switch name)
+  (when-let ((root (scratch-workspaces--known-project-root-by-name name)))
+    (scratch-workspaces--ensure-in-project root))
   (scratch/workspace-display))
 
 (defun scratch/workspace-new (&optional name)
@@ -332,7 +368,13 @@ subdirectories of the path you typed, not the path itself)."
   (map! :leader
     :desc "switch workspace buffer" "," #'persp-switch-to-buffer
     (:prefix-map ("l" . "workspace")
-     :desc "display workspaces"   "l"   #'scratch/workspace-display
+     ;; `l l' is the heavyweight: a completing-read selector
+     ;; (vertico + marginalia surfaces it as a selectable list with
+     ;; the current workspace marked). `l .' is an alias for muscle-
+     ;; memory parity with Doom's `SPC TAB .'. The status-bar echo
+     ;; (`scratch/workspace-display') stays callable via `M-x'; it's
+     ;; rarely the thing you want from the leader.
+     :desc "switch workspace"     "l"   #'scratch/workspace-switch
      :desc "switch workspace"     "."   #'scratch/workspace-switch
      :desc "switch to last"       "TAB" #'scratch/workspace-other
      :desc "new workspace"        "n"   #'scratch/workspace-new
