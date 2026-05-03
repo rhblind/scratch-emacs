@@ -136,6 +136,31 @@
   (add-to-list 'browse-at-remote-remote-type-regexps
                '(:host "^gitlab\\." :type "gitlab") 'append))
 
+;; browse-at-remote ships URLs for the current file / region but no
+;; "open just the repo's homepage" command. Port Doom's two helpers:
+;;   - `scratch/vc-browse-at-remote-homepage'      open homepage in browser
+;;   - `scratch/vc-browse-at-remote-kill-homepage' copy homepage URL
+;; Both ride on `browse-at-remote--remote-ref' to find the host base.
+
+(defun scratch-vc--remote-homepage ()
+  "Return the GitHub / GitLab / etc. homepage URL of the current repo."
+  (require 'browse-at-remote)
+  (or (let ((ref (browse-at-remote--remote-ref)))
+        (plist-get (browse-at-remote--get-url-from-remote (car ref)) :url))
+      (user-error "Can't find homepage for current project")))
+
+(defun scratch/vc-browse-at-remote-homepage ()
+  "Open the current project's repo homepage in the default browser."
+  (interactive)
+  (browse-url (scratch-vc--remote-homepage)))
+
+(defun scratch/vc-browse-at-remote-kill-homepage ()
+  "Copy the current project's repo homepage URL to the clipboard."
+  (interactive)
+  (let ((url (scratch-vc--remote-homepage)))
+    (kill-new url)
+    (message "Copied to clipboard: %s" url)))
+
 ;;;; git-modes (gitconfig-mode, gitignore-mode, gitattributes-mode)
 
 (use-package git-modes :defer t)
@@ -186,25 +211,78 @@
 (when (modulep! :editor leader)
   (map! :leader
     (:prefix-map ("g" . "git")
-     :desc "magit status"        "g" #'magit-status
-     :desc "magit dispatch"      "d" #'magit-dispatch
-     :desc "log (current)"       "l" #'magit-log-current
-     :desc "log (buffer file)"   "L" #'magit-log-buffer-file
-     :desc "blame"               "b" #'magit-blame
-     :desc "file dispatch"       "f" #'magit-file-dispatch
-     :desc "browse at remote"    "r" #'browse-at-remote
-     :desc "copy remote URL"     "R" #'browse-at-remote-kill
-     :desc "timemachine"         "t" #'git-timemachine))
+     ;; -- top-level (Doom-shaped) --
+     :desc "magit status"            "g" #'magit-status
+     :desc "magit status here"       "G" #'magit-status-here
+     :desc "magit dispatch"          "/" #'magit-dispatch
+     :desc "magit file dispatch"     "." #'magit-file-dispatch
+     :desc "branch checkout"         "b" #'magit-branch-checkout
+     :desc "blame"                   "B" #'magit-blame-addition
+     :desc "clone"                   "C" #'magit-clone
+     :desc "delete file"             "D" #'magit-file-delete
+     :desc "fetch"                   "F" #'magit-fetch
+     :desc "log (buffer file)"       "L" #'magit-log-buffer-file
+     :desc "revert file"             "R" #'vc-revert
+     :desc "stage file"              "S" #'magit-file-stage
+     :desc "unstage file"            "U" #'magit-file-unstage
+     :desc "git timemachine"         "t" #'git-timemachine
+     :desc "copy remote URL"         "y" #'browse-at-remote-kill
+     :desc "copy homepage URL"       "Y" #'scratch/vc-browse-at-remote-kill-homepage
+     ;; -- find --
+     (:prefix-map ("f" . "find")
+      :desc "magit find file"        "f" #'magit-find-file
+      :desc "git config file"        "g" #'magit-find-git-config-file
+      :desc "show commit"            "c" #'magit-show-commit)
+     ;; -- list --
+     (:prefix-map ("l" . "list")
+      :desc "list repositories"      "r" #'magit-list-repositories
+      :desc "list submodules"        "s" #'magit-list-submodules)
+     ;; -- create --
+     (:prefix-map ("c" . "create")
+      :desc "init repo"              "r" #'magit-init
+      :desc "clone repo"             "R" #'magit-clone
+      :desc "commit"                 "c" #'magit-commit-create
+      :desc "fixup commit"           "f" #'magit-commit-fixup
+      :desc "branch"                 "b" #'magit-branch-and-checkout)
+     ;; -- open in browser --
+     (:prefix-map ("o" . "open in browser")
+      :desc "browse file / region"   "o" #'browse-at-remote
+      :desc "browse homepage"        "h" #'scratch/vc-browse-at-remote-homepage)))
+
+  ;; +forge layer: extends `g f', `g o', `g l', `g c' with forge actions.
+  (when (modulep! +forge)
+    (map! :leader
+      (:prefix-map ("g" . "git")
+       :desc "forge dispatch"          "'" #'forge-dispatch
+       (:prefix-map ("f" . "find")
+        :desc "find issue"             "i" #'forge-visit-issue
+        :desc "find pull request"      "p" #'forge-visit-pullreq)
+       (:prefix-map ("o" . "open in browser")
+        :desc "browse remote"          "r" #'forge-browse-remote
+        :desc "browse commit"          "c" #'forge-browse-commit
+        :desc "browse issue"           "i" #'forge-browse-issue
+        :desc "browse pull request"    "p" #'forge-browse-pullreq
+        :desc "browse issues"          "I" #'forge-browse-issues
+        :desc "browse pull requests"   "P" #'forge-browse-pullreqs)
+       (:prefix-map ("l" . "list")
+        :desc "list issues"            "i" #'forge-list-issues
+        :desc "list pull requests"     "p" #'forge-list-pullreqs
+        :desc "list notifications"     "n" #'forge-list-notifications)
+       (:prefix-map ("c" . "create")
+        :desc "create issue"           "i" #'forge-create-issue
+        :desc "create pull request"    "p" #'forge-create-pullreq))))
+
+  ;; +gutter layer: hunk submenu under `g h'.
   (when (modulep! +gutter)
     (map! :leader
       (:prefix-map ("g" . "git")
        (:prefix-map ("h" . "hunk")
-        :desc "next hunk"      "n" #'diff-hl-next-hunk
-        :desc "prev hunk"      "p" #'diff-hl-previous-hunk
-        :desc "next hunk"      "j" #'diff-hl-next-hunk
-        :desc "prev hunk"      "k" #'diff-hl-previous-hunk
-        :desc "stage hunk"     "s" #'diff-hl-stage-current-hunk
-        :desc "revert hunk"    "r" #'diff-hl-revert-hunk
-        :desc "show hunk"      "S" #'diff-hl-show-hunk
-        :desc "set ref"        "R" #'diff-hl-set-reference-rev
-        :desc "reset ref"      "X" #'diff-hl-reset-reference-rev)))))
+        :desc "next hunk"              "n" #'diff-hl-next-hunk
+        :desc "prev hunk"              "p" #'diff-hl-previous-hunk
+        :desc "next hunk"              "j" #'diff-hl-next-hunk
+        :desc "prev hunk"              "k" #'diff-hl-previous-hunk
+        :desc "stage hunk"             "s" #'diff-hl-stage-current-hunk
+        :desc "revert hunk"            "r" #'diff-hl-revert-hunk
+        :desc "show hunk"              "S" #'diff-hl-show-hunk
+        :desc "set ref"                "R" #'diff-hl-set-reference-rev
+        :desc "reset ref"              "X" #'diff-hl-reset-reference-rev)))))
