@@ -48,4 +48,28 @@
    (t
     (global-set-key (kbd "s-=") #'text-scale-increase)
     (global-set-key (kbd "s--") #'text-scale-decrease)
-    (global-set-key (kbd "s-0") (lambda () (interactive) (text-scale-set 0))))))
+    (global-set-key (kbd "s-0") (lambda () (interactive) (text-scale-set 0)))))
+
+  ;; Clipboard bridge for terminal Emacs. GUI Emacs already copies/
+  ;; pastes through the macOS pasteboard via `gui-select-text' /
+  ;; `gui-selection-value' (driven by `select-enable-clipboard' set in
+  ;; `lisp/scratch-defaults.el'). In a TTY frame those are no-ops, so
+  ;; bridge through `pbcopy' / `pbpaste'. Installed via
+  ;; `tty-setup-hook' so daemon-spawned `emacsclient -t' clients pick
+  ;; it up too. Cut writes via an async process to avoid blocking on
+  ;; large kills; paste reads synchronously (typically a few KB).
+  (defun scratch-macos--pbcopy (text)
+    (let ((process-connection-type nil))
+      (let ((proc (start-process "pbcopy" nil "pbcopy")))
+        (process-send-string proc text)
+        (process-send-eof proc))))
+  (defun scratch-macos--pbpaste ()
+    (let ((s (shell-command-to-string "pbpaste")))
+      (unless (string= s "") s)))
+  (defun scratch-macos--enable-tty-clipboard ()
+    (setq interprogram-cut-function   #'scratch-macos--pbcopy
+          interprogram-paste-function #'scratch-macos--pbpaste))
+  (add-hook 'tty-setup-hook #'scratch-macos--enable-tty-clipboard)
+  ;; If we already started in a TTY, install immediately too.
+  (unless (display-graphic-p)
+    (scratch-macos--enable-tty-clipboard)))

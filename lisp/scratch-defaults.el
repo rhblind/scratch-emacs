@@ -30,6 +30,17 @@
               tab-width 4
               fill-column 80)
 
+;;;; Clipboard
+
+;; Yank/kill flows through the OS clipboard. `select-enable-clipboard'
+;; defaults to t in Emacs 29+; setting it explicitly guards against
+;; accidental flips. `save-interprogram-paste-before-kill' captures
+;; whatever's on the OS clipboard into the kill-ring just before we
+;; overwrite it, so a kill never silently loses something the user had
+;; just copied from another app.
+(setq select-enable-clipboard t
+      save-interprogram-paste-before-kill t)
+
 ;;;; State persistence
 
 ;; recentf -- track recently opened files. Default save count (20) is too low.
