@@ -64,6 +64,26 @@
       global-auto-revert-non-file-buffers t) ; dired, ibuffer, etc. too
 (global-auto-revert-mode 1)
 
+;;;; Line numbers
+;;
+;; Show line numbers in code-editing modes. Defaults to RELATIVE
+;; (vim-style) since the framework targets evil users -- jumping by
+;; `5j' / `12k' is the natural workflow there. Switch to absolute
+;; with `(setq-default display-line-numbers-type t)' in your config
+;; if you prefer.
+;;
+;; Avoid `global-display-line-numbers-mode': there are too many
+;; transient / popup / TUI modes (magit, vterm, ibuffer, image-mode,
+;; ...) where numbers are pure noise. Hook the canonical text-edit
+;; modes instead, mirroring Doom.
+
+(setq-default display-line-numbers-type 'relative
+              display-line-numbers-width 3            ; pre-allocate gutter, no jump on grow
+              display-line-numbers-widen t)           ; absolute count under narrowing
+
+(dolist (hook '(prog-mode-hook text-mode-hook conf-mode-hook))
+  (add-hook hook #'display-line-numbers-mode))
+
 ;;;; Window display
 ;;
 ;; "If I ran a command that pops up a window, I'm probably about to

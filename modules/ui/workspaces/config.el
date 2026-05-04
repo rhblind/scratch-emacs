@@ -172,11 +172,15 @@ workspace's project after the switch."
   (persp-frame-switch name)
   (when-let ((root (scratch-workspaces--known-project-root-by-name name)))
     (scratch-workspaces--ensure-in-project root)
-    ;; Pull treemacs along so its tree matches the new workspace's
-    ;; project. `treemacs-project-follow-mode' will already do this
-    ;; on the next buffer-change, but firing it explicitly avoids the
-    ;; 1.5s debounce window where treemacs shows the previous tree.
+    ;; Pull treemacs along ONLY if it's already visible -- if it was
+    ;; closed in the previous workspace, the user wants it closed
+    ;; here too. `treemacs-display-current-project-exclusively' would
+    ;; otherwise open the side window even when the user had it
+    ;; deliberately closed. `treemacs-project-follow-mode' updates
+    ;; the tree contents the next buffer-change either way.
     (when (and (modulep! :ui treemacs)
+               (fboundp 'treemacs-get-local-window)
+               (treemacs-get-local-window)
                (fboundp 'treemacs-display-current-project-exclusively))
       (ignore-errors (treemacs-display-current-project-exclusively))))
   (scratch/workspace-display))

@@ -87,6 +87,21 @@ Override BEFORE calling `scratch!' to add / remove modes; e.g.:
     (let ((hook (intern (format "%s-hook" mode))))
       (add-hook hook #'lsp-deferred)))
 
+  ;; Drop opt-in lsp clients we never want to talk to. lsp-mode's
+  ;; `lsp-client-packages' is the list of client modules it `require's
+  ;; lazily on demand; pruning here means the client never gets loaded,
+  ;; never registers, never gets picked. Each entry is a package
+  ;; (feature) name like `lsp-semgrep' / `lsp-terraform'.
+  ;;
+  ;; - `lsp-semgrep' phones home to https://semgrep.dev/c/p/default to
+  ;;   download a default ruleset on every start; on flaky networks
+  ;;   this hangs lsp-mode for 10s+ per request and bricks workspaces.
+  ;;   Users who actually want semgrep can re-add it in their config:
+  ;;     (add-to-list 'lsp-client-packages 'lsp-semgrep)
+  (with-eval-after-load 'lsp-mode
+    (dolist (client '(lsp-semgrep))
+      (setq lsp-client-packages (delq client lsp-client-packages))))
+
   ;; Don't watch files inside `.worktrees/' subdirectories. The
   ;; framework convention puts git worktrees under
   ;; `.worktrees/<branch>/' inside the main repo, but each worktree

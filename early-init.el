@@ -69,6 +69,15 @@
 ;; straight manages packages; keep package.el out of the way.
 (setq package-enable-at-startup nil)
 
+;; PERF: Skip straight's `find(1)'-based startup mod check. Default is
+;;   `(find-at-startup find-when-checking only-once)', which spawns
+;;   `find' across `straight/repos/' on every init -- the cause of
+;;   the "Processing repository ..." chatter and a half-second-ish
+;;   stall on cold start. With `check-on-save' + `find-when-checking',
+;;   straight notices in-Emacs edits via `before-save-hook' and `bin/
+;;   scratch sync' picks up new packages explicitly. Mirrors Doom.
+(setq straight-check-for-modifications '(check-on-save find-when-checking))
+
 ;; UX: Strip default frame chrome (menu / tool / scroll bars). Setting these
 ;;   via `default-frame-alist' in early-init means the initial frame is
 ;;   created without them -- no flash of chrome during startup. Re-enable

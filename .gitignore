@@ -30,6 +30,11 @@ env
 lsp-session
 lsp-servers/
 
+# Tree-sitter grammars compiled by `treesit-install-language-grammar'
+# (or `treesit-auto-install-all'). Per-machine binaries; rebuild on
+# clone with `M-x treesit-auto-install-all'.
+tree-sitter/
+
 # Recentf, history, place, etc. -- runtime state files Emacs writes here.
 recentf
 history

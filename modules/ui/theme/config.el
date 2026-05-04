@@ -59,11 +59,27 @@ Override by `setq' BEFORE calling `scratch!'.")
   (use-package auto-dark
     :demand t
     :config
-    (setq auto-dark-themes (list (list scratch-theme-dark)
-                                 (list scratch-theme-light)))
+    ;; Trust both themes upfront so `load-theme' (used by auto-dark
+    ;; on appearance change) doesn't prompt for the custom-safe-themes
+    ;; confirmation, which silently no-ops when there's no UI to
+    ;; answer it (daemon, --batch, etc.).
+    (setq custom-safe-themes t)
+    ;; `customize-set-variable' triggers the defcustom :set lambda
+    ;; for `auto-dark-themes', which pre-`load-theme's both themes
+    ;; up-front. This (a) silences the safe-themes prompt at switch
+    ;; time and (b) lets auto-dark use the fast `enable-theme'
+    ;; path on subsequent flips. Plain `setq' bypasses the :set form.
+    (customize-set-variable 'auto-dark-themes
+                            (list (list scratch-theme-dark)
+                                  (list scratch-theme-light)))
     ;; In batch sessions (sync, scripts) there's no GUI to query for the
     ;; OS appearance; skip auto-dark there and load the dark default so
     ;; sync output stays quiet.
-    (if noninteractive
-        (load-theme scratch-theme-dark t)
-      (auto-dark-mode)))))
+    (cond
+     (noninteractive
+      (load-theme scratch-theme-dark t))
+     (t
+      ;; Pass `1' explicitly: a bare `(auto-dark-mode)' toggles, and
+      ;; if anything else already activated the mode (re-eval, custom
+      ;; file replay) the toggle would turn it OFF.
+      (auto-dark-mode 1))))))
