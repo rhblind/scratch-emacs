@@ -21,8 +21,31 @@
   ;; (Finder open / `open -a Emacs.app foo.txt'); reuse the current one.
   (setq ns-pop-up-frames nil)
 
+  ;; Modifier keys: Cmd -> Super, LEFT Option -> Meta, RIGHT Option ->
+  ;; passthrough (native macOS character composition). The right
+  ;; option lets Norwegian / German / etc. layouts type `|', `[]',
+  ;; `{}' (right-Option-7, right-Option-8, etc.) without Emacs
+  ;; swallowing it as a meta prefix. `mac-*' vars apply to the
+  ;; emacs-mac build (Yamamoto), `ns-*' to emacs-plus / nextstep --
+  ;; setting both is harmless when only one is recognised.
+  (setq mac-command-modifier      'super
+        ns-command-modifier       'super
+        mac-option-modifier       'meta
+        ns-option-modifier        'meta
+        mac-right-option-modifier 'none
+        ns-right-option-modifier  'none)
+
   ;; Keys: Cmd-= / Cmd-- / Cmd-0 for text-scale, matching macOS apps.
-  ;; FIXME We should use default-text-scale for macOS as well - it's better
-  (global-set-key (kbd "s-=") #'text-scale-increase)
-  (global-set-key (kbd "s--") #'text-scale-decrease)
-  (global-set-key (kbd "s-0") (lambda () (interactive) (text-scale-set 0))))
+  ;; When `:ui default-text-scale' is enabled, hook into THAT (every
+  ;; buffer in every frame zooms in lockstep -- much better than the
+  ;; built-in per-buffer `text-scale-*'). Fall back to the per-buffer
+  ;; variant when default-text-scale isn't loaded.
+  (cond
+   ((modulep! :ui default-text-scale)
+    (global-set-key (kbd "s-=") #'default-text-scale-increase)
+    (global-set-key (kbd "s--") #'default-text-scale-decrease)
+    (global-set-key (kbd "s-0") #'default-text-scale-reset))
+   (t
+    (global-set-key (kbd "s-=") #'text-scale-increase)
+    (global-set-key (kbd "s--") #'text-scale-decrease)
+    (global-set-key (kbd "s-0") (lambda () (interactive) (text-scale-set 0))))))

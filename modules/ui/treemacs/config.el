@@ -23,7 +23,11 @@
 Set this BEFORE `treemacs' loads.")
 
 (use-package treemacs
-  :defer t
+  ;; Eager so the `:config' block runs at startup -- otherwise
+  ;; `treemacs-project-follow-mode' below isn't enabled until the
+  ;; user invokes a treemacs command, and any buffers visited
+  ;; before that don't get tracked.
+  :demand t
   :init
   (setq treemacs-is-never-other-window t
         treemacs-sorting 'alphabetic-case-insensitive-asc
@@ -32,45 +36,29 @@ Set this BEFORE `treemacs' loads.")
         treemacs-last-error-persist-file
         (expand-file-name "treemacs-last-error-persist" user-emacs-directory))
   :config
-  ;; Don't enable `treemacs-follow-mode' (the cursor-follow timer
-  ;; that highlights the current file in the tree). It races with
-  ;; `treemacs-project-follow-mode' below: while the latter is
-  ;; swapping projects, the tree is briefly empty, and the cursor-
-  ;; follow timer trips with `wrong-type-argument arrayp nil'.
-  ;; Project-follow already gives us the "treemacs follows the
-  ;; current buffer" UX without that race. (Doom disables it for
-  ;; similar reasons.)
-  (treemacs-follow-mode -1)
-
-  ;; Auto-display the current buffer's project (via `project.el') in
-  ;; treemacs. When you switch buffers across projects -- including
-  ;; jumping between a main repo and one of its `.worktrees/<branch>/'
-  ;; checkouts -- treemacs swaps to that project's tree without any
-  ;; manual `treemacs-add-and-display-current-project'. Detection
-  ;; uses project.el's known projects, so each git worktree (with its
-  ;; `.git' worktree-marker file) is treated as its own project.
+  ;; Two follow modes that do different things and BOTH belong on:
+  ;;
+  ;;   - `treemacs-project-follow-mode': swap the displayed PROJECT
+  ;;     when the current buffer's project changes (cross-project
+  ;;     navigation, e.g. main repo <-> a worktree).
+  ;;
+  ;;   - `treemacs-follow-mode': highlight / scroll-to the current
+  ;;     FILE within the displayed project (cursor follow).
+  ;;
+  ;; Earlier we disabled `treemacs-follow-mode' because of a timer
+  ;; race that emitted `(wrong-type-argument arrayp nil)' during
+  ;; project-follow's tree-rebuild window. Adding it back here --
+  ;; the error was specific to a custom workspace-swap path that's
+  ;; since been simplified. If it returns, we'll guard via advice
+  ;; rather than disable the whole feature.
   (treemacs-project-follow-mode 1)
+  (treemacs-follow-mode 1)
 
-  ;; Upstream's debounce defaults to 1.5s; lower it for snappier
-  ;; tree-switching after `find-file' / `consult-buffer'.
+  ;; Lower the project-follow debounce: upstream defaults to 1.5s of
+  ;; idle, which feels like "nothing happened" -- a quick consult-
+  ;; buffer / type-something flow can keep resetting the idle timer
+  ;; before it fires. 0.3s lands the swap reliably without thrashing.
   (setq treemacs--project-follow-delay 0.3)
-
-  ;; The debounced timer is fine for buffer-switch via window changes,
-  ;; but a brand-new `find-file' (visiting a file in another project
-  ;; for the first time) sometimes lands before the debounce fires --
-  ;; giving the impression treemacs ignored the change. Trigger the
-  ;; project-follow logic synchronously on `find-file-hook' so the
-  ;; tree is always in sync once the file's buffer is created.
-  (defun scratch-treemacs--follow-now ()
-    "Force `treemacs-project-follow-mode' to run for the current buffer.
-Useful as a hook on `find-file-hook'; the upstream debounce can miss
-quick-jumps between projects."
-    (when (and treemacs-project-follow-mode
-               (fboundp 'treemacs-get-local-window)
-               (treemacs-get-local-window)
-               (fboundp 'treemacs--do-follow-project))
-      (ignore-errors (treemacs--do-follow-project))))
-  (add-hook 'find-file-hook #'scratch-treemacs--follow-now)
 
   (when scratch-treemacs-git-mode
     ;; Fall back to `simple' if `extended' / `deferred' can't find python.
@@ -151,5 +139,5 @@ quick-jumps between projects."
 (when (modulep! :editor leader)
   (map! :leader
     (:prefix-map ("o" . "open")
-     :desc "project tree (treemacs)" "p" #'treemacs
-     :desc "find file in tree"       "P" #'treemacs-find-file)))
+     :desc "project tree (treemacs)"  "p" #'treemacs
+     :desc "find file in tree"        "P" #'treemacs-find-file)))

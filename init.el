@@ -83,12 +83,10 @@
 (setq straight-use-package-by-default t)
 
 ;;; Tell straight to use Emacs's built-in `org' rather than cloning
-;;; upstream. This must run BEFORE anything `(require 'org)' (the
-;;; tangle step below does), and BEFORE any package that lists
-;;; `org' in `Package-Requires' (e.g. org-modern, org-appear) gets
-;;; installed -- otherwise straight pulls upstream org as a
-;;; transitive dependency, and the two versions clash on first
-;;; org-mode buffer.
+;;; upstream. Must run BEFORE any package that lists `org' in
+;;; `Package-Requires' (e.g. org-modern, org-appear) gets installed --
+;;; otherwise straight pulls upstream org as a transitive dependency,
+;;; and the two versions clash on first org-mode buffer.
 (straight-use-package '(org :type built-in))
 
 ;;; Customize output stays under user-emacs-directory (this framework dir).
@@ -102,29 +100,52 @@
 (require 'scratch-buffer)     ; buffer helpers (scratch/scratch-buffer, ...)
 (require 'scratch-code)       ; prog-mode dispatchers (format, ...)
 (require 'scratch-window)     ; window numbering + M-N bindings
+(require 'scratch-mouse)      ; mouse support (GUI + TTY via xterm-mouse-mode)
 (require 'scratch-treesit)    ; `scratch-treesit-want' (consumed by :editor tree-sitter)
 
-;;; Literate user config: tangle $SCRATCHDIR/config.org -> config.el +
-;;; packages.el on demand, then load the tangled output.
-(defun scratch--tangle-if-stale (org-file targets)
-  "Re-tangle ORG-FILE when any path in TARGETS is missing or older than it."
-  (when (and (file-exists-p org-file)
-             (cl-some (lambda (target)
-                        (or (not (file-exists-p target))
-                            (file-newer-than-file-p org-file target)))
-                      targets))
-    (require 'org)
-    (require 'ob-tangle)
-    (let ((org-confirm-babel-evaluate nil)
-          (gc-cons-threshold most-positive-fixnum))
-      (message "[scratch] tangling %s..." (file-name-nondirectory org-file))
-      (org-babel-tangle-file org-file))))
+;;; Tangle helper for the Local Variables `after-save-hook' at the end
+;;; of config.org. Bare `org-babel-tangle' would normally suffice, but
+;;; modern org skips rewriting an output file when the tangled content
+;;; is byte-identical -- which leaves config.el / packages.el with an
+;;; mtime older than the org file when you save structural changes
+;;; (headings, prose) without editing any src blocks. The freshness
+;;; check below would then warn on the next startup. Bumping the
+;;; outputs to "now" after each tangle keeps mtime a reliable signal.
+(defun scratch-tangle-config-org ()
+  "Tangle the current org file and refresh output mtimes.
+Used by the `after-save-hook' in $SCRATCHDIR/config.org so that the
+freshness check in init.el sees outputs as in-sync, even when
+`org-babel-tangle' skips writing unchanged outputs."
+  (org-babel-tangle)
+  (when-let* ((src (buffer-file-name))
+              (dir (file-name-directory src)))
+    (dolist (out '("config.el" "packages.el"))
+      (let ((f (expand-file-name out dir)))
+        (when (file-exists-p f) (set-file-times f))))))
 
+;;; Literate user config: load the tangled outputs of $SCRATCHDIR/config.org.
+;;; Tangling is NOT done at startup -- it happens via `scratch sync' (the
+;;; canonical regenerate path) or via the `after-save-hook' set in the
+;;; Local Variables block at the end of config.org. Loading `org' here
+;;; would add seconds to cold-start for any non-trivial literate config.
+;;; If the org file looks newer than the tangled outputs we just print a
+;;; one-line nudge and load whatever's already on disk.
 (let ((org      (expand-file-name "config.org"  scratch-user-dir))
       (config   (expand-file-name "config.el"   scratch-user-dir))
       (packages (expand-file-name "packages.el" scratch-user-dir)))
-  (condition-case err
-      (scratch--tangle-if-stale org (list config packages))
-    (error (message "[scratch] tangle failed: %S" err)))
+  ;; `noninteractive' is t when Emacs is started with `--batch' (every
+  ;; `scratch' CLI subcommand does this). Skip the warning in that case
+  ;; -- the user is already mid-sync, so telling them to sync is noise.
+  (when (and (not noninteractive)
+             (file-exists-p org)
+             (or (and (file-exists-p config)   (file-newer-than-file-p org config))
+                 (and (file-exists-p packages) (file-newer-than-file-p org packages))))
+    ;; `message' echoes propertized text in both the echo area and the
+    ;; *Messages* buffer; faces work in TTY too (mapped to the
+    ;; nearest terminal colour).
+    (message "%s %s config.org is newer than its tangled outputs -- run %s to refresh."
+             (propertize "[scratch]" 'face 'font-lock-keyword-face)
+             (propertize "warn:"     'face 'warning)
+             (propertize "scratch sync" 'face 'font-lock-string-face)))
   (when (file-exists-p packages) (load packages nil 'nomessage))
   (when (file-exists-p config)   (load config   nil 'nomessage)))

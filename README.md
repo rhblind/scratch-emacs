@@ -116,6 +116,11 @@ exclude additional vars.
 
 ## What's in the box
 
+Beyond the modules listed below, the framework sets a small layer of
+defaults (recentf, savehist, save-place, auto-revert, mouse support
+that works in both GUI and TTY frames via `xterm-mouse-mode`, etc.) in
+`lisp/scratch-defaults.el` and `lisp/scratch-mouse.el`.
+
 The default `(scratch! ...)` call enables these modules. Comment any
 you don't want, then run `scratch sync`.
 
@@ -142,6 +147,8 @@ you don't want, then run `scratch sync`.
 | `:lang`       | `markdown`           | --                         | `markdown-mode` with native code-block highlighting + scaled headings; tables / pre / HRs stay fixed-pitch in mixed-pitch                                                                                                                                                                                                            |
 | `:lang`       | `csharp`             | --                         | `csharp-ts-mode` for `.cs` (when grammar is installed; falls back to `csharp-mode`), `dotnet` build/run/test minor mode + `,` localleader, `.csproj`/`.props`/`.targets` as XML; project-local `csharp-ls` auto-detected; auto-LSP via `:tools lsp`                                                                                  |
 | `:lang`       | `elixir`             | --                         | `elixir-ts-mode` / `heex-ts-mode`, `exunit` test-runner localleader (`,t a/r/v/s/T/t`), `dexter` LSP client (priority 2; expects `dexter` on PATH), `lsp-credo` add-on for live credo, `flycheck-credo` + `flycheck-dialyxir` (chained after `lsp` checker), `_build`/`deps`/`.elixir_ls`/`.expert` file-watch ignores               |
+| `:lang`       | `json`               | --                         | `json-ts-mode` for `.json` (with legacy `js-json-mode` fallback when the grammar isn't installed); auto-LSP via `:tools lsp` (`json-ls` / `vscode-langservers-extracted`)                                                                                                                                                            |
+| `:lang`       | `yaml`               | --                         | `yaml-ts-mode` for `.yaml`/`.yml` (with `yaml-mode` package as fallback); auto-LSP via `:tools lsp` (`yamlls` / `yaml-language-server`)                                                                                                                                                                                              |
 | `:tools`      | `lsp`                | `+peek`                    | `lsp-mode` + `lsp-ui` + `consult-lsp` (vertico) + `lsp-treemacs` (treemacs); `scratch-lsp-auto-modes` auto-attaches per language; `SPC c` bindings; performance tuned: 1 MB read buffer, 64 MB GC during sessions, deferred shutdown, no JSON-RPC log, raised file-watch threshold; `+peek` routes `c d/D/i/S` through `lsp-ui-peek` |
 | `:tools`      | `direnv`             | --                         | `envrc.el` (purcell) buffer-local hook into the `direnv` CLI; reads `.envrc` per project so subprocesses (LSP, compile, vterm) inherit project env. Pairs with `mise`. Needs `direnv` on PATH                                                                                                                                        |
 | `:tools`      | `mise`               | --                         | `mise.el` (eki3z) buffer-local hook into the `mise` CLI; reads `mise.toml` / `.tool-versions` so subprocesses get the project's pinned `node` / `python` / etc. Pairs with `direnv`. Needs `mise` on PATH                                                                                                                            |
@@ -204,8 +211,12 @@ Anything in the regular config.el block runs after every module loads,
 so it's the last word.
 
 After editing the org file, `scratch sync` re-tangles + installs new
-packages. Tangle alone happens on Emacs startup if the org file is
-newer than the tangled outputs.
+packages. Inside Emacs, saving `config.org` re-tangles automatically
+via the `Local Variables` block at the bottom of the starter file
+(`after-save-hook` → `org-babel-tangle`); startup itself never invokes
+org-mode, so cold-start stays fast even with a large literate config.
+If you edit `config.org` externally and skip `scratch sync`, the next
+Emacs start prints a one-line nudge.
 
 ## Themes
 

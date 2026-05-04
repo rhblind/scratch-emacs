@@ -51,7 +51,13 @@ Set to nil or 1.0 to keep org at the global font size. Override by
   :config
   ;; Emacs 30+: keep wrapped lines visually indented by their list/heading prefix.
   (when (fboundp 'visual-wrap-prefix-mode)
-    (add-hook 'org-mode-hook #'visual-wrap-prefix-mode)))
+    (add-hook 'org-mode-hook #'visual-wrap-prefix-mode))
+
+  ;; Restore the easy-template expansion: `<s' + TAB inserts a `#+begin_src'
+  ;; block, `<q' a quote, `<e' an example, etc. Org 9.2 (bundled with
+  ;; Emacs 27+) extracted these into a separate `org-tempo' library and
+  ;; stopped loading it by default; this re-enables them.
+  (require 'org-tempo))
 
 (use-package org-modern
   :hook ((org-mode            . org-modern-mode)

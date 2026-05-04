@@ -107,7 +107,7 @@
    "          :emacs      (vc +forge +gutter) ibuffer dired\n"
    "          :checkers   syntax\n"
    "          :tools      (lsp +peek) direnv mise\n"
-   "          :lang       org markdown csharp\n"
+   "          :lang       org markdown csharp json yaml\n"
    "          :term       vterm\n"
    "          :os         macos\n"
    "          :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors rainbow default-text-scale)\n"
@@ -614,7 +614,7 @@
    ";;           :emacs      (vc +forge +gutter) ibuffer dired\n"
    ";;           :checkers   syntax\n"
    ";;           :tools      (lsp +peek) direnv mise\n"
-   ";;           :lang       org markdown csharp\n"
+   ";;           :lang       org markdown csharp json yaml\n"
    ";;           :term       vterm\n"
    ";;           :os         macos\n"
    ";;           :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors rainbow default-text-scale)\n"
@@ -652,7 +652,21 @@
    "#+begin_src emacs-lisp\n"
    ";; (use-package which-key\n"
    ";;   :config (which-key-mode 1))\n"
-   "#+end_src\n"))
+   "#+end_src\n"
+   "\n"
+   "* Auto-tangle on save                                              :noexport:\n"
+   ":PROPERTIES:\n"
+   ":VISIBILITY: folded\n"
+   ":END:\n"
+   "The Local Variables block below makes saving this file regenerate\n"
+   "~config.el~ + ~packages.el~ via ~org-babel-tangle~. Startup never\n"
+   "tangles (see ~init.el~), so this is the in-editor refresh path;\n"
+   "~scratch sync~ remains the canonical \"regenerate everything\" path\n"
+   "(useful after editing this file outside Emacs).\n"
+   "\n"
+   "# Local Variables:\n"
+   "# eval: (add-hook 'after-save-hook #'scratch-tangle-config-org nil 'local)\n"
+   "# End:\n"))
 
 (defun scratch-cli--starter-gitignore ()
   (concat
@@ -739,21 +753,38 @@
     ;; dir, mirror that here so straight installs into the right place.
     (setq user-emacs-directory scratch-cli--emacs-dir)
 
-    ;; Force-tangle by removing the outputs so the framework's staleness check
-    ;; trips. This works without us having to know whether `org' is loadable
-    ;; before the framework's init runs.
-    (when force-tangle
-      (let* ((user-dir (file-name-as-directory
-                        (expand-file-name (or (getenv "SCRATCHDIR")
-                                              scratch-cli--default-user-dir))))
-             (config   (expand-file-name "config.el"   user-dir))
-             (packages (expand-file-name "packages.el" user-dir)))
-        (when (file-exists-p config)
-          (scratch-cli--print "Removing %s" config)
-          (delete-file config))
-        (when (file-exists-p packages)
-          (scratch-cli--print "Removing %s" packages)
-          (delete-file packages))))
+    ;; Tangle config.org -> config.el + packages.el before loading the
+    ;; framework. `init.el' deliberately does NOT tangle at startup
+    ;; (it's the slow path -- loads org-mode), so sync owns the tangle
+    ;; step now. Doing it here also means init.el sees fresh outputs and
+    ;; doesn't emit its "config.org is newer" warning during sync.
+    (let* ((user-dir (file-name-as-directory
+                      (expand-file-name (or (getenv "SCRATCHDIR")
+                                            scratch-cli--default-user-dir))))
+           (org      (expand-file-name "config.org"  user-dir))
+           (config   (expand-file-name "config.el"   user-dir))
+           (packages (expand-file-name "packages.el" user-dir)))
+      (when (and (file-exists-p org)
+                 (or force-tangle
+                     (not (file-exists-p config))
+                     (not (file-exists-p packages))
+                     (file-newer-than-file-p org config)
+                     (file-newer-than-file-p org packages)))
+        (scratch-cli--print "Tangling %s..." (file-name-nondirectory org))
+        (require 'org)
+        (require 'ob-tangle)
+        (let ((org-confirm-babel-evaluate nil))
+          (org-babel-tangle-file org))
+        ;; Modern `org-babel-tangle' skips rewriting an output file
+        ;; when the tangled content is byte-identical to what's on
+        ;; disk. That leaves config.el / packages.el with an mtime
+        ;; older than config.org, so the freshness check in init.el
+        ;; would warn the user to run sync... immediately after they
+        ;; just synced. Bump the outputs to "now" to make mtime a
+        ;; reliable signal of "outputs are in sync with org".
+        (dolist (target (list config packages))
+          (when (file-exists-p target)
+            (set-file-times target)))))
 
     (scratch-cli--print "Loading framework...")
     (load (expand-file-name "init.el" scratch-cli--emacs-dir) nil 'nomessage)

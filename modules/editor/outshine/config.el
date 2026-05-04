@@ -15,3 +15,17 @@
   ;; Use the same fold cycling style as org-mode: TAB cycles current
   ;; subtree, S-TAB cycles all.
   (setq outshine-use-speed-commands t))
+
+;; Defensive: `outline-map-region' (built-in `outline.el') signals
+;; `Wrong type argument: number-or-marker-p, nil' when called with
+;; nil for BEG / END. That can happen during `revert-buffer' when
+;; outshine's `outline-minor-mode-hook' re-applies in a buffer
+;; where the outline structure hasn't yet been recomputed -- the
+;; result is a noisy stack trace on every revert, but the revert
+;; itself succeeds. Wrap with a guard so the call is a no-op when
+;; either bound is nil.
+(advice-add 'outline-map-region :around
+            (lambda (orig fn beg end)
+              (when (and (number-or-marker-p beg)
+                         (number-or-marker-p end))
+                (funcall orig fn beg end))))

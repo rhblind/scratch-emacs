@@ -2,9 +2,9 @@
 ;;
 ;; default-text-scale: zoom every buffer in lockstep by adjusting the
 ;; `default' face height. Complements (doesn't replace) Emacs's
-;; per-buffer `text-scale-increase'. Cross-platform; on macOS our
-;; `:os macos' module already binds `Cmd-=' / `Cmd--' / `Cmd-0' for
-;; the per-buffer variant.
+;; per-buffer `text-scale-increase'. Cross-platform; when `:os macos'
+;; is also enabled it routes `Cmd-=' / `Cmd--' / `Cmd-0' through the
+;; global default-text-scale commands instead of the per-buffer ones.
 ;;
 ;; Default bindings (after `default-text-scale-mode' activates):
 ;;   C-M-=  -- zoom in (all buffers)

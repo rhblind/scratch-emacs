@@ -119,6 +119,7 @@
  ("vlfi" . "cc02f2533782d6b9b628cec7e2dcf25b2d05a27c")
  ("with-editor" . "14ea1d98337a47d899ee1860f96b7cbb1ef0e2a0")
  ("xref" . "bd31f9ac86a105c01631b29e6f442049500e9928")
+ ("yaml-mode" . "96ef0201101a7cd591febd5886633154dae8834c")
  ("yaml.el" . "f2369fb4985ed054be47ae111760ff2075dff72a")
  ("yasnippet" . "c1e6ff23e9af16b856c88dfaab9d3ad7b746ad37")
  ("yasnippet-snippets" . "606ee926df6839243098de6d71332a697518cb86"))
