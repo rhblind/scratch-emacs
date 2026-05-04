@@ -10,21 +10,9 @@
 ;;   ~/.config/emacs-scratch/lsp-servers/   -- downloaded language servers
 ;;   ~/.config/emacs-scratch/lsp-session    -- workspace state
 
-(defvar scratch-lsp-auto-modes
-  '(csharp-ts-mode  csharp-mode
-    elixir-ts-mode
-    erlang-mode
-    go-ts-mode
-    js-ts-mode  javascript-mode
-    typescript-ts-mode tsx-ts-mode
-    python-ts-mode
-    rust-ts-mode
-    bash-ts-mode  sh-mode
-    web-mode  html-ts-mode  css-ts-mode
-    yaml-ts-mode  json-ts-mode)
-  "Major modes that auto-attach `lsp-deferred' on entry.
-Override BEFORE calling `scratch!' to add / remove modes; e.g.:
-  (setq scratch-lsp-auto-modes (cons \\='java-ts-mode scratch-lsp-auto-modes))")
+;; `scratch-lsp-auto-modes' is defined in `lisp/scratch-lsp.el' (loaded
+;; from init.el). Each `:lang' module pushes its modes there, so this
+;; module never has to enumerate languages.
 
 (use-package lsp-mode
   :commands (lsp lsp-deferred lsp-install-server)
@@ -217,6 +205,50 @@ LOCATIONS may be a list, vector, or singleton; returns a list."
               (lambda (args)
                 (list (scratch-lsp--filter-worktree-locations (car args))))))
 
+;; ---------------------------------------------------------------------------
+;; Worktree-aware workspace-root resolution.
+;;
+;; `lsp-workspace-root' picks the longest path in `lsp-session-folders'
+;; that is an ancestor of the file. When you open a git worktree
+;; (`<main>/.worktrees/<branch>/...') *after* opening the main repo,
+;; `<main>' is in session-folders but `<main>/.worktrees/<branch>/' is
+;; NOT, so lsp matches `<main>' and reuses its server -- both the main
+;; repo and the worktree end up rooted at the same path, which defeats
+;; the response-filter above and pollutes diagnostics across copies.
+;;
+;; Fix: before lsp computes a root for a buffer, ensure the buffer's
+;; worktree path (if any) is in `lsp-session-folders'. Then upstream's
+;; "longest ancestor wins" picks the worktree, lsp starts a fresh
+;; server for it, and the two trees stay isolated end-to-end.
+
+(defun scratch-lsp--ensure-worktree-folder (&rest _)
+  "Add the buffer's worktree root to `lsp-session-folders' if applicable.
+A no-op when the current buffer isn't inside a `<main>/.worktrees/<branch>/'
+path, or when that path is already a session folder.
+
+Uses `lsp-workspace-folders-add' (the public API) rather than mutating
+the session struct directly -- the public path also persists the
+session and runs the workspace-folders-changed hooks."
+  (when-let* ((path buffer-file-name)
+              (scope (scratch-lsp--scope-for-path path))
+              (main  (car scope))
+              (label (cdr scope))
+              (worktree (file-name-as-directory
+                         (concat main scratch-lsp-worktree-dir-name "/" label)))
+              ((fboundp 'lsp-session))
+              ((fboundp 'lsp-workspace-folders-add))
+              (current (lsp-session-folders (lsp-session))))
+    (unless (member worktree current)
+      (lsp-workspace-folders-add worktree))))
+
+(with-eval-after-load 'lsp-mode
+  ;; `lsp' and `lsp-deferred' are the two entry points that resolve a
+  ;; root; advise both. `:before' runs before root computation so the
+  ;; worktree path is on the candidate list when lsp picks the longest
+  ;; ancestor.
+  (advice-add 'lsp          :before #'scratch-lsp--ensure-worktree-folder)
+  (advice-add 'lsp-deferred :before #'scratch-lsp--ensure-worktree-folder))
+
 (with-eval-after-load 'lsp-ui-peek
   ;; lsp-ui-peek has its own response handler that bypasses
   ;; `lsp--locations-to-xref-items'. Its return value is a list of
@@ -236,44 +268,6 @@ LOCATIONS may be a list, vector, or singleton; returns a list."
                                 file our-main our-label)))
                            groups))))
                 groups)))
-
-;; ---------------------------------------------------------------------------
-;; lsp-ui-peek path display: filename FIRST, dir trailing.
-;;
-;; The default `lsp-ui--workspace-path' returns the workspace-relative
-;; path verbatim, so a peek list gets entries like
-;;   .worktrees/199-fix-policies-for-producer-api-endpoint/lib/x.ex
-;; which truncates to a useless `.worktrees/199-fix...' before the
-;; filename appears. We override to emit "filename  dir/" so the
-;; filename always survives truncation; the dir is still there for
-;; context but takes the truncation hit.
-;;
-;; Used by lsp-ui-peek's reference list AND lsp-ui-flycheck's error
-;; list -- both see the improvement.
-
-(defun scratch-lsp-ui--workspace-path-filename-first-a (path)
-  "Override of `lsp-ui--workspace-path': render PATH as `FILE  DIR/'.
-Falls through to the upstream behaviour when the path has no dir
-component (file at workspace root) or `lsp-workspace-root' is unset."
-  (let* ((true (file-truename path))
-         (root (and (fboundp 'lsp-workspace-root) (lsp-workspace-root true)))
-         (rel  (if (and root (string-prefix-p root true))
-                   (substring true (length root))
-                 true))
-         (file (file-name-nondirectory rel))
-         (dir  (file-name-directory rel)))
-    (cond
-     ((or (null dir) (string= dir "")) file)
-     (t (concat file "  " (propertize dir 'face 'shadow))))))
-
-(with-eval-after-load 'lsp-ui
-  (advice-add 'lsp-ui--workspace-path :override
-              #'scratch-lsp-ui--workspace-path-filename-first-a))
-
-;; Give the peek list a touch more room so the trailing dir hint
-;; survives a few extra characters before truncation. Default is 50.
-(with-eval-after-load 'lsp-ui-peek
-  (setq lsp-ui-peek-list-width 70))
 
 ;; ---------------------------------------------------------------------------
 ;; Performance: GC + IPC tuning while LSP is in use.
@@ -427,12 +421,12 @@ component (file at workspace root) or `lsp-workspace-root' is unset."
     ;; LSP is attached, so don't override them. Same for `c k'
     ;; (smart wrapper) and `c f' (smart wrapper).
     (map! :leader
-      (:prefix-map ("c" . "code")
-       :desc "find type definition" "t" #'lsp-find-type-definition
-       :desc "lsp-ui doc popup"     "K" #'lsp-ui-doc-show
-       :desc "code action"          "a" #'lsp-execute-code-action
-       :desc "rename symbol"        "r" #'lsp-rename
-       :desc "organize imports"     "o" #'lsp-organize-imports))
+          (:prefix-map ("c" . "code")
+                       :desc "find type definition" "t" #'lsp-find-type-definition
+                       :desc "lsp-ui doc popup"     "K" #'lsp-ui-doc-show
+                       :desc "code action"          "a" #'lsp-execute-code-action
+                       :desc "rename symbol"        "r" #'lsp-rename
+                       :desc "organize imports"     "o" #'lsp-organize-imports))
     ;; `+peek' bindings are wired below at the top level (outside this
     ;; `with-eval-after-load 'lsp-mode' body) because `modulep!' on a
     ;; flag reads the dynamic `scratch--current-module', which is only
@@ -464,11 +458,11 @@ component (file at workspace root) or `lsp-workspace-root' is unset."
     ;; Consult-driven pickers when vertico is in.
     (when (modulep! :completion vertico)
       (map! :leader
-        (:prefix-map ("c" . "code")
-         :desc "workspace symbols"               "j" #'consult-lsp-symbols
-         :desc "workspace symbols (all)"         "J" #'scratch-lsp/consult-symbols-all-workspaces
-         :desc "file symbols"                    "s" #'consult-lsp-file-symbols
-         :desc "diagnostics"                     "X" #'consult-lsp-diagnostics)))))
+            (:prefix-map ("c" . "code")
+                         :desc "workspace symbols"               "j" #'consult-lsp-symbols
+                         :desc "workspace symbols (all)"         "J" #'scratch-lsp/consult-symbols-all-workspaces
+                         :desc "file symbols"                    "s" #'consult-lsp-file-symbols
+                         :desc "diagnostics"                     "X" #'consult-lsp-diagnostics)))))
 
 ;; `+peek' bindings. Top-level so `(modulep! +peek)' resolves while
 ;; `scratch--current-module' is still bound to this module's entry
@@ -478,11 +472,11 @@ component (file at workspace root) or `lsp-workspace-root' is unset."
 (when (and (modulep! :editor leader) (modulep! +peek))
   (with-eval-after-load 'lsp-ui-peek
     (map! :leader
-      (:prefix-map ("c" . "code")
-       :desc "peek definitions"      "d" #'lsp-ui-peek-find-definitions
-       :desc "peek references"       "D" #'lsp-ui-peek-find-references
-       :desc "peek implementations"  "i" #'lsp-ui-peek-find-implementation
-       :desc "peek workspace symbol" "S" #'lsp-ui-peek-find-workspace-symbol))
+          (:prefix-map ("c" . "code")
+                       :desc "peek definitions"      "d" #'lsp-ui-peek-find-definitions
+                       :desc "peek references"       "D" #'lsp-ui-peek-find-references
+                       :desc "peek implementations"  "i" #'lsp-ui-peek-find-implementation
+                       :desc "peek workspace symbol" "S" #'lsp-ui-peek-find-workspace-symbol))
     ;; Inside the peek popup: j/k for next/prev, C-j/C-k for
     ;; next-file/prev-file. Evil-friendly; mirrors Doom.
     (map! :map lsp-ui-peek-mode-map

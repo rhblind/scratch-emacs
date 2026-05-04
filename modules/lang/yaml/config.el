@@ -25,3 +25,9 @@
 ;; cleanly via its own auto-mode-alist entry.
 (when (treesit-language-available-p 'yaml)
   (add-to-list 'major-mode-remap-alist '(yaml-mode . yaml-ts-mode)))
+
+;; Opt these modes into `:tools lsp' auto-attach. No-op when the lsp
+;; module isn't enabled.
+(when (modulep! :tools lsp)
+  (dolist (mode '(yaml-ts-mode yaml-mode))
+    (add-to-list 'scratch-lsp-auto-modes mode)))

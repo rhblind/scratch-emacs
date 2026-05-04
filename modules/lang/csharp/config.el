@@ -26,6 +26,12 @@
   (add-to-list 'treesit-language-source-alist
                '(c-sharp "https://github.com/tree-sitter/tree-sitter-c-sharp")))
 
+;; Opt these modes into `:tools lsp' auto-attach. No-op when the lsp
+;; module isn't enabled.
+(when (modulep! :tools lsp)
+  (dolist (mode '(csharp-ts-mode csharp-mode))
+    (add-to-list 'scratch-lsp-auto-modes mode)))
+
 ;; Remap legacy `csharp-mode' to the tree-sitter mode -- but ONLY when
 ;; the grammar is actually available. Without the guard, csharp-ts-mode
 ;; loads and immediately fails with a `dlopen' warning (the `.so' file

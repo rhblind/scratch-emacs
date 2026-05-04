@@ -31,3 +31,9 @@
 (when (treesit-language-available-p 'json)
   (dolist (legacy '(js-json-mode javascript-mode))
     (add-to-list 'major-mode-remap-alist (cons legacy 'json-ts-mode))))
+
+;; Opt these modes into `:tools lsp' auto-attach. No-op when the lsp
+;; module isn't enabled.
+(when (modulep! :tools lsp)
+  (dolist (mode '(json-ts-mode js-json-mode))
+    (add-to-list 'scratch-lsp-auto-modes mode)))

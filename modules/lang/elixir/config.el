@@ -17,6 +17,12 @@
 (add-to-list 'scratch-treesit-want 'elixir)
 (add-to-list 'scratch-treesit-want 'heex)
 
+;; Opt these modes into `:tools lsp' auto-attach. No-op when the lsp
+;; module isn't enabled.
+(when (modulep! :tools lsp)
+  (dolist (mode '(elixir-ts-mode elixir-mode heex-ts-mode))
+    (add-to-list 'scratch-lsp-auto-modes mode)))
+
 ;; Register grammar sources as a fallback for users without
 ;; `:editor tree-sitter' (treesit-auto otherwise provides these via
 ;; its recipe list). Lets `M-x treesit-install-language-grammar elixir'
