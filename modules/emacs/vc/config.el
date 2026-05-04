@@ -50,7 +50,29 @@
   (when (modulep! :editor evil)
     (with-eval-after-load 'evil
       (evil-define-key '(normal visual) magit-mode-map
-        (kbd "Z") #'magit-worktree))))
+        (kbd "Z") #'magit-worktree)))
+
+  ;; After magit creates / switches to a worktree, jump to it via
+  ;; `project-switch-project'. That's the same path `SPC p p' takes,
+  ;; so it (a) goes through the workspaces module's advice (creates a
+  ;; per-worktree persp), and (b) lands on the configured switch
+  ;; action -- with `project-switch-commands' = `scratch/projects-find
+  ;; -file', that's the vertico file picker scoped to the new
+  ;; worktree. Deferred via `run-at-time 0' so the magit-status
+  ;; window magit pops up first stays in the layout while the file
+  ;; picker is up.
+  (defun scratch-vc--worktree-then-pick-file-a (orig-fn directory &rest args)
+    "Around-advice: run magit's worktree action, then pop the file picker."
+    (apply orig-fn directory args)
+    (when-let* ((dir (and directory
+                          (file-directory-p (expand-file-name directory))
+                          (file-name-as-directory (expand-file-name directory)))))
+      (run-at-time 0 nil #'project-switch-project dir)))
+
+  (dolist (cmd '(magit-worktree-checkout
+                 magit-worktree-branch
+                 magit-worktree-status))
+    (advice-add cmd :around #'scratch-vc--worktree-then-pick-file-a)))
 
 ;; magit-todos: surface project TODO / FIXME / HACK / etc. as a
 ;; section in `magit-status'. Keyword set is shared with hl-todo.
