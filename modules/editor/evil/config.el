@@ -198,3 +198,58 @@ Symmetric counterpart of `scratch/backward-kill-word'."
   (advice-add 'evil-ex-search-previous :after #'scratch-evil--recenter-line-a)
   (advice-add 'evil-scroll-up          :after #'scratch-evil--recenter-line-a)
   (advice-add 'evil-scroll-down        :after #'scratch-evil--recenter-line-a))
+
+;;;; Per-state cursor color (TTY)
+;;
+;; In a GUI frame, evil swaps `cursor-type' on state changes and the
+;; cursor color follows the `cursor' face -- the box stays visible and
+;; you can tell which state you're in at a glance. In a TTY frame,
+;; Emacs has no say over the cursor; the terminal owns it. Most modern
+;; emulators (iTerm2, kitty, alacritty, foot, GNOME Terminal) accept
+;; OSC 12 escape sequences to recolor the cursor; DECSCUSR controls the
+;; shape. `evil-terminal-cursor-changer' wraps both, reading
+;; `evil-<state>-state-cursor' the same way GUI evil does.
+;;
+;; Colors come from theme faces (NOT hardcoded hex), so the cursor
+;; tracks `auto-dark' / any `load-theme' switch. We refresh after each
+;; theme activation. Shape is always `box': a thin bar is hard to spot
+;; on a coloured terminal background.
+
+(defun scratch-evil--cursor-color (face)
+  "Return FACE's foreground, falling back to `default'."
+  (or (face-attribute face :foreground nil t)
+      (face-attribute 'default :foreground)))
+
+(defun scratch-evil--refresh-state-cursors (&rest _)
+  "Recompute `evil-*-state-cursor' from current theme faces.
+Called once on evil load and again on every theme switch so
+`auto-dark' / manual `load-theme' keep the TTY cursor in sync."
+  (setq evil-normal-state-cursor   (list (scratch-evil--cursor-color 'default) 'box)
+        evil-motion-state-cursor   (list (scratch-evil--cursor-color 'default) 'box)
+        evil-insert-state-cursor   (list (scratch-evil--cursor-color 'success) 'box)
+        evil-operator-state-cursor (list (scratch-evil--cursor-color 'success) 'box)
+        evil-visual-state-cursor   (list (scratch-evil--cursor-color 'warning) 'box)
+        evil-replace-state-cursor  (list (scratch-evil--cursor-color 'error)   'box)
+        evil-emacs-state-cursor    (list (scratch-evil--cursor-color 'error)   'box)))
+
+(with-eval-after-load 'evil
+  (scratch-evil--refresh-state-cursors)
+  (cond
+   ;; Emacs 29+: canonical hook for theme activation.
+   ((boundp 'enable-theme-functions)
+    (add-hook 'enable-theme-functions #'scratch-evil--refresh-state-cursors))
+   ;; Older Emacs: advise `load-theme' / `disable-theme'.
+   (t
+    (advice-add 'load-theme    :after #'scratch-evil--refresh-state-cursors)
+    (advice-add 'disable-theme :after #'scratch-evil--refresh-state-cursors))))
+
+(use-package evil-terminal-cursor-changer
+  :after evil
+  :config
+  (unless (display-graphic-p)
+    (evil-terminal-cursor-changer-activate))
+  ;; For daemon-spawned `emacsclient -t' clients: activate when each
+  ;; new TTY frame comes up. (`activate' is idempotent enough that
+  ;; double-activating from `display-graphic-p nil' above + this hook
+  ;; is harmless.)
+  (add-hook 'tty-setup-hook #'evil-terminal-cursor-changer-activate))
