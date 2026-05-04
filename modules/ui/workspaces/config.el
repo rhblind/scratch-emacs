@@ -100,6 +100,15 @@
     (advice-add 'project-switch-project :around
                 #'scratch-workspaces--project-switch-a)))
 
+;; Note: we deliberately don't add a `persp-activated-functions' hook to
+;; pull treemacs along on persp switch. With `treemacs-persp' removed
+;; (see :ui treemacs/config.el), there's one treemacs buffer per frame
+;; and `treemacs-project-follow-mode' already swaps the tree's content
+;; on `window-buffer-change-functions' -- which fires when the user
+;; lands in a buffer in the new persp/project. An eager hook on
+;; persp-activated steals focus from a vertico minibuffer that's still
+;; up between `project-switch-project' and the user's file pick.
+
 
 ;;;; Helpers / commands
 

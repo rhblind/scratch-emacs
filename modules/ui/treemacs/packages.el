@@ -11,8 +11,10 @@
   (straight-use-package 'treemacs-magit))
 
 ;; Pre-wired integrations -- no-ops until these modules are added.
-(when (modulep! :ui workspaces)
-  (straight-use-package 'treemacs-persp))
+;; `treemacs-persp' is intentionally NOT installed -- its buffer-swap
+;; on persp activation races with persp-mode's window-state restore.
+;; The workspaces module bridges to treemacs via a hook in its config
+;; instead. See `:ui treemacs/config.el' and `:ui workspaces/config.el'.
 
 (when (modulep! :tools lsp)
   (straight-use-package 'lsp-treemacs))

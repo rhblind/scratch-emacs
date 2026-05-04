@@ -45,14 +45,23 @@ Set this BEFORE `treemacs' loads.")
   ;;   - `treemacs-follow-mode': highlight / scroll-to the current
   ;;     FILE within the displayed project (cursor follow).
   ;;
-  ;; Earlier we disabled `treemacs-follow-mode' because of a timer
-  ;; race that emitted `(wrong-type-argument arrayp nil)' during
-  ;; project-follow's tree-rebuild window. Adding it back here --
-  ;; the error was specific to a custom workspace-swap path that's
-  ;; since been simplified. If it returns, we'll guard via advice
-  ;; rather than disable the whole feature.
+  ;; Both follow modes on. There's a known race where the cursor-follow
+  ;; timer fires during project-follow's tree-rebuild window and reads
+  ;; an internal slot that's briefly nil, producing
+  ;; `(wrong-type-argument arrayp nil)'. The advice below swallows that
+  ;; transient error -- the next timer tick lands cleanly once the
+  ;; rebuild settles. We made it more likely to hit this race than a
+  ;; vanilla treemacs setup by tightening `treemacs--project-follow-delay'
+  ;; below + adding `treemacs-persp', so the guard belongs to us.
   (treemacs-project-follow-mode 1)
   (treemacs-follow-mode 1)
+
+  (defun scratch-treemacs--follow-guard-a (orig &rest args)
+    "Swallow transient `arrayp nil' from `treemacs--follow' during rebuilds."
+    (condition-case _
+        (apply orig args)
+      (wrong-type-argument nil)))
+  (advice-add 'treemacs--follow :around #'scratch-treemacs--follow-guard-a)
 
   ;; Lower the project-follow debounce: upstream defaults to 1.5s of
   ;; idle, which feels like "nothing happened" -- a quick consult-
@@ -108,14 +117,15 @@ Set this BEFORE `treemacs' loads.")
       (with-eval-after-load 'magit
         (require 'treemacs-magit)))))
 
-(when (modulep! :ui workspaces)
-  (use-package treemacs-persp
-    :defer t
-    :init
-    (with-eval-after-load 'treemacs
-      (require 'treemacs-persp))
-    :config
-    (treemacs-set-scope-type 'Perspectives)))
+;; `treemacs-persp' (per-persp scope shelves) is intentionally NOT
+;; enabled, even when `:ui workspaces' is on. Its buffer-swap on
+;; persp-activated races with persp-mode's `window-state-put' --
+;; sometimes the saved window config wins, leaving the tree showing
+;; the wrong project after a workspace switch. We rely instead on the
+;; default frame scope (one treemacs buffer per frame) plus
+;; `treemacs-project-follow-mode' to keep the tree's content in sync
+;; with the active project; the workspaces module pulls treemacs
+;; explicitly on persp-activated for an immediate swap.
 
 (when (modulep! :tools lsp)
   (use-package lsp-treemacs
