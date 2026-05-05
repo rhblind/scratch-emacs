@@ -36,7 +36,8 @@ Set to nil or 1.0 to keep org at the global font size. Override by
   :defer t
   :hook ((org-mode . visual-line-mode)
          (org-mode . scratch-org--scale-buffer-text)
-         (org-mode . scratch-org--apply-heading-faces))
+         (org-mode . scratch-org--apply-heading-faces)
+         (org-mode . (lambda () (setq-local tab-width 8))))
   ;; Stock-Emacs global shortcuts for the three top-level org entry
   ;; points (`C-c a' agenda, `C-c c' capture, `C-c l' store-link).
   ;; Available everywhere, not just in org buffers.
@@ -248,7 +249,16 @@ Set to nil or 1.0 to keep org at the global font size. Override by
       (:prefix-map ("p" . "priority")
        :desc "down"                 "d" #'org-priority-down
        :desc "set"                  "p" #'org-priority
-       :desc "up"                   "u" #'org-priority-up))
+       :desc "up"                   "u" #'org-priority-up)
+      ;; -- emphasis / text formatting --
+      (:prefix-map ("X" . "emphasis")
+       :desc "bold"                 "b" (lambda () (interactive) (org-emphasize ?*))
+       :desc "italic"              "i" (lambda () (interactive) (org-emphasize ?/))
+       :desc "code"                "c" (lambda () (interactive) (org-emphasize ?~))
+       :desc "verbatim"            "v" (lambda () (interactive) (org-emphasize ?=))
+       :desc "strikethrough"       "s" (lambda () (interactive) (org-emphasize ?+))
+       :desc "underline"           "u" (lambda () (interactive) (org-emphasize ?_))
+       :desc "clear"               "x" (lambda () (interactive) (org-emphasize ?\s))))
     ;; Use consult-org-* when consult is available (richer picker).
     (when (modulep! :completion vertico)
       (map! :map org-mode-map :localleader
