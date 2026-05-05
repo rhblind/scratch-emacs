@@ -210,38 +210,70 @@ Symmetric counterpart of `scratch/backward-kill-word'."
 ;; shape. `evil-terminal-cursor-changer' wraps both, reading
 ;; `evil-<state>-state-cursor' the same way GUI evil does.
 ;;
-;; Colors come from theme faces (NOT hardcoded hex), so the cursor
-;; tracks `auto-dark' / any `load-theme' switch. We refresh after each
-;; theme activation. Shape is always `box': a thin bar is hard to spot
-;; on a coloured terminal background.
+;; Static literal baseline. These are always-valid colors so evil and
+;; `evil-terminal-cursor-changer' have something legitimate to read
+;; even if the theme refresh below hasn't run yet (or fails). Shape
+;; is always `box': a thin bar is hard to spot on a coloured terminal
+;; background.
+(setq evil-normal-state-cursor   '("white"  box)
+      evil-motion-state-cursor   '("white"  box)
+      evil-insert-state-cursor   '("green"  box)
+      evil-operator-state-cursor '("green"  box)
+      evil-visual-state-cursor   '("orange" box)
+      evil-replace-state-cursor  '("red"    box)
+      evil-emacs-state-cursor    '("red"    box))
 
-(defun scratch-evil--cursor-color (face)
-  "Return FACE's foreground, falling back to `default'."
-  (or (face-attribute face :foreground nil t)
-      (face-attribute 'default :foreground)))
+;; Theme-tracked refresh. Three layers of defence against the previous
+;; "Unknown color" timer failure:
+;;   1. `face-attribute ... 'default' inherits all the way to the
+;;      `default' face -- never returns `unspecified' if `default'
+;;      has a foreground (it always does on a live frame).
+;;   2. `color-defined-p' explicitly validates the result before we
+;;      assign it; on failure the static literal stays.
+;;   3. `condition-case' swallows any unexpected error; the worst
+;;      case is the cursor stays at the previous values, never
+;;      blocks startup or breaks `enable-theme-functions'.
+;; The refresh fires on `after-init-hook' (themes are settled by then)
+;; and on every subsequent theme activation, so `auto-dark' /
+;; `load-theme' keep colors in sync.
+(defun scratch-evil--resolved-color (face fallback)
+  "Return FACE's foreground if it's a valid color, else FALLBACK."
+  (let ((color (face-attribute face :foreground nil 'default)))
+    (if (and (stringp color) (color-defined-p color))
+        color
+      fallback)))
 
 (defun scratch-evil--refresh-state-cursors (&rest _)
-  "Recompute `evil-*-state-cursor' from current theme faces.
-Called once on evil load and again on every theme switch so
-`auto-dark' / manual `load-theme' keep the TTY cursor in sync."
-  (setq evil-normal-state-cursor   (list (scratch-evil--cursor-color 'default) 'box)
-        evil-motion-state-cursor   (list (scratch-evil--cursor-color 'default) 'box)
-        evil-insert-state-cursor   (list (scratch-evil--cursor-color 'success) 'box)
-        evil-operator-state-cursor (list (scratch-evil--cursor-color 'success) 'box)
-        evil-visual-state-cursor   (list (scratch-evil--cursor-color 'warning) 'box)
-        evil-replace-state-cursor  (list (scratch-evil--cursor-color 'error)   'box)
-        evil-emacs-state-cursor    (list (scratch-evil--cursor-color 'error)   'box)))
+  "Recompute `evil-*-state-cursor' from current theme faces and re-apply.
+Updating the variables is not enough -- evil only reads them on the
+next state transition. `evil-refresh-cursor' re-applies the current
+state's cursor immediately so the change is visible right away."
+  (condition-case err
+      (progn
+        (setq evil-normal-state-cursor   (list (scratch-evil--resolved-color 'default "white")  'box)
+              evil-motion-state-cursor   (list (scratch-evil--resolved-color 'default "white")  'box)
+              evil-insert-state-cursor   (list (scratch-evil--resolved-color 'success "green")  'box)
+              evil-operator-state-cursor (list (scratch-evil--resolved-color 'success "green")  'box)
+              evil-visual-state-cursor   (list (scratch-evil--resolved-color 'warning "orange") 'box)
+              evil-replace-state-cursor  (list (scratch-evil--resolved-color 'error   "red")    'box)
+              evil-emacs-state-cursor    (list (scratch-evil--resolved-color 'error   "red")    'box))
+        (when (fboundp 'evil-refresh-cursor)
+          (evil-refresh-cursor)))
+    (error
+     (message "scratch: cursor refresh failed (%s); keeping previous values"
+              (error-message-string err)))))
 
-(with-eval-after-load 'evil
-  (scratch-evil--refresh-state-cursors)
-  (cond
-   ;; Emacs 29+: canonical hook for theme activation.
-   ((boundp 'enable-theme-functions)
-    (add-hook 'enable-theme-functions #'scratch-evil--refresh-state-cursors))
-   ;; Older Emacs: advise `load-theme' / `disable-theme'.
-   (t
-    (advice-add 'load-theme    :after #'scratch-evil--refresh-state-cursors)
-    (advice-add 'disable-theme :after #'scratch-evil--refresh-state-cursors))))
+;; Refresh on every signal that "we now have a real display + theme":
+;;   - `after-init-hook'              : non-daemon launches.
+;;   - `server-after-make-frame-hook' : first GUI frame in a daemon
+;;     (in a daemon, `after-init-hook' fires before any frame
+;;     exists, so faces resolve incorrectly there).
+;;   - `enable-theme-functions'       : every subsequent theme switch
+;;     (handles `auto-dark', manual `load-theme', etc.).
+(add-hook 'after-init-hook              #'scratch-evil--refresh-state-cursors)
+(add-hook 'server-after-make-frame-hook #'scratch-evil--refresh-state-cursors)
+(when (boundp 'enable-theme-functions)
+  (add-hook 'enable-theme-functions     #'scratch-evil--refresh-state-cursors))
 
 (use-package evil-terminal-cursor-changer
   :after evil
