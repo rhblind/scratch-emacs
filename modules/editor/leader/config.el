@@ -33,6 +33,8 @@
   :demand t
   :init
   (setq which-key-idle-delay 0.2
+        which-key-separator ": "
+        which-key-add-column-padding 1
         which-key-popup-type 'side-window
         which-key-side-window-location 'bottom
         which-key-side-window-max-height 0.4)
