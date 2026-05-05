@@ -41,6 +41,25 @@
 (setq select-enable-clipboard t
       save-interprogram-paste-before-kill t)
 
+;;;; Prompts
+
+;; Override `yes-or-no-p' so confirmation prompts (a) accept a single
+;; `y' / `n' instead of the literal word "yes" / "no" + RET, and (b)
+;; pull the cursor into the minibuffer so the user can answer right
+;; away without hunting for focus. `use-short-answers' alone gives (a)
+;; via `y-or-n-p', but `y-or-n-p' reads with `read-event' and never
+;; selects the minibuffer -- you'd be typing into thin air.
+(defun scratch--yes-or-no-p (prompt)
+  "Drop-in for `yes-or-no-p' that reads a single y/n in the minibuffer.
+The minibuffer is selected while the prompt is live, so a `y' or `n'
+keypress lands immediately."
+  (let ((answer (read-char-from-minibuffer
+                 (concat (string-trim-right prompt) " (y or n) ")
+                 '(?y ?Y ?n ?N))))
+    (memq answer '(?y ?Y))))
+(setq use-short-answers nil)
+(advice-add 'yes-or-no-p :override #'scratch--yes-or-no-p)
+
 ;;;; State persistence
 
 ;; recentf -- track recently opened files. Default save count (20) is too low.
