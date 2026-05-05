@@ -41,8 +41,11 @@ otherwise insert a comma. Override BEFORE calling `scratch!'.")
 
 (defun scratch-keys--with-desc (def desc)
   "Return a binding form that combines DEF with `:which-key' DESC.
-Handles the common DEF shapes: bare symbol, `'sym', `#'sym', and a
-quoted list `'(sym ...)' (preserving any other plist entries)."
+Handles the common DEF shapes: bare symbol, `'sym', `#'sym', a
+quoted list `'(sym ...)', and lambda / arbitrary forms.  general.el
+extracts `:which-key' from list definitions whose car is a valid
+command, so wrapping a lambda in `(quote (LAMBDA :which-key DESC))'
+gives which-key a label while preserving the binding."
   (cond
    ;; #'sym
    ((and (consp def) (eq (car def) 'function))
@@ -61,8 +64,9 @@ quoted list `'(sym ...)' (preserving any other plist entries)."
    ;; bare symbol
    ((symbolp def)
     `(quote (,def :which-key ,desc)))
-   ;; Anything else (lambda etc.): return unchanged.
-   (t def)))
+   ;; lambda or other form: wrap in a list with :which-key so general
+   ;; can extract the description while still binding the command.
+   (t `(quote (,def :which-key ,desc)))))
 
 (defun scratch-keys--prefixed (prefix key)
   "Return KEY prefixed by PREFIX (with a separating space)."
