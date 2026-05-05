@@ -43,22 +43,26 @@
 
 ;;;; Prompts
 
-;; Override `yes-or-no-p' so confirmation prompts (a) accept a single
-;; `y' / `n' instead of the literal word "yes" / "no" + RET, and (b)
-;; pull the cursor into the minibuffer so the user can answer right
-;; away without hunting for focus. `use-short-answers' alone gives (a)
-;; via `y-or-n-p', but `y-or-n-p' reads with `read-event' and never
-;; selects the minibuffer -- you'd be typing into thin air.
+;; Override `yes-or-no-p' and `y-or-n-p' so all confirmation prompts
+;; accept a single `y'/`n' and show the cursor in the echo area. The
+;; default `y-or-n-p' reads via `read-event' which leaves the cursor
+;; in the selected window (often NOT the echo area), making it look
+;; like the prompt doesn't have focus.
 (defun scratch--yes-or-no-p (prompt)
-  "Drop-in for `yes-or-no-p' that reads a single y/n in the minibuffer.
-The minibuffer is selected while the prompt is live, so a `y' or `n'
-keypress lands immediately."
-  (let ((answer (read-char-from-minibuffer
-                 (concat (string-trim-right prompt) " (y or n) ")
-                 '(?y ?Y ?n ?N))))
+  "Read a single y/n with the cursor visible in the echo area."
+  (let* ((prompt-str (concat (string-trim-right prompt) " (y or n) "))
+         (cursor-in-echo-area t)
+         answer)
+    (message "%s" prompt-str)
+    (setq answer (read-event))
+    (while (not (memq answer '(?y ?Y ?n ?N)))
+      (message "%s" prompt-str)
+      (setq answer (read-event)))
+    (message nil)
     (memq answer '(?y ?Y))))
 (setq use-short-answers nil)
 (advice-add 'yes-or-no-p :override #'scratch--yes-or-no-p)
+(advice-add 'y-or-n-p    :override #'scratch--yes-or-no-p)
 
 ;;;; State persistence
 
