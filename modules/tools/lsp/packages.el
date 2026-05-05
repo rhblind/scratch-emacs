@@ -5,6 +5,7 @@
 ;; user's shell will see this in any subprocess that lsp-mode spawns.
 (setenv "LSP_USE_PLISTS" "1")
 
+(straight-use-package 'spinner)
 (straight-use-package 'lsp-mode)
 (straight-use-package 'lsp-ui)
 
