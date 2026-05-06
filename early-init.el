@@ -88,6 +88,16 @@
 (push '(tool-bar-lines . 0)    default-frame-alist)
 (push '(vertical-scroll-bars)  default-frame-alist)
 
+;; UX: Keep the initial frame hidden until init completes and the theme is
+;;   applied. This eliminates the flash of default-themed background
+;;   entirely. The frame is made visible by `emacs-startup-hook'.
+;;   Daemon mode is unaffected (frames are created by emacsclient after init).
+(unless (daemonp)
+  (push '(visibility . nil) initial-frame-alist)
+  (add-hook 'emacs-startup-hook
+            (lambda ()
+              (modify-frame-parameters (selected-frame) '((visibility . t))))))
+
 ;; UX: Silence the bell entirely. Both audible and visible variants. To
 ;;   restore the default behavior, `(setq ring-bell-function nil)' in
 ;;   your config; or `(setq visible-bell t)' for the visual flash only.
