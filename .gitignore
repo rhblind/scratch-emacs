@@ -1,10 +1,9 @@
 # macOS noise
 .DS_Store
 
-# Generated package state -- but keep the versions lockfile, which pins
-# every package to a specific commit and IS meant to be tracked.
-straight/*
-!straight/versions/
+# Generated package state. The canonical lockfile now lives in
+# $SCRATCHDIR/versions/default.el; the framework copy is a cache.
+straight/
 eln-cache/
 var/
 .cache/
