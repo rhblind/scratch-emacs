@@ -217,8 +217,8 @@ Symmetric counterpart of `scratch/backward-kill-word'."
 ;; background.
 (setq evil-normal-state-cursor   '("white"  box)
       evil-motion-state-cursor   '("white"  box)
-      evil-insert-state-cursor   '("green"  box)
-      evil-operator-state-cursor '("green"  box)
+      evil-insert-state-cursor   '("white"  box)
+      evil-operator-state-cursor '("white"  box)
       evil-visual-state-cursor   '("orange" box)
       evil-replace-state-cursor  '("red"    box)
       evil-emacs-state-cursor    '("red"    box))
@@ -236,9 +236,9 @@ Symmetric counterpart of `scratch/backward-kill-word'."
 ;; The refresh fires on `after-init-hook' (themes are settled by then)
 ;; and on every subsequent theme activation, so `auto-dark' /
 ;; `load-theme' keep colors in sync.
-(defun scratch-evil--resolved-color (face fallback)
-  "Return FACE's foreground if it's a valid color, else FALLBACK."
-  (let ((color (face-attribute face :foreground nil 'default)))
+(defun scratch-evil--resolved-color (face attr fallback)
+  "Return FACE's ATTR if it's a valid color, else FALLBACK."
+  (let ((color (face-attribute face attr nil 'default)))
     (if (and (stringp color) (color-defined-p color))
         color
       fallback)))
@@ -250,13 +250,14 @@ next state transition. `evil-refresh-cursor' re-applies the current
 state's cursor immediately so the change is visible right away."
   (condition-case err
       (progn
-        (setq evil-normal-state-cursor   (list (scratch-evil--resolved-color 'default "white")  'box)
-              evil-motion-state-cursor   (list (scratch-evil--resolved-color 'default "white")  'box)
-              evil-insert-state-cursor   (list (scratch-evil--resolved-color 'success "green")  'box)
-              evil-operator-state-cursor (list (scratch-evil--resolved-color 'success "green")  'box)
-              evil-visual-state-cursor   (list (scratch-evil--resolved-color 'warning "orange") 'box)
-              evil-replace-state-cursor  (list (scratch-evil--resolved-color 'error   "red")    'box)
-              evil-emacs-state-cursor    (list (scratch-evil--resolved-color 'error   "red")    'box))
+        (let ((theme-cursor (or (face-background 'cursor) "white")))
+          (setq evil-normal-state-cursor   (list theme-cursor 'box)
+                evil-motion-state-cursor   (list theme-cursor 'box)
+                evil-insert-state-cursor   (list (scratch-evil--resolved-color 'default :foreground "white") 'box)
+                evil-operator-state-cursor (list (scratch-evil--resolved-color 'default :foreground "white") 'box)
+                evil-visual-state-cursor   (list (scratch-evil--resolved-color 'warning :foreground "orange") 'box)
+                evil-replace-state-cursor  (list (scratch-evil--resolved-color 'error   :foreground "red")    'box)
+                evil-emacs-state-cursor    (list (scratch-evil--resolved-color 'error   :foreground "red")    'box)))
         (when (fboundp 'evil-refresh-cursor)
           (evil-refresh-cursor)))
     (error
