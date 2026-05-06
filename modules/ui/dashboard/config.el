@@ -17,12 +17,11 @@ For `default', the face background is used; for all others, the
 face foreground.")
 
 (defun scratch-dashboard--insert-banner ()
-  "Insert a themed SVG banner (GUI) or ASCII art (TTY)."
+  "Insert a themed SVG banner (GUI) or nothing (TTY)."
   (goto-char (point-max))
   (insert "\n")
-  (if (display-graphic-p)
-      (progn
-        (insert "\n")
+  (when (display-graphic-p)
+    (condition-case err
         (let* ((svg-data (with-temp-buffer
                            (insert-file-contents scratch-dashboard-banner-template)
                            (goto-char (point-min))
@@ -41,14 +40,15 @@ face foreground.")
                            (buffer-string)))
                (image (create-image svg-data 'svg t))
                (start (point)))
+          (insert "\n")
           (insert-image image "GNU")
           (insert "\n")
           (when-let* ((align `(space . (:align-to (- center (0.5 . ,image)))))
                       (prefix (propertize " " 'display align)))
             (add-text-properties start (point)
                                  `(line-prefix ,prefix wrap-prefix ,prefix
-                                   cursor-intangible t inhibit-isearch t)))))
-))
+                                   cursor-intangible t inhibit-isearch t))))
+      (error (message "[scratch] Dashboard banner error: %S" err)))))
 
 (use-package dashboard
   :demand t
@@ -65,7 +65,9 @@ face foreground.")
   (setq dashboard-startupify-list
         (cl-substitute #'scratch-dashboard--insert-banner
                        'dashboard-insert-banner
-                       dashboard-startupify-list))
+                       (cl-remove 'dashboard-insert-banner-title
+                                  (cl-remove 'dashboard-insert-init-info
+                                             dashboard-startupify-list))))
   (if (daemonp)
       (add-hook 'server-after-make-frame-hook
                 (defun scratch-dashboard--init-on-frame ()
