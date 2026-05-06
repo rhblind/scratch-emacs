@@ -6,14 +6,9 @@
 ;; body text gets the variable-pitch treatment.
 
 (use-package markdown-mode
-  ;; .markdown / .md / .mdx via the auto-mode-alist that ships with the
-  ;; package; we just register a default association for GitHub-flavored
-  ;; markdown on README files.
-  :mode (("README\\.md\\'" . gfm-mode)
-         ("\\.md\\'"       . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode))
-  :hook ((markdown-mode . visual-line-mode)
-         (gfm-mode      . visual-line-mode))
+  :mode (("\\.md\\'"       . gfm-mode)
+         ("\\.markdown\\'" . gfm-mode))
+  :hook (markdown-mode . visual-line-mode)
   :init
   ;; Highlight code blocks per their declared language (` ```python`,
   ;; etc.) instead of leaving them as plain text.
@@ -23,7 +18,7 @@
         markdown-italic-underscore t
         markdown-asymmetric-header t
         markdown-command '("cmark-gfm" "-e" "table" "-e" "strikethrough"
-                          "-e" "autolink" "-e" "tagfilter" "--unsafe")))
+                          "-e" "autolink" "--unsafe")))
 
 ;; Heading face polish ported from the user's Doom config: scaled
 ;; h1..h6 with weight tapering off at deeper levels.
@@ -52,6 +47,93 @@
     (add-to-list 'mixed-pitch-fixed-pitch-faces face)))
 
 ;;;; Live preview via xwidget-webkit
+
+(defcustom scratch-markdown-preview-display-alist
+  '((side . right)
+    (window-width . 0.5))
+  "Display alist passed to `display-buffer-in-side-window' for the preview.
+Common keys: `side' (right, left, bottom, top), `window-width' (fraction
+or columns), `slot' (integer for ordering multiple side windows)."
+  :type '(alist :key-type symbol :value-type sexp)
+  :group 'markdown)
+
+(add-hook 'xwidget-webkit-mode-hook
+          (lambda () (goto-address-mode -1)))
+
+(defvar scratch-markdown--post-render-js
+  "document.querySelectorAll('a[href]').forEach(function(a){
+     a.setAttribute('data-href',a.getAttribute('href'));
+     a.removeAttribute('href');
+     a.style.cursor='pointer';});
+   document.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(function(h){
+     if(!h.id){
+       h.id=h.textContent.trim().toLowerCase()
+         .replace(/[^\\w\\s-]/g,'').replace(/\\s+/g,'-');
+     }});"
+  "Post-render JS: disarm links and add GFM-style heading IDs.")
+
+(defun scratch-markdown--post-render (xw)
+  "Run post-render fixups on xwidget XW."
+  (xwidget-webkit-execute-script xw scratch-markdown--post-render-js))
+
+(defun scratch-markdown--handle-link (result xw)
+  "Open the link described by JSON RESULT, using xwidget XW for anchors."
+  (let* ((data (json-parse-string result :object-type 'alist))
+         (href (alist-get 'href data))
+         (src  (alist-get 'src data)))
+    (cond
+     ((and href (not (string-empty-p href)) (string-prefix-p "#" href) xw)
+      (xwidget-webkit-execute-script xw
+        (format "var t=document.getElementById(%s);if(t)t.scrollIntoView({behavior:'smooth'});"
+                (json-encode (substring href 1))))
+      (when-let* ((win (get-buffer-window (xwidget-buffer xw))))
+        (select-window win)
+        (evil-normal-state)))
+     ((and href (not (string-empty-p href)) (string-match-p "\\`https?://" href))
+      (browse-url href))
+     ((and src (not (string-empty-p src)) (string-match-p "\\`https?://" src))
+      (browse-url src)))))
+
+(defun scratch-markdown--preview-buffer-p (buf)
+  "Return non-nil if BUF is a markdown preview xwidget buffer."
+  (seq-some (lambda (b)
+              (eq (buffer-local-value 'scratch-markdown--preview-buffer b) buf))
+            (buffer-list)))
+
+(defun scratch-markdown--follow-link-at-click (event)
+  "Handle mouse clicks in the markdown preview xwidget.
+Anchor links scroll within the preview.  External URLs open in a
+browser.  Clicks on non-link areas are ignored.  Falls through to
+default behavior in non-preview xwidget buffers."
+  (interactive "e")
+  (let* ((posn (event-start event))
+         (win (posn-window posn))
+         (buf (window-buffer win)))
+    (if (not (scratch-markdown--preview-buffer-p buf))
+        (mouse-set-point event)
+      (let* ((xy (posn-x-y posn))
+             (x (car xy))
+             (y (cdr xy))
+             (xw (save-current-buffer
+                   (set-buffer buf)
+                   (xwidget-at (point-min)))))
+        (if xw
+            (progn
+              (select-window win)
+              (xwidget-webkit-execute-script xw
+                (format
+                 "var el=document.elementFromPoint(%d,%d);
+                  var a=el&&el.closest('a');
+                  var img=el&&el.closest('img');
+                  JSON.stringify({href:a&&a.getAttribute('data-href')||'',src:img&&img.src||''});"
+                 x y)
+                `(lambda (result)
+                   (run-at-time 0.01 nil #'scratch-markdown--handle-link result ,xw))))
+          (mouse-set-point event))))))
+
+(with-eval-after-load 'xwidget
+  (define-key xwidget-webkit-mode-map [mouse-1]
+    #'scratch-markdown--follow-link-at-click))
 
 (defvar-local scratch-markdown--preview-buffer nil
   "The xwidget-webkit buffer showing this markdown buffer's preview.")
@@ -86,9 +168,10 @@ th, td { border: 1px solid %s; padding: 0.4em 0.8em; }
 th { background: %s; }
 img { max-width: 100%%; }
 a { color: %s; }
+a[data-href] { color: %s; text-decoration: underline; cursor: pointer; }
 </style>"
             bg fg h-fg border border code-bg code-bg
-            border comment border code-bg link)))
+            border comment border code-bg link link)))
 
 (defun scratch-markdown--render-body ()
   "Return the HTML body for the current markdown buffer via `markdown-command'."
@@ -102,7 +185,9 @@ a { color: %s; }
   "Return a standalone HTML string for the current markdown buffer."
   (concat "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
           (scratch-markdown--preview-css)
-          "</head><body>" (scratch-markdown--render-body) "</body></html>"))
+          "</head><body>" (scratch-markdown--render-body)
+          "<script>" scratch-markdown--post-render-js "</script>"
+          "</body></html>"))
 
 (defun scratch-markdown--refresh-preview ()
   "Re-render the markdown preview, preserving scroll position."
@@ -116,9 +201,20 @@ a { color: %s; }
         (let ((body (scratch-markdown--render-body))
               (css (scratch-markdown--preview-css)))
           (xwidget-webkit-execute-script xw
-            (format "document.body.innerHTML = %s; document.querySelector('style').outerHTML = %s;"
+            (format "document.body.innerHTML = %s; document.querySelector('style').outerHTML = %s; %s"
                     (json-encode body)
-                    (json-encode css))))))))
+                    (json-encode css)
+                    scratch-markdown--post-render-js)))))))
+
+(defun scratch-markdown--on-theme-change (&rest _)
+  "Re-render the preview CSS when the Emacs theme changes."
+  (dolist (buf (buffer-list))
+    (when (buffer-local-value 'scratch-markdown--preview-buffer buf)
+      (save-current-buffer
+        (set-buffer buf)
+        (scratch-markdown--refresh-preview)))))
+
+(add-hook 'enable-theme-functions #'scratch-markdown--on-theme-change)
 
 (defun scratch/markdown-preview ()
   "Toggle a live markdown preview.
@@ -128,6 +224,9 @@ back to `markdown-preview' (opens in external browser)."
   (interactive)
   (unless (derived-mode-p 'markdown-mode 'gfm-mode)
     (user-error "Not a markdown buffer"))
+  (let ((cmd (if (listp markdown-command) (car markdown-command) markdown-command)))
+    (unless (executable-find cmd)
+      (user-error "Markdown preview requires `%s'; install it with your package manager" cmd)))
   (if (not (display-graphic-p))
       (call-interactively #'markdown-preview)
     (cond
@@ -159,8 +258,8 @@ back to `markdown-preview' (opens in external browser)."
         (setq scratch-markdown--preview-tempfile tmp
               scratch-markdown--preview-buffer xw-buf)
         (display-buffer-in-side-window xw-buf
-                                       '((side . right)
-                                         (window-width . 0.5)))
+                                       scratch-markdown-preview-display-alist)
+        (select-window (get-buffer-window xw-buf))
         (add-hook 'after-save-hook #'scratch-markdown--refresh-preview nil t))))))
 
 ;;;; Preview / source outline sync
