@@ -359,6 +359,14 @@ These are load-bearing; preserve them when refactoring.
 - **gitignore anchoring.** Patterns like `workspaces/` (no leading `/`)
   match anywhere in the tree. Anchor with `/workspaces/` if you only
   mean the repo root.
+- **Avoid `run-at-time` / timers.** Timers are unreliable for
+  sequencing (race conditions, lost window state, callbacks running in
+  unexpected contexts). Prefer synchronous solutions: embed JS in HTML
+  `<script>` tags instead of firing a timer after page load, use
+  `save-window-excursion` instead of hoping to restore state later, hook
+  into proper events (`enable-theme-functions`, `after-save-hook`, etc.)
+  instead of polling. Timers are acceptable only for genuinely
+  time-based needs (e.g. debouncing rapid-fire events).
 - **Package pinning.** All installed packages are pinned to commit SHAs
   in `straight/versions/default.el` (the straight lockfile). The file
   is tracked despite `straight/*` being gitignored, via a `!straight/versions/`
