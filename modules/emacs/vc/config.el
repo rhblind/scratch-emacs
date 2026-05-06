@@ -41,6 +41,14 @@
   :config
   (setq magit-diff-refine-hunk t                  ; fine-grained diffs within hunks
         magit-save-repository-buffers 'dontask)   ; auto-save buffers, no prompt
+
+  (add-hook 'with-editor-mode-hook
+            (lambda ()
+              (let ((buf (current-buffer)))
+                (run-at-time 0 nil
+                  (lambda ()
+                    (when (buffer-live-p buf)
+                      (pop-to-buffer buf)))))))
   ;; Upstream magit binds `Z' to `magit-worktree' on `magit-mode-map',
   ;; but in evil normal state `Z' is the vim save-and-quit prefix
   ;; (`ZZ' / `ZQ'), and evil-state maps win over mode-maps. evil-
