@@ -8,7 +8,7 @@
   :demand t
   :init
   (setq corfu-auto t
-        corfu-auto-delay 0.24
+        corfu-auto-delay 0.2
         corfu-auto-prefix 2
         corfu-cycle t
         corfu-preselect 'prompt
@@ -71,7 +71,7 @@
 ;; into `completion-at-point-functions' to add file paths, in-buffer
 ;; word completion, and elisp blocks in org/markdown.
 (use-package cape
-  :defer t
+  :demand t
   :init
   (add-hook 'prog-mode-hook
             (lambda ()
