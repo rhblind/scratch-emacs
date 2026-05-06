@@ -99,7 +99,7 @@
   (setq xref-show-xrefs-function       #'consult-xref
         xref-show-definitions-function #'consult-xref
         ;; Async tuning, copied from Doom.
-        consult-narrow-key "<"
+        consult-narrow-key ";"
         consult-line-numbers-widen t
         consult-async-min-input 2
         consult-async-refresh-delay  0.15
