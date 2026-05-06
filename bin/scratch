@@ -63,10 +63,10 @@
    "from the shell. ~scratch sync --force-tangle~ re-tangles even when mtimes lie.\n"
    "\n"
    "Every installed package is pinned to a commit SHA in\n"
-   "~straight/versions/default.el~ (tracked in git). Emacs thaws to those\n"
-   "commits on startup, so daily use is reproducible. After adding a new\n"
-   "package or intentionally upgrading one, run ~scratch freeze~ to refresh\n"
-   "the lockfile, then commit it.\n"
+   "~straight-lock.el~ (inside this user dir, tracked in git). Emacs\n"
+   "thaws to those commits on startup, so daily use is reproducible.\n"
+   "After adding a new package or intentionally upgrading one, run\n"
+   "~scratch freeze~ to refresh the lockfile, then commit it.\n"
    "\n"
    "** Shell env (GUI Emacs)\n"
    "GUI Emacs (Dock / Finder / launchd, also Linux app launchers) doesn't\n"
@@ -821,7 +821,7 @@
   (scratch-cli--print "Usage: scratch freeze")
   (scratch-cli--print "")
   (scratch-cli--print "Capture the current commit SHA of every installed package into")
-  (scratch-cli--print "straight/versions/default.el (the lockfile, tracked in git).")
+  (scratch-cli--print "$SCRATCHDIR/straight-lock.el (the lockfile, tracked in git).")
   (scratch-cli--print "")
   (scratch-cli--print "Run this after adding a new package or after intentionally")
   (scratch-cli--print "upgrading one. Subsequent `scratch sync' calls will pin to the")
@@ -838,7 +838,7 @@
   (load (expand-file-name "init.el" scratch-cli--emacs-dir) nil 'nomessage)
   (unless (fboundp 'straight-freeze-versions)
     (scratch-cli--die "freeze: straight.el not loaded; run `scratch sync' first"))
-  (scratch-cli--print "Writing straight/versions/default.el...")
+  (scratch-cli--print "Freezing package versions...")
   ;; Pass `force' to skip the interactive "push unsynced packages" step --
   ;; we want to record the LOCAL commit each repo is at, not push anything.
   (straight-freeze-versions t)
