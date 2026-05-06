@@ -22,11 +22,23 @@
         evil-undo-system 'undo-redo                            ; Emacs 28+ built-in
         evil-search-module 'evil-search                        ; richer ex-style search
         evil-ex-substitute-global t                            ; :s defaults to global on the line
+        evil-split-window-below t                              ; focus new window after split
+        evil-vsplit-window-right t                             ; focus new window after vsplit
         evil-kill-on-visual-paste nil                          ; don't pollute the kill ring
         evil-respect-visual-line-mode t                        ; j/k follow visual lines when wrapped
         evil-shift-width tab-width)
   :config
   (evil-mode 1))
+
+;; Override leader split bindings so the new window gets focus.
+;; Deferred to `after-init-hook' so it applies regardless of module
+;; load order (leader may load before or after evil).
+(add-hook 'after-init-hook
+  (defun scratch-evil--override-split-bindings ()
+    (map! :leader
+      (:prefix "w"
+       :desc "split below" "s" #'evil-window-split
+       :desc "split right" "v" #'evil-window-vsplit))))
 
 (when (modulep! +everywhere)
   ;; Set evil-collection knobs BEFORE `evil-collection-init' runs so the
