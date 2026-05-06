@@ -11,6 +11,7 @@ used primarily by me for my own entertainment.
 - **A nerd font** (`M-x nerd-icons-install-fonts` on first install)
 - **[ripgrep](https://github.com/BurntSushi/ripgrep)** for `SPC /` project search
 - **cmake + libtool** for `:term vterm` (builds a native module on first load)
+- **[cmark-gfm](https://github.com/github/cmark-gfm)** (optional) for `:lang markdown` live preview (`brew install cmark-gfm`)
 
 ## Install
 
