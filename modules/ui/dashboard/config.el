@@ -81,4 +81,5 @@ face foreground.")
             (lambda (&rest _)
               (when (and (display-graphic-p)
                          (get-buffer dashboard-buffer-name))
-                (dashboard-open)))))
+                (save-window-excursion
+                  (dashboard-open))))))
