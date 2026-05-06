@@ -75,12 +75,14 @@
   :init
   (add-hook 'prog-mode-hook
             (lambda ()
+              (add-hook 'completion-at-point-functions #'cape-dabbrev 20 t)
               (add-hook 'completion-at-point-functions #'cape-file -10 t)))
   (dolist (hook '(org-mode-hook markdown-mode-hook))
     (add-hook hook
               (lambda ()
+                (add-hook 'completion-at-point-functions #'cape-dabbrev 20 t)
                 (add-hook 'completion-at-point-functions #'cape-elisp-block 0 t))))
   :config
-  ;; Make LSP/eglot capfs composable so cape extensions can stack on top.
+  (advice-add #'lsp-completion-at-point :around #'cape-wrap-nonexclusive)
   (advice-add #'eglot-completion-at-point :around #'cape-wrap-nonexclusive)
   (advice-add #'pcomplete-completions-at-point :around #'cape-wrap-nonexclusive))
