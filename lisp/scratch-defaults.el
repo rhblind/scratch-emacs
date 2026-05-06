@@ -98,6 +98,17 @@
       global-auto-revert-non-file-buffers t) ; dired, ibuffer, etc. too
 (global-auto-revert-mode 1)
 
+(defun scratch-auto-revert--prompt-if-modified-a (&rest _)
+  "Prompt to revert when the file changed on disk but the buffer is modified."
+  (when (and buffer-file-name
+             (buffer-modified-p)
+             (not (verify-visited-file-modtime)))
+    (if (y-or-n-p (format "%s changed on disk; reload from file? " (buffer-name)))
+        (revert-buffer :ignore-auto :noconfirm)
+      (set-visited-file-modtime))))
+
+(advice-add 'auto-revert-handler :before #'scratch-auto-revert--prompt-if-modified-a)
+
 ;;;; Line numbers
 ;;
 ;; Show line numbers in code-editing modes. Defaults to RELATIVE
