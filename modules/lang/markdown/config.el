@@ -234,6 +234,7 @@ back to `markdown-preview' (opens in external browser)."
            (buffer-live-p scratch-markdown--preview-buffer)
            (get-buffer-window scratch-markdown--preview-buffer))
       (remove-hook 'after-save-hook #'scratch-markdown--refresh-preview t)
+      (remove-hook 'after-revert-hook #'scratch-markdown--refresh-preview t)
       (let ((kill-buffer-query-functions nil))
         (kill-buffer scratch-markdown--preview-buffer))
       (when scratch-markdown--preview-tempfile
@@ -257,10 +258,11 @@ back to `markdown-preview' (opens in external browser)."
         (set-buffer src-buf)
         (setq scratch-markdown--preview-tempfile tmp
               scratch-markdown--preview-buffer xw-buf)
+        (add-hook 'after-save-hook #'scratch-markdown--refresh-preview nil t)
+        (add-hook 'after-revert-hook #'scratch-markdown--refresh-preview nil t)
         (display-buffer-in-side-window xw-buf
                                        scratch-markdown-preview-display-alist)
-        (select-window (get-buffer-window xw-buf))
-        (add-hook 'after-save-hook #'scratch-markdown--refresh-preview nil t))))))
+        (select-window (get-buffer-window xw-buf)))))))
 
 ;;;; Preview / source outline sync
 
