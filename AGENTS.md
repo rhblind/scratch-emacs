@@ -87,9 +87,7 @@ so users can override or shadow any module by mirroring the path under
    "Built-in modules" and append it to both example `scratch!` blocks
    (the active one and the commented-out one). The bootstrap template
    lives as a quoted org-mode string inside `scratch-cli--starter-config-org`.
-6. **Update `README.md`** "What's in the box" table with category, flags,
-   and one-line summary; add bindings to the "Default leader bindings"
-   section if the module owns a top-level prefix.
+6. **Update `modules/README.md`** with category, flags, and one-line summary.
 7. If the module persists state to disk, add the relevant ignore patterns
    to `.gitignore`. Anchor patterns that should only match the repo root
    with a leading `/` (e.g. `/workspaces/` to ignore the persp save dir
@@ -424,9 +422,26 @@ patterns we already use:
 - **Be direct, ask when in doubt.** Disagree respectfully when a
   proposed change is wrong; don't perform agreement.
 
+## Keeping documentation up to date
+
+Three files must stay in sync with the code:
+
+1. **`README.md`** (repo root): high-level overview, install instructions,
+   customization guide. Update when the framework gains new CLI
+   subcommands, changes requirements, or restructures the layout.
+2. **`modules/README.md`**: the module table. Update whenever a module is
+   added, removed, renamed, or gains/loses flags. One short phrase per
+   module; keep it scannable.
+3. **`bin/scratch`**: the bootstrap template (starter `config.org`).
+   Update the "Built-in modules" docs section and both example
+   `scratch!` blocks when modules or flags change.
+
+When making code changes that affect any of these, update the docs in
+the same edit. Don't leave it for a follow-up.
+
 ## Quick "do I need to..." checklist
 
-- New module → write packages.el + config.el, update bin/scratch docs.
+- New module → write packages.el + config.el, update modules/README.md + bin/scratch docs.
 - Cross-module functionality → put in `lisp/scratch-X.el`, require from init.el.
 - New leader binding inside an existing module → call `(map! :leader ...)` in that module's config.el.
 - New global keybinding (M-something) that needs to win over evil-collection
