@@ -202,17 +202,47 @@ Routes to:
 ;;;; and upgrades a few of the leader's defaults to the consult variants.)
 
 (defun scratch/consult-project-buffer ()
-  "Like `consult-project-buffer' but excludes special (*...*) buffers."
+  "Like `consult-project-buffer' but only shows file-visiting buffers."
   (interactive)
   (let ((consult-buffer-filter
-         (append consult-buffer-filter '("\\`\\*"))))
+         (append consult-buffer-filter
+                 (mapcar (lambda (buf)
+                           (concat "\\`" (regexp-quote (buffer-name buf)) "\\'"))
+                         (cl-remove-if #'buffer-file-name (buffer-list))))))
     (consult-project-buffer)))
+
+(defvar scratch--consult-source-special-buffer
+  `(:name "Special Buffer"
+    :narrow ?*
+    :category buffer
+    :face consult-buffer
+    :action ,#'consult--buffer-action
+    :items
+    ,(lambda ()
+       (cl-loop for buf in (buffer-list)
+                for name = (buffer-name buf)
+                when (string-prefix-p "*" name)
+                collect name))))
+
+(defun scratch/consult-project-buffer-all ()
+  "Show project buffers and special (*...*) buffers."
+  (interactive)
+  (let ((project-src (copy-sequence consult-source-project-buffer))
+        (orig-items (plist-get consult-source-project-buffer :items)))
+    (plist-put project-src :items
+               (lambda ()
+                 (cl-remove-if (lambda (cand)
+                                 (string-prefix-p "*" (if (consp cand) (car cand) cand)))
+                               (funcall orig-items))))
+    (consult-buffer (list project-src
+                          scratch--consult-source-special-buffer
+                          consult-source-project-recent-file))))
 
 (when (modulep! :editor leader)
   (map! :leader
     ;; Upgrades of leader baselines to consult variants.
     :desc "switch buffer (project)" "b b" #'scratch/consult-project-buffer
-    :desc "switch buffer (all)"     "b B" #'consult-buffer
+    :desc "switch buffer (all)"     "b B" #'scratch/consult-project-buffer-all
     :desc "recent files"       "f r" #'consult-recent-file
     :desc "yank ring"          "y"   #'consult-yank-pop
     :desc "project buffers"    "p b" #'consult-project-buffer
