@@ -795,6 +795,12 @@
       (when (fboundp 'straight-rebuild-all)
         (straight-rebuild-all)))
 
+    ;; Generate the bundled autoloads file for fast interactive startup.
+    (scratch-cli--print "")
+    (scratch-cli--print "Generating bundled autoloads...")
+    (require 'scratch-packages)
+    (scratch-packages--generate-autoloads)
+
     (scratch-cli--print "")
     (scratch-cli--print "Sync complete.")))
 
