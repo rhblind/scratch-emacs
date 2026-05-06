@@ -212,14 +212,12 @@ Symmetric counterpart of `scratch/backward-kill-word'."
 ;;
 ;; Static literal baseline. These are always-valid colors so evil and
 ;; `evil-terminal-cursor-changer' have something legitimate to read
-;; even if the theme refresh below hasn't run yet (or fails). Shape
-;; is always `box': a thin bar is hard to spot on a coloured terminal
-;; background.
+;; even if the theme refresh below hasn't run yet (or fails).
 (setq evil-normal-state-cursor   '("white"  box)
       evil-motion-state-cursor   '("white"  box)
-      evil-insert-state-cursor   '("white"  box)
+      evil-insert-state-cursor   '("white"  bar)
       evil-operator-state-cursor '("white"  box)
-      evil-visual-state-cursor   '("orange" box)
+      evil-visual-state-cursor   '("orange" hollow)
       evil-replace-state-cursor  '("red"    box)
       evil-emacs-state-cursor    '("red"    box))
 
@@ -250,12 +248,17 @@ next state transition. `evil-refresh-cursor' re-applies the current
 state's cursor immediately so the change is visible right away."
   (condition-case err
       (progn
+        ;; evil's set-cursor-color overrides the cursor face at frame
+        ;; level, shadowing the theme spec.  Recalculate from theme
+        ;; before reading so we get the real theme color, not the
+        ;; stale frame-level value.
+        (custom-theme-recalc-face 'cursor)
         (let ((theme-cursor (or (face-background 'cursor) "white")))
           (setq evil-normal-state-cursor   (list theme-cursor 'box)
                 evil-motion-state-cursor   (list theme-cursor 'box)
-                evil-insert-state-cursor   (list (scratch-evil--resolved-color 'default :foreground "white") 'box)
-                evil-operator-state-cursor (list (scratch-evil--resolved-color 'default :foreground "white") 'box)
-                evil-visual-state-cursor   (list (scratch-evil--resolved-color 'warning :foreground "orange") 'box)
+                evil-insert-state-cursor   (list theme-cursor 'bar)
+                evil-operator-state-cursor (list theme-cursor 'box)
+                evil-visual-state-cursor   (list (scratch-evil--resolved-color 'warning :foreground "orange") 'hollow)
                 evil-replace-state-cursor  (list (scratch-evil--resolved-color 'error   :foreground "red")    'box)
                 evil-emacs-state-cursor    (list (scratch-evil--resolved-color 'error   :foreground "red")    'box)))
         (when (fboundp 'evil-refresh-cursor)
@@ -273,8 +276,7 @@ state's cursor immediately so the change is visible right away."
 ;;     (handles `auto-dark', manual `load-theme', etc.).
 (add-hook 'after-init-hook              #'scratch-evil--refresh-state-cursors)
 (add-hook 'server-after-make-frame-hook #'scratch-evil--refresh-state-cursors)
-(when (boundp 'enable-theme-functions)
-  (add-hook 'enable-theme-functions     #'scratch-evil--refresh-state-cursors))
+(add-hook 'enable-theme-functions       #'scratch-evil--refresh-state-cursors)
 
 (use-package evil-terminal-cursor-changer
   :after evil
