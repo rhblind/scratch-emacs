@@ -35,16 +35,15 @@
         mac-right-option-modifier 'none
         ns-right-option-modifier  'none)
 
-  ;; Keys: Cmd-= / Cmd-- / Cmd-0 for text-scale, matching macOS apps.
-  ;; When `:ui default-text-scale' is enabled, hook into THAT (every
-  ;; buffer in every frame zooms in lockstep -- much better than the
-  ;; built-in per-buffer `text-scale-*'). Fall back to the per-buffer
-  ;; variant when default-text-scale isn't loaded.
+  ;; Zoom: Cmd +/-/0 per-buffer, Cmd-Option +/-/0 all buffers.
   (cond
    ((modulep! :ui default-text-scale)
-    (global-set-key (kbd "s-=") #'default-text-scale-increase)
-    (global-set-key (kbd "s--") #'default-text-scale-decrease)
-    (global-set-key (kbd "s-0") #'default-text-scale-reset))
+    (global-set-key (kbd "s-=") #'text-scale-increase)
+    (global-set-key (kbd "s--") #'text-scale-decrease)
+    (global-set-key (kbd "s-0") #'scratch-text-scale-reset)
+    (global-set-key (kbd "s-M-=") #'default-text-scale-increase)
+    (global-set-key (kbd "s-M--") #'default-text-scale-decrease)
+    (global-set-key (kbd "s-M-0") #'default-text-scale-reset))
    (t
     (global-set-key (kbd "s-=") #'text-scale-increase)
     (global-set-key (kbd "s--") #'text-scale-decrease)
