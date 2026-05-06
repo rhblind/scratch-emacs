@@ -187,8 +187,7 @@ workspace's project after the switch."
     ;; otherwise open the side window even when the user had it
     ;; deliberately closed. `treemacs-project-follow-mode' updates
     ;; the tree contents the next buffer-change either way.
-    (when (and (modulep! :ui treemacs)
-               (fboundp 'treemacs-get-local-window)
+    (when (and (fboundp 'treemacs-get-local-window)
                (treemacs-get-local-window)
                (fboundp 'treemacs-display-current-project-exclusively))
       (ignore-errors (treemacs-display-current-project-exclusively))))

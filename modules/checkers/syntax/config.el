@@ -80,17 +80,15 @@
      "[e" #'previous-error)))
 
 (when (modulep! :editor leader)
-  (map! :leader
-    (:prefix-map ("c" . "code")
-     ;; If consult is enabled, route the error-list key through
-     ;; `consult-flycheck' (richer picker / preview). Falls back to
-     ;; flycheck's built-in list otherwise.
-     :desc "list errors"        "x" (if (modulep! :completion vertico)
-                                        #'consult-flycheck
-                                      #'flycheck-list-errors)
-     :desc "next error"         "n" #'next-error
-     :desc "prev error"         "p" #'previous-error
-     :desc "explain error"      "e" #'flycheck-explain-error-at-point)))
+  (let ((list-errors-cmd (if (modulep! :completion vertico)
+                             #'consult-flycheck
+                           #'flycheck-list-errors)))
+    (map! :leader
+      (:prefix-map ("c" . "code")
+       :desc "list errors"        "x" list-errors-cmd
+       :desc "next error"         "n" #'next-error
+       :desc "prev error"         "p" #'previous-error
+       :desc "explain error"      "e" #'flycheck-explain-error-at-point))))
 ;; Less-frequent flycheck commands (recheck-buffer, verify-setup,
 ;; select-checker, disable-checker) are reachable via `M-x flycheck-*'.
 ;; They were dropped from the leader to keep `SPC c' tidy: `c C' is

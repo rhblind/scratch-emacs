@@ -57,6 +57,9 @@ it's a `.cs' file so it picks up the tree-sitter mode immediately."
 (defvar scratch-csharp--grammar-prompted nil
   "Set once we've asked the user about installing the C# grammar this session.")
 
+(defvar scratch-csharp--tree-sitter-module-p (modulep! :editor tree-sitter)
+  "Non-nil when `:editor tree-sitter' is enabled. Captured at load time.")
+
 (defun scratch-csharp--maybe-prompt-grammar-install ()
   "Offer (once) to install the c-sharp grammar on first `.cs' open.
 Fallback path for users WITHOUT `:editor tree-sitter' -- when that
@@ -65,7 +68,7 @@ case (and prompting twice would be annoying). Idempotent: only
 prompts the first time `csharp-mode' activates with a missing
 grammar."
   (when (and (not scratch-csharp--grammar-prompted)
-             (not (modulep! :editor tree-sitter))
+             (not scratch-csharp--tree-sitter-module-p)
              (eq major-mode 'csharp-mode)
              (not (treesit-language-available-p 'c-sharp)))
     (setq scratch-csharp--grammar-prompted t)

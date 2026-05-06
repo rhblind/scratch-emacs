@@ -39,12 +39,13 @@
 ;;;; Leader bindings under `SPC i' (insert prefix)
 
 (when (modulep! :editor leader)
-  (with-eval-after-load 'yasnippet
-    (map! :leader
-      (:prefix-map ("i" . "insert")
-       :desc "snippet"            "s" (if (modulep! :completion vertico)
-                                          #'consult-yasnippet
-                                        #'yas-insert-snippet)
-       :desc "new snippet"        "S" #'yas-new-snippet
-       :desc "edit snippet file"  "e" #'yas-visit-snippet-file
-       :desc "reload snippets"    "r" #'yas-reload-all))))
+  (let ((snippet-cmd (if (modulep! :completion vertico)
+                         #'consult-yasnippet
+                       #'yas-insert-snippet)))
+    (with-eval-after-load 'yasnippet
+      (map! :leader
+        (:prefix-map ("i" . "insert")
+         :desc "snippet"            "s" snippet-cmd
+         :desc "new snippet"        "S" #'yas-new-snippet
+         :desc "edit snippet file"  "e" #'yas-visit-snippet-file
+         :desc "reload snippets"    "r" #'yas-reload-all)))))
