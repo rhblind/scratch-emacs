@@ -16,16 +16,16 @@
   ;; subtree, S-TAB cycles all.
   (setq outshine-use-speed-commands t))
 
-;; Defensive: `outline-map-region' (built-in `outline.el') signals
-;; `Wrong type argument: number-or-marker-p, nil' when called with
-;; nil for BEG / END. That can happen during `revert-buffer' when
-;; outshine's `outline-minor-mode-hook' re-applies in a buffer
-;; where the outline structure hasn't yet been recomputed -- the
-;; result is a noisy stack trace on every revert, but the revert
-;; itself succeeds. Wrap with a guard so the call is a no-op when
-;; either bound is nil.
+;; Defensive: `outline-map-region' (C built-in in Emacs 30) signals
+;; `wrong-type-argument: number-or-marker-p, nil' during
+;; `revert-buffer' in modes where outshine's outline-regexp doesn't
+;; match (e.g. json-ts-mode). The nil can come from the outer args
+;; OR from internal position calculations in the C code. Guard args
+;; AND catch the internal error so the revert completes cleanly.
 (advice-add 'outline-map-region :around
             (lambda (orig fn beg end)
               (when (and (number-or-marker-p beg)
                          (number-or-marker-p end))
-                (funcall orig fn beg end))))
+                (condition-case nil
+                    (funcall orig fn beg end)
+                  (wrong-type-argument nil)))))

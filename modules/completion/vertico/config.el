@@ -201,10 +201,18 @@ Routes to:
 ;;;; Leader bindings (this module owns SPC s, the yank-ring under SPC y,
 ;;;; and upgrades a few of the leader's defaults to the consult variants.)
 
+(defun scratch/consult-project-buffer ()
+  "Like `consult-project-buffer' but excludes special (*...*) buffers."
+  (interactive)
+  (let ((consult-buffer-filter
+         (append consult-buffer-filter '("\\`\\*"))))
+    (consult-project-buffer)))
+
 (when (modulep! :editor leader)
   (map! :leader
     ;; Upgrades of leader baselines to consult variants.
-    :desc "switch buffer"      "b b" #'consult-buffer
+    :desc "switch buffer (project)" "b b" #'scratch/consult-project-buffer
+    :desc "switch buffer (all)"     "b B" #'consult-buffer
     :desc "recent files"       "f r" #'consult-recent-file
     :desc "yank ring"          "y"   #'consult-yank-pop
     :desc "project buffers"    "p b" #'consult-project-buffer
