@@ -730,8 +730,8 @@
 (defun scratch-cli--sync-help ()
   (scratch-cli--print "Usage: scratch sync [--force-tangle] [--rebuild]")
   (scratch-cli--print "")
-  (scratch-cli--print "Re-tangle config.org and install all declared packages.")
-  (scratch-cli--print "Run this after editing your literate config or adding modules.")
+  (scratch-cli--print "Re-tangle config.org, install declared packages, and prune orphans.")
+  (scratch-cli--print "Run this after editing your literate config or adding/removing modules.")
   (scratch-cli--print "")
   (scratch-cli--print "Options:")
   (scratch-cli--print "  --force-tangle  Re-tangle config.org even if outputs look fresh.")
@@ -794,6 +794,17 @@
       (scratch-cli--print "Rebuilding all straight packages...")
       (when (fboundp 'straight-rebuild-all)
         (straight-rebuild-all)))
+
+    ;; Remove repos/builds that are no longer declared by any module.
+    ;; straight tracks which packages were requested via
+    ;; `straight-use-package' during this session; anything on disk but
+    ;; not in that set is orphaned.
+    (scratch-cli--print "")
+    (scratch-cli--print "Pruning unused packages...")
+    (when (fboundp 'straight-remove-unused-repos)
+      (straight-remove-unused-repos 'force))
+    (when (fboundp 'straight-prune-build)
+      (straight-prune-build))
 
     ;; Generate the bundled autoloads file for fast interactive startup.
     (scratch-cli--print "")

@@ -26,7 +26,7 @@
 
   ;; Performance / sanity defaults (lifted from Doom's :tools lsp):
   (setq lsp-keep-workspace-alive nil      ; close server when last buffer dies
-        lsp-enable-folding nil            ; folding via outshine / treesit-fold
+        lsp-enable-folding nil            ; folding via outline-minor-mode / treesit-fold
         lsp-enable-text-document-color nil
         lsp-enable-on-type-formatting nil
         lsp-headerline-breadcrumb-enable nil  ; redundant with modeline + imenu

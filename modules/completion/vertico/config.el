@@ -255,4 +255,5 @@ Routes to:
      :desc "search buffer"        "s" #'consult-line
      :desc "imenu"                "i" #'consult-imenu
      :desc "search project (rg)"  "p" #'consult-ripgrep
-     :desc "find file (project)"  "f" #'consult-find)))
+     :desc "find file (project)"  "f" #'consult-find
+     :desc "outline headings"     "o" #'consult-outline)))
