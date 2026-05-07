@@ -92,30 +92,11 @@
    "(declarations / eager installs) and ~config.el~ (configuration).\n"
    "\n"
    "Modules are inert until you call ~(scratch! ...)~ -- *without that call you\n"
-   "get a bare Emacs with the early-init perf knobs and nothing else.* Uncomment\n"
-   "the example block under [[*Modules]] below to opt in.\n"
+   "get a bare Emacs with the early-init perf knobs and nothing else.*\n"
    "\n"
-   "** Declaration syntax\n"
    "Each ~:category~ keyword is followed by zero or more module names. Pass\n"
-   "flags as a list ~(name +flag1 +flag2)~. Example:\n"
-   "\n"
-   "#+begin_src emacs-lisp :tangle no\n"
-   "(scratch! :editor     (evil +everywhere) leader smartparens\n"
-   "                      ws-butler drag-stuff tree-sitter vlf\n"
-   "                      symbol-overlay outshine snippets format\n"
-   "          :completion vertico corfu\n"
-   "          :emacs      (vc +forge +gutter) ibuffer dired\n"
-   "          :checkers   syntax\n"
-   "          :tools      (lsp +peek) direnv mise\n"
-   "          :lang       org markdown csharp json yaml\n"
-   "          :term       vterm\n"
-   "          :os         macos\n"
-   "          :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors rainbow default-text-scale)\n"
-   "#+end_src\n"
-   "\n"
-   "Note: list ~:editor (... leader)~ near the top of `scratch!'. Producer\n"
-   "modules layer their leader bindings on top of leader's baselines via\n"
-   "last-write-wins, so leader needs to load first for the cascade to work.\n"
+   "flags as a list ~(name +flag1 +flag2)~. Edit the ~scratch!~ call under\n"
+   "[[*Modules]] below to add or remove modules, then run ~scratch sync~.\n"
    "\n"
    "** Built-in modules\n"
    "\n"
@@ -603,21 +584,27 @@
    "#+end_src\n"
    "\n"
    "** Modules\n"
-   "Uncomment to opt in. Add or remove modules and flags as you see fit; rerun\n"
-   "~scratch sync~ after editing.\n"
+   "The framework ships with a set of modules enabled by default. Add or\n"
+   "remove modules and flags as you see fit; rerun ~scratch sync~ after\n"
+   "editing. See [[https://github.com/rhblind/scratch-emacs/blob/main/modules/README.md][modules/README.md]] for\n"
+   "the full list and per-module documentation.\n"
    "\n"
    "#+begin_src emacs-lisp :tangle packages.el\n"
-   ";; (scratch! :editor     (evil +everywhere) leader smartparens\n"
-   ";;                       ws-butler drag-stuff tree-sitter vlf\n"
-   ";;                       symbol-overlay outshine snippets format\n"
-   ";;           :completion vertico corfu\n"
-   ";;           :emacs      (vc +forge +gutter) ibuffer dired\n"
-   ";;           :checkers   syntax\n"
-   ";;           :tools      (lsp +peek) direnv mise\n"
-   ";;           :lang       org markdown csharp json yaml\n"
-   ";;           :term       vterm\n"
-   ";;           :os         macos\n"
-   ";;           :ui         theme modeline fonts treemacs workspaces smooth-scroll hl-todo info-colors rainbow default-text-scale)\n"
+   "(scratch! :editor     (evil +everywhere) leader smartparens\n"
+   "                      ws-butler drag-stuff tree-sitter vlf\n"
+   "                      symbol-overlay outline snippets format\n"
+   "         :completion  vertico corfu\n"
+   "         :emacs       (vc +forge +gutter) ibuffer dired\n"
+   "         :checkers    syntax\n"
+   "         :tools       (lsp +peek)\n"
+   "         ;; :tools    direnv mise\n"
+   "         ;; :lang     org markdown json yaml\n"
+   "         ;; :lang     csharp elixir\n"
+   "         ;; :term     vterm\n"
+   "         :os          macos\n"
+   "         :ui          theme modeline fonts treemacs workspaces\n"
+   "                      smooth-scroll hl-todo info-colors rainbow\n"
+   "                      default-text-scale)\n"
    "#+end_src\n"
    "\n"
    "** Extra packages\n"
@@ -801,10 +788,19 @@
     ;; not in that set is orphaned.
     (scratch-cli--print "")
     (scratch-cli--print "Pruning unused packages...")
+    (define-advice delete-directory (:around (fn dir &rest args) scratch-force-delete)
+      "Make git pack files writable before deleting so prune doesn't fail."
+      (when (and (file-directory-p dir)
+                 (file-directory-p (expand-file-name ".git" dir)))
+        (dolist (f (directory-files-recursively
+                    (expand-file-name ".git" dir) "." t))
+          (set-file-modes f #o700)))
+      (apply fn dir args))
     (when (fboundp 'straight-remove-unused-repos)
       (straight-remove-unused-repos 'force))
     (when (fboundp 'straight-prune-build)
       (straight-prune-build))
+    (advice-remove 'delete-directory #'delete-directory@scratch-force-delete)
 
     ;; Generate the bundled autoloads file for fast interactive startup.
     (scratch-cli--print "")
