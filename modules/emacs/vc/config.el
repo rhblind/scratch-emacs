@@ -39,8 +39,9 @@
          ("C-x M-g" . magit-dispatch)
          ("C-c M-g" . magit-file-dispatch))
   :config
-  (setq magit-diff-refine-hunk t                  ; fine-grained diffs within hunks
-        magit-save-repository-buffers 'dontask)   ; auto-save buffers, no prompt
+  (setq magit-diff-refine-hunk t
+        magit-save-repository-buffers 'dontask
+        magit-process-finish-apply-ansi-colors t)
 
   (add-hook 'with-editor-mode-hook
             (lambda ()
