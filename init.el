@@ -33,6 +33,8 @@
  (expand-file-name "env" user-emacs-directory) 'noerror)
 
 ;;; straight.el bootstrap (https://github.com/radian-software/straight.el)
+;;; Download tarballs instead of full git clones for faster initial install.
+(setq straight-vc-use-snapshot-installation t)
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name

@@ -28,18 +28,23 @@
 ;;   warnings still go to *Async-native-compile-log* if you need them.
 (setq native-comp-async-report-warnings-errors 'silent)
 
-;; PERF: Defer native-comp JIT until after startup. JIT compilation
-;;   triggered during init can stall the first frame paint; pushing it
-;;   to `emacs-startup-hook' lets the UI come up first, then async
-;;   compilation picks up in the background. Only relevant in graphical
-;;   sessions -- batch / sync runs don't need it.
+;; PERF: Defer native-comp JIT until Emacs is idle. Compiling during
+;;   init stalls the first frame paint. A 5-second idle timer lets the
+;;   frame come up and the user start working before background
+;;   compilation begins. Use half the available cores so the editor
+;;   stays responsive.
 (setq native-comp-deferred-compilation nil
       native-comp-jit-compilation nil)
 (unless noninteractive
   (add-hook 'emacs-startup-hook
             (lambda ()
-              (setq native-comp-deferred-compilation t
-                    native-comp-jit-compilation t))))
+              (run-with-idle-timer
+               5 nil
+               (lambda ()
+                 (setq native-comp-async-jobs-number
+                       (max 1 (/ (num-processors) 2))
+                       native-comp-deferred-compilation t
+                       native-comp-jit-compilation t))))))
 
 ;; PERF: Skip the frame-resize that fires when font/face attributes change
 ;;   at startup. Halves startup time for users with custom fonts.
@@ -69,6 +74,14 @@
 ;; straight manages packages; keep package.el out of the way.
 (setq package-enable-at-startup nil)
 
+;; PERF: In interactive sessions, skip byte-compilation of packages.
+;;   straight spawns sub-Emacs processes to byte-compile, which can
+;;   block startup if a rebuild is triggered. `scratch sync' (batch)
+;;   compiles everything ahead of time; interactive sessions just load
+;;   the pre-compiled output.
+(unless noninteractive
+  (setq straight-disable-byte-compilation t))
+
 ;; PERF: Skip straight's `find(1)'-based startup mod check. Default is
 ;;   `(find-at-startup find-when-checking only-once)', which spawns
 ;;   `find' across `straight/repos/' on every init -- the cause of
@@ -92,11 +105,12 @@
 ;;   applied. This eliminates the flash of default-themed background
 ;;   entirely. The frame is made visible by `emacs-startup-hook'.
 ;;   Daemon mode is unaffected (frames are created by emacsclient after init).
-(unless (daemonp)
-  (push '(visibility . nil) initial-frame-alist)
-  (add-hook 'emacs-startup-hook
-            (lambda ()
-              (modify-frame-parameters (selected-frame) '((visibility . t))))))
+;; (unless (daemonp)
+;;   (push '(visibility . nil) initial-frame-alist)
+;;   (add-hook 'emacs-startup-hook
+;;             (lambda ()
+;;               (modify-frame-parameters (selected-frame) '((visibility . t))))))
+
 
 ;; UX: Silence the bell entirely. Both audible and visible variants. To
 ;;   restore the default behavior, `(setq ring-bell-function nil)' in
