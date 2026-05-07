@@ -41,15 +41,32 @@
   :config
   (setq magit-diff-refine-hunk t
         magit-save-repository-buffers 'dontask
-        magit-process-finish-apply-ansi-colors t)
+        magit-process-finish-apply-ansi-colors t
+        magit-bury-buffer-function #'magit-mode-quit-window)
 
-  (add-hook 'with-editor-mode-hook
-            (lambda ()
-              (let ((buf (current-buffer)))
-                (run-at-time 0 nil
-                  (lambda ()
-                    (when (buffer-live-p buf)
-                      (pop-to-buffer buf)))))))
+  (setq transient-display-buffer-action
+        '(display-buffer-below-selected
+          (dedicated . t)
+          (inhibit-same-window . t)))
+
+  (defun scratch-vc--setup-commit-window ()
+    "Focus the commit buffer and auto-close its window on exit."
+    (let ((buf (current-buffer)))
+      (run-at-time 0 nil
+        (lambda ()
+          (when-let* (((buffer-live-p buf))
+                      (win (get-buffer-window buf)))
+            (select-window win)
+            (set-window-dedicated-p win t)
+            (with-current-buffer buf
+              (add-hook 'kill-buffer-hook
+                        (lambda ()
+                          (when (and (window-live-p win)
+                                     (not (one-window-p)))
+                            (delete-window win)))
+                        nil t)))))))
+
+  (add-hook 'with-editor-mode-hook #'scratch-vc--setup-commit-window)
   ;; Upstream magit binds `Z' to `magit-worktree' on `magit-mode-map',
   ;; but in evil normal state `Z' is the vim save-and-quit prefix
   ;; (`ZZ' / `ZQ'), and evil-state maps win over mode-maps. evil-
@@ -82,6 +99,22 @@
                  magit-worktree-branch
                  magit-worktree-status))
     (advice-add cmd :around #'scratch-vc--worktree-then-pick-file-a)))
+
+;;;; git-commit -- commit message conventions
+
+(with-eval-after-load 'git-commit
+  (setq git-commit-summary-max-length 60
+        git-commit-style-convention-checks '(overlong-summary-line non-empty-second-line))
+  (add-hook 'git-commit-mode-hook
+            (lambda () (setq-local fill-column 72)))
+  (when (modulep! :editor evil)
+    (add-hook 'git-commit-setup-hook
+              (defun scratch-vc--commit-start-in-insert-state ()
+                "Enter evil insert state when composing a blank commit message."
+                (when (and (bound-and-true-p evil-local-mode)
+                           (not (evil-emacs-state-p))
+                           (bobp) (eolp))
+                  (evil-insert-state))))))
 
 ;; magit-todos: surface project TODO / FIXME / HACK / etc. as a
 ;; section in `magit-status'. Keyword set is shared with hl-todo.
