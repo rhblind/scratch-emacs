@@ -269,8 +269,33 @@
       (diff-hl-margin-mode 1))
 
     ;; Update gutter when magit alters git state (commit, stage, stash, ...).
+    ;; The stock `diff-hl-magit-post-refresh' has a path-comparison bug
+    ;; (relative vs absolute) that silently skips buffers. Use a simpler
+    ;; function that unconditionally refreshes every diff-hl buffer in the
+    ;; repo.
+    (defun scratch-vc--diff-hl-magit-update ()
+      "Force diff-hl update in all file buffers within the current repo."
+      (let ((topdir (magit-toplevel)))
+        (dolist (buf (buffer-list))
+          (when (and (buffer-local-value 'diff-hl-mode buf)
+                     (buffer-file-name buf)
+                     (not (file-remote-p (buffer-file-name buf)))
+                     (file-in-directory-p (buffer-file-name buf) topdir))
+            (with-current-buffer buf
+              (vc-state-refresh buffer-file-name (vc-backend buffer-file-name))
+              (diff-hl-update))))))
     (with-eval-after-load 'magit
-      (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh))
+      (add-hook 'magit-post-refresh-hook #'scratch-vc--diff-hl-magit-update))
+
+    ;; Update gutter when Emacs regains focus (catches CLI commits, rebases,
+    ;; etc. that happened in a terminal while Emacs was in the background).
+    (add-function :after after-focus-change-function
+                  (lambda ()
+                    (when (frame-focus-state)
+                      (diff-hl-update-once))))
+
+    ;; Update gutter after vc-mode checkins (e.g. C-x v v).
+    (add-hook 'vc-checkin-hook #'diff-hl-update)
 
     ;; Reverting a hunk shouldn't move point far from the hunk you targeted.
     (defun scratch-vc--diff-hl-revert-save-pt (orig-fn &rest args)
