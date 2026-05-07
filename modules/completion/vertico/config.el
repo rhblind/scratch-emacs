@@ -204,6 +204,7 @@ Routes to:
 (defun scratch/consult-project-buffer ()
   "Like `consult-project-buffer' but only shows file-visiting buffers."
   (interactive)
+  (require 'consult)
   (let ((consult-buffer-filter
          (append consult-buffer-filter
                  (mapcar (lambda (buf)
@@ -217,16 +218,16 @@ Routes to:
     :category buffer
     :face consult-buffer
     :action ,#'consult--buffer-action
-    :items
-    ,(lambda ()
-       (cl-loop for buf in (buffer-list)
-                for name = (buffer-name buf)
-                when (string-prefix-p "*" name)
-                collect name))))
+    :items ,(lambda ()
+              (cl-loop for buf in (buffer-list)
+                       for name = (buffer-name buf)
+                       when (string-prefix-p "*" name)
+                       collect name))))
 
 (defun scratch/consult-project-buffer-all ()
   "Show project buffers and special (*...*) buffers."
   (interactive)
+  (require 'consult)
   (let ((project-src (copy-sequence consult-source-project-buffer))
         (orig-items (plist-get consult-source-project-buffer :items)))
     (plist-put project-src :items
