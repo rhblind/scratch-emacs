@@ -14,6 +14,11 @@
 
 (require 'cl-lib)
 
+;; The CLI runs with -q (no init files), so early-init.el's
+;; `load-prefer-newer' setting is never loaded. Set it here so
+;; stale .elc files don't shadow updated .el sources.
+(setq load-prefer-newer t)
+
 ;;; Bookkeeping ---------------------------------------------------------------
 
 (defvar scratch-cli--script-path
