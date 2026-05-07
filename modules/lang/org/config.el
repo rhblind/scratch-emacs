@@ -298,6 +298,104 @@ Set to nil or 1.0 to keep org at the global font size. Override by
       :desc "set tags"              "q" #'org-agenda-set-tags
       :desc "refile"                "r" #'org-agenda-refile)))
 
+;;;; DWIM at point (ported from Doom's +org/dwim-at-point)
+
+(defun scratch-org--toggle-inline-images-in-subtree (&optional beg end)
+  "Toggle inline image previews in the current subtree."
+  (let* ((beg (or beg
+                  (if (org-before-first-heading-p)
+                      (point-min)
+                    (save-excursion (org-back-to-heading) (point)))))
+         (end (or end
+                  (if (org-before-first-heading-p)
+                      (save-excursion (org-next-visible-heading 1) (point))
+                    (save-excursion (org-end-of-subtree) (point)))))
+         (overlays (cl-remove-if-not (lambda (ov) (overlay-get ov 'org-image-overlay))
+                                     (ignore-errors (overlays-in beg end)))))
+    (if overlays
+        (dolist (ov overlays)
+          (delete-overlay ov)
+          (setq org-inline-image-overlays (delete ov org-inline-image-overlays)))
+      (org-display-inline-images nil nil beg end))))
+
+(defun scratch-org/dwim-at-point (&optional arg)
+  "Do-what-I-mean at point.
+Execute src blocks, follow links, toggle checkboxes, recalculate
+tables, cycle TODOs, preview LaTeX, and more."
+  (interactive "P")
+  (if (button-at (point))
+      (call-interactively #'push-button)
+    (let* ((context (org-element-context))
+           (type (org-element-type context)))
+      (while (and context (memq type '(verbatim code bold italic underline
+                                        strike-through subscript superscript)))
+        (setq context (org-element-property :parent context)
+              type (org-element-type context)))
+      (pcase type
+        ((or `citation `citation-reference)
+         (org-cite-follow context arg))
+        (`headline
+         (cond ((org-element-property :todo-type context)
+                (org-todo (if (eq (org-element-property :todo-type context) 'done)
+                              'todo 'done)))
+               (t (org-update-checkbox-count)
+                  (org-update-parent-todo-statistics)
+                  (scratch-org--toggle-inline-images-in-subtree))))
+        (`clock (org-clock-update-time-maybe))
+        (`footnote-reference
+         (org-footnote-goto-definition (org-element-property :label context)))
+        (`footnote-definition
+         (org-footnote-goto-previous-reference (org-element-property :label context)))
+        ((or `planning `timestamp) (org-follow-timestamp-link))
+        ((or `table `table-row)
+         (if (org-at-TBLFM-p)
+             (org-table-calc-current-TBLFM)
+           (ignore-errors
+             (save-excursion
+               (goto-char (org-element-property :contents-begin context))
+               (org-call-with-arg 'org-table-recalculate (or arg t))))))
+        (`table-cell
+         (org-table-blank-field)
+         (org-table-recalculate arg)
+         (when (and (string-empty-p (string-trim (org-table-get-field)))
+                    (bound-and-true-p evil-local-mode))
+           (evil-change-state 'insert)))
+        (`babel-call (org-babel-lob-execute-maybe))
+        (`statistics-cookie
+         (save-excursion (org-update-statistics-cookies arg)))
+        ((or `src-block `inline-src-block)
+         (org-babel-execute-src-block arg))
+        ((or `latex-fragment `latex-environment)
+         (org-latex-preview arg))
+        (`link
+         (let* ((lineage (org-element-lineage context '(link) t))
+                (path (org-element-property :path lineage)))
+           (if (and path (image-supported-file-p path))
+               (scratch-org--toggle-inline-images-in-subtree
+                (org-element-property :begin lineage)
+                (org-element-property :end lineage))
+             (org-open-at-point arg))))
+        ((guard (org-element-property :checkbox
+                  (org-element-lineage context '(item) t)))
+         (org-toggle-checkbox))
+        (_ (if (or (org-in-regexp org-ts-regexp-both nil t)
+                   (org-in-regexp org-tsr-regexp-both nil t)
+                   (org-in-regexp org-link-any-re nil t))
+               (call-interactively #'org-open-at-point)
+             (scratch-org--toggle-inline-images-in-subtree)))))))
+
+(defun scratch-org/return ()
+  "Call `org-return' with electric indent."
+  (interactive)
+  (org-return electric-indent-mode))
+
+(defun scratch-org/shift-return (&optional arg)
+  "Insert a literal newline, or copy-down in tables."
+  (interactive "p")
+  (if (org-at-table-p)
+      (org-table-copy-down arg)
+    (org-return nil arg)))
+
 ;;;; evil integration
 ;;
 ;; Vim-style heading / list / table motion + per-buffer insert-state
@@ -322,7 +420,12 @@ Set to nil or 1.0 to keep org at the global font size. Override by
     (add-hook 'evil-org-mode-hook #'evil-normalize-keymaps)
     ;; Standard evil-org key theme: navigation + textobjects + additional
     ;; bindings for headings, lists, todos, etc.
-    (evil-org-set-key-theme '(navigation insert textobjects additional)))
+    (evil-org-set-key-theme '(navigation insert textobjects additional))
+    (evil-define-key 'normal org-mode-map
+      (kbd "RET") #'scratch-org/dwim-at-point)
+    (evil-define-key 'insert org-mode-map
+      (kbd "RET")        #'scratch-org/return
+      (kbd "S-<return>") #'scratch-org/shift-return))
 
   ;; `evil-org-agenda' ships in the `evil-org' package; require +
   ;; activate it once `org-agenda' is up. The setter writes bindings
