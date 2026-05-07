@@ -39,6 +39,18 @@
         (when (kill-buffer buf) (cl-incf count)))
       (message "Killed %d buffer%s" count (if (= count 1) "" "s")))))
 
+(defun scratch/yank-buffer ()
+  "Copy the entire buffer contents to the kill ring."
+  (interactive)
+  (copy-region-as-kill (point-min) (point-max))
+  (message "Copied buffer contents"))
+
+(defun scratch/erase-buffer ()
+  "Erase the entire buffer without confirmation."
+  (interactive)
+  (let ((inhibit-read-only t))
+    (erase-buffer)))
+
 (defun scratch/copy-buffer-filepath ()
   "Copy the current buffer's file path to the kill ring as `path:line'.
 With a prefix argument, copy just the path (no line number)."
