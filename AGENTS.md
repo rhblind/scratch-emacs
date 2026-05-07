@@ -367,6 +367,33 @@ These are load-bearing; preserve them when refactoring.
   into proper events (`enable-theme-functions`, `after-save-hook`, etc.)
   instead of polling. Timers are acceptable only for genuinely
   time-based needs (e.g. debouncing rapid-fire events).
+- **Deferred packages need explicit `require` before variable access.**
+  When a package is loaded with `use-package :defer t` or `:commands`,
+  its variables (`defvar`, `defcustom`) are NOT available until the
+  package is actually loaded. Autoloaded *functions* trigger the load
+  when called, but reading a package's *variable* before any autoloaded
+  function fires will crash with "void variable". If you write a
+  wrapper `defun` that accesses a deferred package's variables (in
+  `let` bindings, `append`, `copy-sequence`, `plist-get`, etc.), add
+  `(require 'package)` at the top of the function body. Code inside
+  the `use-package`'s own `:config` block is safe (it runs after load).
+  Code inside `with-eval-after-load` is also safe.
+
+  ```elisp
+  ;; BAD: consult-buffer-filter is void if consult hasn't loaded yet
+  (defun my-wrapper ()
+    (interactive)
+    (let ((consult-buffer-filter (append consult-buffer-filter '("foo"))))
+      (consult-project-buffer)))
+
+  ;; GOOD: require ensures the variable exists
+  (defun my-wrapper ()
+    (interactive)
+    (require 'consult)
+    (let ((consult-buffer-filter (append consult-buffer-filter '("foo"))))
+      (consult-project-buffer)))
+  ```
+
 - **Package pinning.** All installed packages are pinned to commit SHAs
   in `straight/versions/default.el` (the straight lockfile). The file
   is tracked despite `straight/*` being gitignored, via a `!straight/versions/`
