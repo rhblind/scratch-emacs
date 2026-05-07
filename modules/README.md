@@ -63,6 +63,7 @@ Language-agnostic tools that `:lang` modules build on.
 | `lsp`    | `+peek` | lsp-mode + lsp-ui + consult-lsp, perf-tuned  |
 | `direnv` |         | Buffer-local direnv via envrc.el              |
 | `mise`   |         | Buffer-local mise for runtime versions        |
+| `just`   |         | Major mode for Justfiles via just-mode         |
 
 ## `:lang` -- language support
 
