@@ -6,6 +6,8 @@
 ;; and structural editing across most languages with no per-language
 ;; config needed.
 
+(setq treesit-font-lock-level 4)
+
 (use-package treesit-auto
   :demand t
   :custom
