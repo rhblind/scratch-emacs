@@ -47,7 +47,7 @@ installed and built."
          (with-temp-buffer
            (insert-file-contents file)
            (goto-char (point-min))
-           (when (re-search-forward "^;; Local Variables:" nil t)
+           (when (re-search-forward (concat "^;; Local " "Variables:") nil t)
              (delete-region (line-beginning-position) (point-max)))
            (buffer-string))))
       (insert "\n(provide 'scratch-autoloads)\n"
