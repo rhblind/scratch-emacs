@@ -15,6 +15,8 @@ is a personal project and comes with no guarantees.
 - **Emacs 30+**
 - **Git** for package management via [straight.el](https://github.com/radian-software/straight.el)
 - **A nerd font** (`M-x nerd-icons-install-fonts` on first install)
+- **Tree-sitter grammars** (`M-x treesit-auto-install-all` on first install, or
+  accept the per-language prompt on first file open)
 - **[ripgrep](https://github.com/BurntSushi/ripgrep)** for `SPC /` project search
 - **cmake + libtool** for `:term vterm` (builds a native module on first load)
 - **[cmark-gfm](https://github.com/github/cmark-gfm)** (optional) for `:lang markdown` live preview
@@ -27,7 +29,7 @@ variable to use a different path. This is the directory you put in
 version control.
 
 ```bash
-git clone https://github.com/<you>/emacs-scratch ~/.config/emacs-scratch
+git clone https://github.com/rhblind/emacs-scratch ~/.config/emacs-scratch
 ~/.config/emacs-scratch/bin/scratch install   # bootstrap user config
 ~/.config/emacs-scratch/bin/scratch sync      # install packages + tangle config.org
 ```
@@ -42,12 +44,12 @@ bootstrapping, syncing packages, pinning versions, and capturing the
 shell environment. Modelled after Doom's `bin/doom`, stripped down to
 the commands that matter here.
 
-| Command          | Description                                           |
-|------------------|-------------------------------------------------------|
-| `scratch install`| Bootstrap `~/.scratch.d/` with a starter `config.org` |
-| `scratch sync`   | Install packages and tangle `config.org`              |
-| `scratch freeze` | Pin packages to `~/.scratch.d/straight-lock.el`       |
-| `scratch env`    | Snapshot shell environment for GUI Emacs               |
+| Command           | Description                                           |
+|-------------------|-------------------------------------------------------|
+| `scratch install` | Bootstrap `~/.scratch.d/` with a starter `config.org` |
+| `scratch sync`    | Install packages and tangle `config.org`              |
+| `scratch freeze`  | Pin packages to `~/.scratch.d/straight-lock.el`       |
+| `scratch env`     | Snapshot shell environment for GUI Emacs              |
 
 After adding or upgrading a package, run `scratch freeze` and commit
 the lockfile for reproducible installs.
