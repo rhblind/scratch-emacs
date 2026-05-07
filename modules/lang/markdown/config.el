@@ -183,11 +183,15 @@ a[data-href] { color: %s; text-decoration: underline; cursor: pointer; }
 
 (defun scratch-markdown--render-html ()
   "Return a standalone HTML string for the current markdown buffer."
-  (concat "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
-          (scratch-markdown--preview-css)
-          "</head><body>" (scratch-markdown--render-body)
-          "<script>" scratch-markdown--post-render-js "</script>"
-          "</body></html>"))
+  (let ((base-dir (or (and buffer-file-name
+                           (file-name-directory buffer-file-name))
+                      default-directory)))
+    (concat "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+            "<base href=\"" (browse-url-file-url (expand-file-name base-dir)) "/\">"
+            (scratch-markdown--preview-css)
+            "</head><body>" (scratch-markdown--render-body)
+            "<script>" scratch-markdown--post-render-js "</script>"
+            "</body></html>")))
 
 (defun scratch-markdown--refresh-preview ()
   "Re-render the markdown preview, preserving scroll position."
