@@ -30,9 +30,11 @@
   :config
   (evil-mode 1))
 
-;; Override leader split bindings so the new window gets focus.
+;; Leader binds SPC w s/v to the Emacs built-ins which don't focus the
+;; new window. Rebind to the evil versions that honour
+;; `evil-split-window-below' / `evil-vsplit-window-right' (both t).
 ;; Deferred to `after-init-hook' so it applies regardless of module
-;; load order (leader may load before or after evil).
+;; load order.
 (add-hook 'after-init-hook
   (defun scratch-evil--override-split-bindings ()
     (map! :leader
