@@ -9,7 +9,7 @@
 ;; as the heading picker.
 
 (setq outline-minor-mode-cycle t
-      outline-minor-mode-highlight 'override)
+      outline-minor-mode-highlight t)
 
 (add-hook 'prog-mode-hook #'outline-minor-mode)
 
