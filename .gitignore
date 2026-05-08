@@ -50,6 +50,9 @@ dired-recent
 auto-save/
 /workspaces/
 
+# Superpowers specs / plans -- local working docs, not tracked
+/docs/
+
 # Byte-compiled / native-compiled output -- generated, never tracked
 *.elc
 *.eln
