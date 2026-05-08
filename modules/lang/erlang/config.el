@@ -81,13 +81,10 @@ activates with a missing grammar."
 
 ;; Apheleia `erlfmt' fallback. Used in buffers WITHOUT an LSP server
 ;; that supports formatting (ELP does not currently implement
-;; textDocument/formatting). Tries `rebar3 efmt' from the project
-;; root first (project-local erlfmt via rebar3 plugin), then falls
-;; back to standalone `erlfmt' on PATH.
+;; textDocument/formatting). Reads stdin, writes stdout.
 (with-eval-after-load 'apheleia
   (setf (alist-get 'erlfmt apheleia-formatters)
-        '("sh" "-c"
-          "t=$(mktemp); cat > \"$t\"; root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); (cd \"$root\" && rebar3 efmt \"$t\" 2>/dev/null && cat \"$t\") || erlfmt - < \"$t\"; rm -f \"$t\""))
+        '("erlfmt" "-"))
   (dolist (mode '(erlang-mode erlang-ts-mode))
     (setf (alist-get mode apheleia-mode-alist) '(erlfmt))))
 
