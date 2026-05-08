@@ -4,3 +4,4 @@
 ;; `dotnet' provides convenience commands for `dotnet build / run / test'
 ;; from inside Emacs.
 (straight-use-package 'dotnet)
+(straight-use-package 'csproj-mode)

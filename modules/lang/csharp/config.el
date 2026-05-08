@@ -29,8 +29,12 @@
 ;; Opt these modes into `:tools lsp' auto-attach. No-op when the lsp
 ;; module isn't enabled.
 (when (modulep! :tools lsp)
-  (dolist (mode '(csharp-ts-mode csharp-mode))
-    (add-to-list 'scratch-lsp-auto-modes mode)))
+  (dolist (mode '(csharp-ts-mode csharp-mode csproj-mode))
+    (add-to-list 'scratch-lsp-auto-modes mode))
+  (with-eval-after-load 'lsp-mode
+    (add-to-list 'lsp-language-id-configuration '(csproj-mode . "xml")))
+  (with-eval-after-load 'lsp-xml
+    (setq lsp-xml-prefer-jar nil)))
 
 ;; Remap legacy `csharp-mode' to the tree-sitter mode -- but ONLY when
 ;; the grammar is actually available. Without the guard, csharp-ts-mode
@@ -112,9 +116,12 @@ root (which can be slow on large solutions)."
   (add-hook 'csharp-ts-mode-hook #'scratch-csharp--activate-dotnet-mode-h)
   (add-hook 'csharp-mode-hook    #'scratch-csharp--activate-dotnet-mode-h))
 
-;; `.csproj' / `.sln' / `.props' / `.targets' are XML; let xml-mode
-;; render them readably.
-(dolist (pat '("\\.csproj\\'" "\\.props\\'" "\\.targets\\'"))
+;; `.csproj' files get a dedicated mode; `.props' / `.targets' stay on
+;; plain xml-mode since they're general MSBuild XML.
+(use-package csproj-mode
+  :mode "\\.csproj\\'")
+
+(dolist (pat '("\\.props\\'" "\\.targets\\'"))
   (add-to-list 'auto-mode-alist `(,pat . xml-mode)))
 
 ;; CSharpier integration with apheleia. Apheleia ships a default
