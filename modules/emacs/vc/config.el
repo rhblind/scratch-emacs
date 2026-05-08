@@ -282,8 +282,9 @@
                      (not (file-remote-p (buffer-file-name buf)))
                      (file-in-directory-p (buffer-file-name buf) topdir))
             (with-current-buffer buf
-              (vc-state-refresh buffer-file-name (vc-backend buffer-file-name))
-              (diff-hl-update))))))
+              (when-let* ((backend (vc-backend buffer-file-name)))
+                (vc-state-refresh buffer-file-name backend)
+                (diff-hl-update)))))))
     (with-eval-after-load 'magit
       (add-hook 'magit-post-refresh-hook #'scratch-vc--diff-hl-magit-update))
 
