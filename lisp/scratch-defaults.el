@@ -13,6 +13,8 @@
       sentence-end-double-space nil             ; modern convention
       require-final-newline t)
 
+(auto-image-file-mode 1)
+
 ;;;; Auto-save
 
 ;; Keep auto-save on (crash recovery) but redirect away from working dirs
