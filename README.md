@@ -1,14 +1,16 @@
-# Scratch Emacs
+<div align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/GNU.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" height="124px">
+  <h1 align="center">Scratch Emacs</h1>
+</div>
 
-A personal Emacs framework born out of config bankruptcy. I love
-[Doom Emacs](https://github.com/doomemacs/doomemacs) but wanted a
-smaller codebase I can fully understand, with deliberate choices
-instead of inherited ones. Several modules are direct adaptations of
-Doom's, trimmed of Doom-specific helpers.
+<p align="center">
+A personal Emacs framework born out of config bankruptcy. </p>
 
-Defaults reflect what I actually use day to day and may change at any
-time. You're welcome to use it as-is, fork it, or send PRs, but this
-is a personal project and comes with no guarantees.
+I love [Doom Emacs](https://github.com/doomemacs/doomemacs) but wanted a smaller codebase I can fully understand,
+with deliberate choices instead of inherited ones. Several modules are direct adaptations of Doom's, trimmed of Doom-specific helpers.
+
+Defaults reflect what I actually use day to day and may change at any time.
+You're welcome to use it as-is, fork it, or send PRs, but this is a personal project and comes with no guarantees.
 
 ## Requirements
 
