@@ -100,6 +100,24 @@
                  magit-worktree-status))
     (advice-add cmd :around #'scratch-vc--worktree-then-pick-file-a)))
 
+(defun scratch-vc--remove-stale-locks ()
+  "Remove stale .lock files in .git/ when no git process is running."
+  (when-let* ((topdir (magit-toplevel))
+              (gitdir (expand-file-name ".git/" topdir)))
+    (when (file-directory-p gitdir)
+      (let ((git-running-p (cl-some
+                            (lambda (p)
+                              (and (process-live-p p)
+                                   (string-match-p "\\bgit\\b" (process-name p))))
+                            (process-list))))
+        (unless git-running-p
+          (dolist (lock (directory-files gitdir t "\\.lock\\'"))
+            (delete-file lock)
+            (message "Removed stale lock: %s" lock)))))))
+
+(with-eval-after-load 'magit
+  (add-hook 'magit-pre-refresh-hook #'scratch-vc--remove-stale-locks))
+
 ;;;; git-commit -- commit message conventions
 
 (with-eval-after-load 'git-commit
