@@ -76,6 +76,7 @@ to tree-sitter major modes when a grammar is available.
 | `markdown` |         | markdown-mode with native code-block highlighting |
 | `csharp`   |         | csharp-ts-mode, dotnet minor mode, csharp-ls      |
 | `elixir`   |         | elixir-ts-mode, exunit runner, LSP via lexical    |
+| `erlang`   |         | erlang-ts-mode, ELP language server, erlfmt        |
 | `json`     |         | json-ts-mode, auto-LSP                            |
 | `yaml`     |         | yaml-ts-mode, auto-LSP                            |
 
