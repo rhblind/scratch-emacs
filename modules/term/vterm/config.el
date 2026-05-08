@@ -28,7 +28,8 @@
   (add-hook 'vterm-mode-hook
             (lambda ()
               (setq-local confirm-kill-processes nil
-                          hscroll-margin 0)))
+                          hscroll-margin 0
+                          list-buffers-directory default-directory)))
   ;; `C-q' lets you send the next keypress through to the running
   ;; process literally (useful when an Emacs binding swallows it).
   (define-key vterm-mode-map (kbd "C-q") #'vterm-send-next-key)
@@ -113,6 +114,35 @@ With prefix ARG, open it at `default-directory' instead."
                (side . bottom)
                (window-height . 0.25)
                (post-command-select-window . t)))
+
+;;;; Dismiss vterm popup on workspace switch
+
+(when (modulep! :ui workspaces)
+  (with-eval-after-load 'persp-mode
+    (defvar scratch-vterm--workspace-visible (make-hash-table :test 'equal))
+
+    (defun scratch-vterm--side-window ()
+      (cl-find-if
+       (lambda (w)
+         (and (window-parameter w 'window-side)
+              (string-match-p "\\`\\*scratch:vterm:.*\\*\\'"
+                              (buffer-name (window-buffer w)))))
+       (window-list)))
+
+    (add-hook 'persp-before-switch-functions
+              (lambda (&rest _)
+                (let ((ws (scratch-workspaces--current-name))
+                      (win (scratch-vterm--side-window)))
+                  (puthash ws (not (null win)) scratch-vterm--workspace-visible)
+                  (when win (delete-window win)))))
+
+    (add-hook 'persp-activated-functions
+              (lambda (&rest _)
+                (when (gethash (scratch-workspaces--current-name)
+                               scratch-vterm--workspace-visible)
+                  (let ((buf (get-buffer (scratch-vterm--popup-buffer-name))))
+                    (when (buffer-live-p buf)
+                      (pop-to-buffer buf))))))))
 
 ;;;; Leader bindings under `SPC o' (open)
 
