@@ -118,6 +118,49 @@
 (with-eval-after-load 'magit
   (add-hook 'magit-pre-refresh-hook #'scratch-vc--remove-stale-locks))
 
+;;;; Worktree deletion cleanup
+
+(defun scratch-vc--kill-buffers-in-directory (directory)
+  "Kill all buffers whose file or default-directory is under DIRECTORY.
+Uses string prefix matching so it works even after DIRECTORY is deleted."
+  (let ((dir (file-name-as-directory (expand-file-name directory)))
+        (killed 0))
+    (dolist (buf (buffer-list))
+      (when (buffer-live-p buf)
+        (let* ((buf-file (buffer-file-name buf))
+               (buf-dir (buffer-local-value 'default-directory buf))
+               (expanded-file (and buf-file (expand-file-name buf-file)))
+               (expanded-dir (and buf-dir
+                                  (file-name-as-directory
+                                   (expand-file-name buf-dir)))))
+          (when (or (and expanded-file (string-prefix-p dir expanded-file))
+                    (and expanded-dir (string-prefix-p dir expanded-dir)))
+            (let ((kill-buffer-query-functions nil)
+                  (confirm-kill-processes nil))
+              (kill-buffer buf)
+              (cl-incf killed))))))
+    killed))
+
+(defun scratch-vc--worktree-delete-cleanup-a (orig-fn worktree)
+  "Around-advice: clean up buffers, workspace, and project after deletion."
+  (let ((wt-dir (file-name-as-directory (expand-file-name worktree)))
+        (wt-name (file-name-nondirectory (directory-file-name worktree))))
+    (funcall orig-fn worktree)
+    (let ((n (scratch-vc--kill-buffers-in-directory wt-dir)))
+      (when (> n 0)
+        (message "Killed %d buffer(s) from deleted worktree" n)))
+    (when (and (modulep! :ui workspaces)
+               (bound-and-true-p persp-mode)
+               (member wt-name (scratch-workspaces--names)))
+      (persp-kill wt-name)
+      (scratch/workspace-display))
+    (when (fboundp 'project-forget-project)
+      (project-forget-project wt-dir))))
+
+(with-eval-after-load 'magit
+  (advice-add 'magit-worktree-delete :around
+              #'scratch-vc--worktree-delete-cleanup-a))
+
 ;;;; git-commit -- commit message conventions
 
 (with-eval-after-load 'git-commit
