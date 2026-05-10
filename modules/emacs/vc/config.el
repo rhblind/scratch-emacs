@@ -166,6 +166,29 @@ Uses string prefix matching so it works even after DIRECTORY is deleted."
 (with-eval-after-load 'git-commit
   (setq git-commit-summary-max-length 60
         git-commit-style-convention-checks '(overlong-summary-line non-empty-second-line))
+
+  ;; The stock `git-commit-run-post-finish-hook' blocks Emacs in a
+  ;; tight `sit-for' loop while polling HEAD, freezing the UI until
+  ;; the commit lands. Replace with a non-blocking timer.
+  (defun scratch-vc--run-post-finish-hook-async (previous)
+    "Non-blocking variant of `git-commit-run-post-finish-hook'.
+Polls HEAD every 0.5s for up to 30s instead of blocking."
+    (when git-commit-post-finish-hook
+      (let ((attempts 0)
+            (max-attempts 60)
+            timer)
+        (setq timer
+              (run-with-timer
+               0.5 0.5
+               (lambda ()
+                 (cond
+                  ((not (equal (magit-rev-parse "HEAD") previous))
+                   (cancel-timer timer)
+                   (run-hooks 'git-commit-post-finish-hook))
+                  ((>= (cl-incf attempts) max-attempts)
+                   (cancel-timer timer)))))))))
+  (advice-add 'git-commit-run-post-finish-hook :override
+              #'scratch-vc--run-post-finish-hook-async)
   (add-hook 'git-commit-mode-hook
             (lambda () (setq-local fill-column 72)))
   (when (modulep! :editor evil)
