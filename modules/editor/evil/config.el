@@ -200,6 +200,62 @@ Symmetric counterpart of `scratch/backward-kill-word'."
 (global-set-key (kbd "C-<delete>")    #'scratch/forward-kill-word)
 (global-set-key (kbd "M-<delete>")    #'scratch/forward-kill-word)
 
+;;;; Region sort -- sort words or symbols alphabetically inside a
+;;;; visual selection. Thin wrappers around `sort-regexp-fields'.
+
+(defun scratch/sort-words (reverse beg end)
+  "Sort words in region alphabetically; prefix arg for REVERSE.
+Respects `sort-fold-case'.
+NOTE: not a built-in Emacs command; supplements `sort-lines' et al."
+  (interactive "*P\nr")
+  (sort-regexp-fields reverse "\\w+" "\\&" beg end))
+
+(defun scratch/sort-symbols (reverse beg end)
+  "Sort symbols in region alphabetically; prefix arg for REVERSE.
+Respects `sort-fold-case'.
+NOTE: not a built-in Emacs command; supplements `sort-lines' et al."
+  (interactive "*P\nr")
+  (sort-regexp-fields reverse "\\(\\sw\\|\\s_\\)+" "\\&" beg end))
+
+(defalias 'sort-words   #'scratch/sort-words)
+(defalias 'sort-symbols #'scratch/sort-symbols)
+
+;;;; Delete carriage returns -- strip ^M (CR) characters from the
+;;;; buffer. Useful for C# templates and other Windows-origin files.
+
+(defun scratch/delete-carriage-returns ()
+  "Delete all carriage-return (^M) characters in the current buffer."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (let ((count 0))
+      (while (search-forward "\r" nil t)
+        (replace-match "")
+        (cl-incf count))
+      (message "Removed %d carriage return%s" count (if (= count 1) "" "s")))))
+
+;;;; Visual-mode shift -- `>' / `<' keep the selection so you can
+;;;; repeat without reselecting.
+
+(defun scratch/evil-visual-shift-right ()
+  "Shift region right and reselect."
+  (interactive)
+  (call-interactively #'evil-shift-right)
+  (evil-normal-state)
+  (evil-visual-restore))
+
+(defun scratch/evil-visual-shift-left ()
+  "Shift region left and reselect."
+  (interactive)
+  (call-interactively #'evil-shift-left)
+  (evil-normal-state)
+  (evil-visual-restore))
+
+(with-eval-after-load 'evil
+  (evil-define-key 'visual 'global
+    ">" #'scratch/evil-visual-shift-right
+    "<" #'scratch/evil-visual-shift-left))
+
 ;;;; Recenter point after scroll / search motions (implicit `zz').
 
 (defun scratch-evil--recenter-line-a (&rest _)
