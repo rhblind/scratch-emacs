@@ -27,38 +27,40 @@
   :config
   ;; Org 9.7+ returns propertized strings for line numbers in org-lint
   ;; results; flycheck 36.0 passes them straight to
-  ;; `flycheck-error-new-at' which expects integers.
-  (with-eval-after-load 'org-lint
-    (if (string= flycheck-version "36.0")
-        (setf (flycheck-checker-get 'org-lint 'start)
-             (lambda (checker callback)
-               (condition-case err
-                   (let ((errors
-                          (delq nil
-                                (mapcar
-                                 (lambda (e)
-                                   (pcase e
-                                     (`(,_n [,line ,_trust ,desc ,_checker])
-                                      (flycheck-error-new-at
-                                       (if (stringp line)
-                                           (string-to-number line)
-                                         line)
-                                       nil 'info desc
-                                       :checker checker))
-                                     (_
-                                      (flycheck-error-new-at
-                                       1 nil 'warning
-                                       (format "Unexpected org-lint format: %S" e)
-                                       :checker checker))))
-                                 (org-lint)))))
-                     (funcall callback 'finished errors))
-                 (error (funcall callback 'errored
-                                 (error-message-string err))))))
-      (display-warning 'scratch
-        (format "flycheck upgraded to %s; the org-lint workaround in \
+  ;; `flycheck-error-new-at' which expects integers. The override runs
+  ;; here (inside flycheck's :config) rather than after org-lint loads,
+  ;; because the checker's :start fires before org-lint provides its
+  ;; feature.
+  (if (string= flycheck-version "36.0")
+      (put 'org-lint 'flycheck-start
+           (lambda (checker callback)
+             (condition-case err
+                 (let ((errors
+                        (delq nil
+                              (mapcar
+                               (lambda (e)
+                                 (pcase e
+                                   (`(,_n [,line ,_trust ,desc ,_checker])
+                                    (flycheck-error-new-at
+                                     (if (stringp line)
+                                         (string-to-number line)
+                                       line)
+                                     nil 'info desc
+                                     :checker checker))
+                                   (_
+                                    (flycheck-error-new-at
+                                     1 nil 'warning
+                                     (format "Unexpected org-lint format: %S" e)
+                                     :checker checker))))
+                               (org-lint)))))
+                   (funcall callback 'finished errors))
+               (error (funcall callback 'errored
+                               (error-message-string err))))))
+    (display-warning 'scratch
+      (format "flycheck upgraded to %s; the org-lint workaround in \
 checkers/syntax/config.el may be safe to remove"
-                flycheck-version)
-        :info)))
+              flycheck-version)
+      :info))
 
   ;; CVE-2024-53920: flycheck's emacs-lisp checker byte-compiles the
   ;; current buffer, which can execute code via macro expansion. Restrict
