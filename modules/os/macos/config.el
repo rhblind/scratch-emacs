@@ -36,18 +36,13 @@
         ns-right-option-modifier  'none)
 
   ;; Zoom: Cmd +/-/0 per-buffer, Cmd-Option +/-/0 all buffers.
-  (cond
-   ((modulep! :ui default-text-scale)
-    (global-set-key (kbd "s-=") #'text-scale-increase)
-    (global-set-key (kbd "s--") #'text-scale-decrease)
-    (global-set-key (kbd "s-0") #'scratch-text-scale-reset)
-    (global-set-key (kbd "s-M-=") #'default-text-scale-increase)
-    (global-set-key (kbd "s-M--") #'default-text-scale-decrease)
-    (global-set-key (kbd "s-M-0") #'default-text-scale-reset))
-   (t
-    (global-set-key (kbd "s-=") #'text-scale-increase)
-    (global-set-key (kbd "s--") #'text-scale-decrease)
-    (global-set-key (kbd "s-0") (lambda () (interactive) (text-scale-set 0)))))
+  (global-set-key (kbd "s-=") #'text-scale-increase)
+  (global-set-key (kbd "s--") #'text-scale-decrease)
+  (global-set-key (kbd "s-0") #'scratch/reset-font-size)
+  (when (modulep! :ui fonts)
+    (global-set-key (kbd "s-M-=") #'scratch/increase-font-size)
+    (global-set-key (kbd "s-M--") #'scratch/decrease-font-size)
+    (global-set-key (kbd "s-M-0") #'scratch/reset-font-size))
 
   ;; Clipboard bridge for terminal Emacs. GUI Emacs already copies/
   ;; pastes through the macOS pasteboard via `gui-select-text' /
