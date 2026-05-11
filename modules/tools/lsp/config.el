@@ -403,16 +403,13 @@ session and runs the workspace-folders-changed hooks."
   (interactive)
   (consult-lsp-symbols 'all-workspaces))
 
-;; Evil `K' (look up doc at point) -- override per-buffer when LSP is
-;; attached so it shows server-side hover info in the standard *Help*
-;; window (with `help-window-select t' from scratch-defaults, focus
-;; jumps there automatically). Outside LSP buffers, evil's default
-;; `K' behavior (man / woman / mode-specific lookup) is preserved.
+;; Evil `K' (look up doc at point) -- set `evil-lookup-func' per-buffer
+;; when LSP is attached so it shows server-side hover info in *Help*.
+;; Outside LSP buffers evil's default K behavior is preserved.
 (when (modulep! :editor evil)
-  (with-eval-after-load 'lsp-mode
-    (with-eval-after-load 'evil
-      (evil-define-key 'normal lsp-mode-map
-        (kbd "K") #'lsp-describe-thing-at-point))))
+  (add-hook 'lsp-mode-hook
+            (lambda ()
+              (setq-local evil-lookup-func #'lsp-describe-thing-at-point))))
 
 (when (modulep! :editor leader)
   (with-eval-after-load 'lsp-mode
