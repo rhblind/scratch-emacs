@@ -1,7 +1,7 @@
 ;;; modules/lang/org/config.el -*- lexical-binding: t; -*-
 ;;
 ;; Pretty org-mode defaults: typography, visual line wrapping, hidden
-;; emphasis markers, plus org-modern for modernized bullets and blocks.
+;; emphasis markers, indented headings, and org-appear for editing.
 
 (defvar scratch-org-font-scale 1.15
   "Buffer-local default-face height multiplier in org-mode buffers.
@@ -30,14 +30,16 @@ Set to nil or 1.0 to keep org at the global font size. Override by
 (use-package org
   ;; Use Emacs's built-in org. Pulling org from straight while init.el
   ;; already loaded built-in org (via the tangle step) produces a
-  ;; version-mismatch warning and a half-loaded state. org-modern and
-  ;; org-appear stack on top of built-in org without trouble.
+  ;; version-mismatch warning and a half-loaded state. org-appear and
+  ;; org-superstar stack on top of built-in org without trouble.
   :straight nil
   :defer t
   :hook ((org-mode . visual-line-mode)
          (org-mode . scratch-org--scale-buffer-text)
          (org-mode . scratch-org--apply-heading-faces)
-         (org-mode . (lambda () (setq-local tab-width 8))))
+         (org-mode . (lambda () (setq-local tab-width 8)))
+         (org-mode . (lambda () (setq-local line-spacing 0.2)))
+         (org-mode . (lambda () (display-line-numbers-mode -1))))
   ;; Stock-Emacs global shortcuts for the three top-level org entry
   ;; points (`C-c a' agenda, `C-c c' capture, `C-c l' store-link).
   ;; Available everywhere, not just in org buffers.
@@ -48,29 +50,97 @@ Set to nil or 1.0 to keep org at the global font size. Override by
   (setq org-confirm-babel-evaluate nil
         org-babel-tangle-use-default-file-name nil
         org-hide-emphasis-markers t
-        org-pretty-entities t)
+        org-pretty-entities t
+        org-ellipsis " …"
+        org-startup-indented t
+        org-src-fontify-natively t
+        org-src-tab-acts-natively t
+        org-src-preserve-indentation t
+        org-src-window-setup 'current-window)
   :config
-  ;; Emacs 30+: keep wrapped lines visually indented by their list/heading prefix.
-  (when (fboundp 'visual-wrap-prefix-mode)
-    (add-hook 'org-mode-hook #'visual-wrap-prefix-mode))
+  ;; Hide property drawers on open (they stay visible when
+  ;; org-startup-folded is showeverything).
+  (add-hook 'org-mode-hook
+            (lambda () (org-cycle-hide-drawers 'all)))
 
   ;; Restore the easy-template expansion: `<s' + TAB inserts a `#+begin_src'
   ;; block, `<q' a quote, `<e' an example, etc. Org 9.2 (bundled with
   ;; Emacs 27+) extracted these into a separate `org-tempo' library and
   ;; stopped loading it by default; this re-enables them.
-  (require 'org-tempo))
+  (require 'org-tempo)
+  (require 'org-mouse)
 
-(use-package org-modern
-  :hook ((org-mode            . org-modern-mode)
-         (org-agenda-finalize . org-modern-agenda))
-  :init
-  (setq org-modern-hide-stars "  ")
-  :config
-  (setq org-modern-fold-stars
-        '(("◉" . "◯")
-          ("│" . "└")
-          (" │" . " └")
-          (" │" . " └"))))
+  ;; When tangling, add comments linking back to the org source.
+  (setf (alist-get :comment org-babel-default-header-args) "link")
+
+  ;; Enable Graphviz DOT blocks (`#+begin_src dot').
+  (add-to-list 'org-babel-load-languages '(dot . t))
+  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages)
+
+  ;; Italic quote and verse blocks.
+  (setq org-fontify-quote-and-verse-blocks t)
+
+  ;; Deadline faces: escalate from distant to overdue.
+  (setq org-agenda-deadline-faces
+        '((1.001 . error)
+          (1.0   . org-warning)
+          (0.5   . org-upcoming-deadline)
+          (0.0   . org-upcoming-distant-deadline)))
+
+  ;; Prettify org keywords and markers with Unicode glyphs.
+  (add-hook 'org-mode-hook #'scratch-org--setup-prettify-symbols))
+
+(defun scratch-org--setup-prettify-symbols ()
+  "Set `prettify-symbols-alist' for org-mode and enable the mode."
+  (setq-local prettify-symbols-alist
+              (append
+               '(("[ ]"             . ?☐)
+                 ("[-]"             . ?◼)
+                 ("[X]"             . ?☑)
+                 ("#+title:"        . ?§)
+                 ("#+subtitle:"     . ?¶)
+                 ("#+author:"       . ?◇)
+                 ("#+date:"         . ?◆)
+                 ("#+property:"     . ?☸)
+                 ("#+options:"      . ?⌥)
+                 ("#+startup:"      . ?⏻)
+                 ("#+macro:"        . ?⊞)
+                 ("#+begin_quote"   . ?❝)
+                 ("#+end_quote"     . ?❞)
+                 ("#+begin_export"  . ?⏩)
+                 ("#+end_export"    . ?⏪)
+                 ("#+caption:"      . ?☰)
+                 ("#+header:"       . ?›)
+                 ("#+RESULTS:"      . ?⇒)
+                 (":PROPERTIES:"    . ?⚙)
+                 (":END:"           . ?∎))
+               prettify-symbols-alist))
+  (prettify-symbols-mode 1))
+
+(defun scratch-org/indent-src-block ()
+  "Indent the source block at point."
+  (interactive)
+  (when (org-in-src-block-p)
+    (org-edit-special)
+    (indent-region (point-min) (point-max))
+    (org-edit-src-exit)))
+(defalias 'org-indent-src-block #'scratch-org/indent-src-block)
+(with-eval-after-load 'ob-core
+  (define-key org-babel-map "F" #'org-indent-src-block))
+
+;;;; Emphasis commands
+
+(defmacro scratch-org--def-emphasize (name char)
+  "Define an interactive command NAME that calls `org-emphasize' with CHAR."
+  `(defun ,name () (interactive) (org-emphasize ,char)))
+
+(scratch-org--def-emphasize scratch-org/emphasize-bold          ?*)
+(scratch-org--def-emphasize scratch-org/emphasize-italic        ?/)
+(scratch-org--def-emphasize scratch-org/emphasize-code          ?~)
+(scratch-org--def-emphasize scratch-org/emphasize-verbatim      ?=)
+(scratch-org--def-emphasize scratch-org/emphasize-strikethrough ?+)
+(scratch-org--def-emphasize scratch-org/emphasize-underline     ?_)
+(scratch-org--def-emphasize scratch-org/emphasize-clear         ?\s)
 
 ;; org-appear: reveal hidden emphasis markers (the surrounding `*' / `/'
 ;; / `=' / `~' that org-mode normally hides) when the cursor lands on
@@ -83,12 +153,32 @@ Set to nil or 1.0 to keep org at the global font size. Override by
         org-appear-autosubmarkers t     ; sub_script, super^script
         org-appear-autolinks      nil)) ; leave [[link][text]] folded
 
+;; org-superstar: replace heading stars with cleaner Unicode bullets.
+;; Compatible with org-indent-mode.
+(use-package org-superstar
+  :hook (org-mode . org-superstar-mode)
+  :init
+  (setq org-superstar-headline-bullets-list '("◉" "○" "◈" "◇" "▸")
+        org-superstar-leading-bullet ?\s
+        org-superstar-special-todo-items t))
+
+;; org-pretty-table: redraw org tables with Unicode box-drawing characters.
+(use-package org-pretty-table
+  :hook (org-mode . org-pretty-table-mode))
+
 ;; Auto-pair `<<...>>' (org radio-target syntax) when smartparens is
 ;; enabled. Insert-only -- doesn't try to wrap regions or balance on
 ;; delete, so non-target uses of `<' aren't disturbed.
 (when (modulep! :editor smartparens)
   (with-eval-after-load 'smartparens
     (sp-local-pair '(org-mode) "<<" ">>" :actions '(insert))))
+
+;; +hugo: export org subtrees as Hugo blog posts via ox-hugo.
+;; Set `org-hugo-base-dir' in your user config to point at the Hugo
+;; site root (e.g. "~/workspace/hugo-blog").
+(when (modulep! +hugo)
+  (use-package ox-hugo
+    :after ox))
 
 ;; org-cliplink: insert the URL on the kill ring as an org link with
 ;; the page's title fetched live. Useful inside captures where you've
@@ -137,13 +227,15 @@ Set to nil or 1.0 to keep org at the global font size. Override by
       :desc "toggle heading"        "h" #'org-toggle-heading
       :desc "toggle item"           "i" #'org-toggle-item
       :desc "create / get id"       "I" #'org-id-get-create
+      :desc "babel"                 "v" org-babel-map
       :desc "remove babel result"   "k" #'org-babel-remove-result
       :desc "store link"            "n" #'org-store-link
       :desc "set property"          "o" #'org-set-property
       :desc "set tags"              "q" #'org-set-tags-command
       :desc "todo state"            "t" #'org-todo
       :desc "todo list"             "T" #'org-todo-list
-      :desc "toggle checkbox"       "x" #'org-toggle-checkbox
+      "x" nil
+      :desc "toggle checkbox"       "X" #'org-toggle-checkbox
       ;; -- attachments (skipped: +org/find-file-in-attachments,
       ;;    +org/attach-file-and-insert-link, org-download-*) --
       (:prefix-map ("a" . "attachments")
@@ -251,14 +343,14 @@ Set to nil or 1.0 to keep org at the global font size. Override by
        :desc "set"                  "p" #'org-priority
        :desc "up"                   "u" #'org-priority-up)
       ;; -- emphasis / text formatting --
-      (:prefix-map ("X" . "emphasis")
-       :desc "bold"                 "b" (lambda () (interactive) (org-emphasize ?*))
-       :desc "italic"              "i" (lambda () (interactive) (org-emphasize ?/))
-       :desc "code"                "c" (lambda () (interactive) (org-emphasize ?~))
-       :desc "verbatim"            "v" (lambda () (interactive) (org-emphasize ?=))
-       :desc "strikethrough"       "s" (lambda () (interactive) (org-emphasize ?+))
-       :desc "underline"           "u" (lambda () (interactive) (org-emphasize ?_))
-       :desc "clear"               "x" (lambda () (interactive) (org-emphasize ?\s))))
+      (:prefix-map ("x" . "text")
+       :desc "bold"                 "b" #'scratch-org/emphasize-bold
+       :desc "code"                 "c" #'scratch-org/emphasize-code
+       :desc "italic"               "i" #'scratch-org/emphasize-italic
+       :desc "clear"                "r" #'scratch-org/emphasize-clear
+       :desc "strikethrough"        "s" #'scratch-org/emphasize-strikethrough
+       :desc "underline"            "u" #'scratch-org/emphasize-underline
+       :desc "verbatim"             "v" #'scratch-org/emphasize-verbatim))
     ;; Use consult-org-* when consult is available (richer picker).
     (when (modulep! :completion vertico)
       (map! :map org-mode-map :localleader

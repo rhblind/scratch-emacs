@@ -117,7 +117,7 @@
 
 ;;; Tell straight to use Emacs's built-in `org' rather than cloning
 ;;; upstream. Must run BEFORE any package that lists `org' in
-;;; `Package-Requires' (e.g. org-modern, org-appear) gets installed --
+;;; `Package-Requires' (e.g. org-appear, org-superstar) gets installed --
 ;;; otherwise straight pulls upstream org as a transitive dependency,
 ;;; and the two versions clash on first org-mode buffer.
 (straight-use-package '(org :type built-in))
