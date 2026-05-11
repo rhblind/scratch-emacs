@@ -10,7 +10,7 @@ I love [Doom Emacs](https://github.com/doomemacs/doomemacs) but wanted a smaller
 with deliberate choices instead of inherited ones. Several modules are direct adaptations of Doom's, trimmed of Doom-specific helpers.
 
 Defaults reflect what I actually use day to day and may change at any time.
-You're welcome to use it as-is, fork it, or send PRs, but this is a personal project and comes with no guarantees.
+You're welcome to use it as-is, fork it, or send PRs, but this is mostl  a personal project and comes with no guarantees.
 
 ## Requirements
 
