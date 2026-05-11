@@ -61,12 +61,22 @@ gives which-key a label while preserving the binding."
                           unless (memq (car cell) '(:which-key :wk))
                           collect (car cell) and collect (cadr cell))))
       `(quote (,sym ,@kept :which-key ,desc))))
-   ;; bare symbol
+   ;; bare symbol -- evaluate at runtime so keymaps resolve to their
+   ;; value (general needs a keymap value, not the symbol, to create
+   ;; a prefix binding via define-key).
    ((symbolp def)
-    `(quote (,def :which-key ,desc)))
+    `(list (scratch-keys--resolve-binding ',def) :which-key ,desc))
    ;; lambda or other form: wrap in a list with :which-key so general
    ;; can extract the description while still binding the command.
    (t `(quote (,def :which-key ,desc)))))
+
+(defun scratch-keys--resolve-binding (sym)
+  "Resolve SYM for `define-key': return the keymap value when SYM is
+a keymap variable, otherwise the symbol itself (command binding)."
+  (let ((val (and (boundp sym) (symbol-value sym))))
+    (if (keymapp val)
+        val
+      sym)))
 
 (defun scratch-keys--prefixed (prefix key)
   "Return KEY prefixed by PREFIX (with a separating space)."
