@@ -169,4 +169,5 @@ call to `project-find-file' resolves correctly."
    :desc "discover projects"  "D" #'scratch/projects-discover
    :desc "cleanup stale"      "C" #'scratch/projects-cleanup
    :desc "add project"        "A" #'scratch/projects-add
-   :desc "forget project"     "F" #'project-forget-project))
+   :desc "forget project"     "F" #'project-forget-project
+   :desc "save project buffers" "S" (lambda () (interactive) (project-save-some-buffers t))))
