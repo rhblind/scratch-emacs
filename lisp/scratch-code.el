@@ -94,5 +94,37 @@ symbols."
     (when (looking-at-p "[ \t\n\r]+\\'")
       (delete-region (point) (point-max)))))
 
+;;;; Region sort -- sort words or symbols alphabetically inside a
+;;;; visual selection. Thin wrappers around `sort-regexp-fields'.
+
+(defun scratch/sort-words (reverse beg end)
+  "Sort words in region alphabetically; prefix arg for REVERSE.
+Respects `sort-fold-case'."
+  (interactive "*P\nr")
+  (sort-regexp-fields reverse "\\w+" "\\&" beg end))
+
+(defun scratch/sort-symbols (reverse beg end)
+  "Sort symbols in region alphabetically; prefix arg for REVERSE.
+Respects `sort-fold-case'."
+  (interactive "*P\nr")
+  (sort-regexp-fields reverse "\\(\\sw\\|\\s_\\)+" "\\&" beg end))
+
+(defalias 'sort-words   #'scratch/sort-words)
+(defalias 'sort-symbols #'scratch/sort-symbols)
+
+;;;; Delete carriage returns -- strip ^M (CR) characters from the
+;;;; buffer. Useful for C# templates and other Windows-origin files.
+
+(defun scratch/delete-carriage-returns ()
+  "Delete all carriage-return (^M) characters in the current buffer."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (let ((count 0))
+      (while (search-forward "\r" nil t)
+        (replace-match "")
+        (cl-incf count))
+      (message "Removed %d carriage return%s" count (if (= count 1) "" "s")))))
+
 (provide 'scratch-code)
 ;;; scratch-code.el ends here

@@ -135,116 +135,17 @@
   (define-key evil-inner-text-objects-map "a" #'evil-inner-arg)
   (define-key evil-outer-text-objects-map "a" #'evil-outer-arg))
 
-;;;; Smart kill-word -- stop at whitespace / line boundaries instead of
-;;;; eating across them (IntelliJ-style). Bound globally to
-;;;; C-/M-<backspace> and C-/M-<delete> so it kicks in regardless of
-;;;; evil state.
-
-(defun scratch/backward-kill-word ()
-  "Kill the previous word, stopping at whitespace / blank-line boundaries.
-Falls back to a one-character delete on wide / multibyte characters
-where word boundaries aren't meaningful."
-  (interactive)
-  (let* ((cp (point))
-         (back-char (if (bobp) "" (buffer-substring cp (1- cp))))
-         backword end space-pos)
-    (if (= (length back-char) (string-width back-char))
-        (progn
-          (save-excursion
-            (setq backword (buffer-substring (point)
-                                             (progn (forward-word -1)
-                                                    (point)))))
-          (save-excursion
-            (when (and backword (string-search " " backword))
-              (setq space-pos (ignore-errors (search-backward " ")))))
-          (save-excursion
-            (let* ((pos    (ignore-errors (search-backward-regexp "\n")))
-                   (substr (when pos (buffer-substring pos cp))))
-              (when (or (and substr (string-empty-p (string-trim substr)))
-                        (and backword (string-search "\n" backword)))
-                (setq end pos))))
-          (cond (end       (kill-region cp end))
-                (space-pos (kill-region cp space-pos))
-                (t         (backward-kill-word 1))))
-      (kill-region cp (1- cp)))))
-
-(defun scratch/forward-kill-word ()
-  "Kill the next word, stopping at whitespace / blank-line boundaries.
-Symmetric counterpart of `scratch/backward-kill-word'."
-  (interactive)
-  (let* ((cp (point))
-         (forward-char (if (eobp) "" (buffer-substring cp (1+ cp))))
-         forward-word end space-pos)
-    (if (= (length forward-char) (string-width forward-char))
-        (progn
-          (save-excursion
-            (setq forward-word (buffer-substring (point)
-                                                 (progn (forward-word 1)
-                                                        (point)))))
-          (save-excursion
-            (when (and forward-word (string-search " " forward-word))
-              (setq space-pos (ignore-errors (search-forward " " nil t)))))
-          (save-excursion
-            (let* ((pos    (ignore-errors (search-forward-regexp "\n" nil t)))
-                   (substr (when pos (buffer-substring cp pos))))
-              (when (or (and substr (string-empty-p (string-trim substr)))
-                        (and forward-word (string-search "\n" forward-word)))
-                (setq end pos))))
-          (cond (end       (kill-region cp end))
-                (space-pos (kill-region cp space-pos))
-                (t         (kill-word 1))))
-      (kill-region cp (1+ cp)))))
-
-(global-set-key (kbd "C-<backspace>") #'scratch/backward-kill-word)
-(global-set-key (kbd "M-<backspace>") #'scratch/backward-kill-word)
-(global-set-key (kbd "C-<delete>")    #'scratch/forward-kill-word)
-(global-set-key (kbd "M-<delete>")    #'scratch/forward-kill-word)
-
-;;;; Region sort -- sort words or symbols alphabetically inside a
-;;;; visual selection. Thin wrappers around `sort-regexp-fields'.
-
-(defun scratch/sort-words (reverse beg end)
-  "Sort words in region alphabetically; prefix arg for REVERSE.
-Respects `sort-fold-case'.
-NOTE: not a built-in Emacs command; supplements `sort-lines' et al."
-  (interactive "*P\nr")
-  (sort-regexp-fields reverse "\\w+" "\\&" beg end))
-
-(defun scratch/sort-symbols (reverse beg end)
-  "Sort symbols in region alphabetically; prefix arg for REVERSE.
-Respects `sort-fold-case'.
-NOTE: not a built-in Emacs command; supplements `sort-lines' et al."
-  (interactive "*P\nr")
-  (sort-regexp-fields reverse "\\(\\sw\\|\\s_\\)+" "\\&" beg end))
-
-(defalias 'sort-words   #'scratch/sort-words)
-(defalias 'sort-symbols #'scratch/sort-symbols)
-
-;;;; Delete carriage returns -- strip ^M (CR) characters from the
-;;;; buffer. Useful for C# templates and other Windows-origin files.
-
-(defun scratch/delete-carriage-returns ()
-  "Delete all carriage-return (^M) characters in the current buffer."
-  (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    (let ((count 0))
-      (while (search-forward "\r" nil t)
-        (replace-match "")
-        (cl-incf count))
-      (message "Removed %d carriage return%s" count (if (= count 1) "" "s")))))
-
 ;;;; Visual-mode shift -- `>' / `<' keep the selection so you can
 ;;;; repeat without reselecting.
 
-(defun scratch/evil-visual-shift-right ()
+(defun scratch-evil/visual-shift-right ()
   "Shift region right and reselect."
   (interactive)
   (call-interactively #'evil-shift-right)
   (evil-normal-state)
   (evil-visual-restore))
 
-(defun scratch/evil-visual-shift-left ()
+(defun scratch-evil/visual-shift-left ()
   "Shift region left and reselect."
   (interactive)
   (call-interactively #'evil-shift-left)
@@ -253,8 +154,8 @@ NOTE: not a built-in Emacs command; supplements `sort-lines' et al."
 
 (with-eval-after-load 'evil
   (evil-define-key 'visual 'global
-    ">" #'scratch/evil-visual-shift-right
-    "<" #'scratch/evil-visual-shift-left))
+    ">" #'scratch-evil/visual-shift-right
+    "<" #'scratch-evil/visual-shift-left))
 
 ;;;; Recenter point after scroll / search motions (implicit `zz').
 

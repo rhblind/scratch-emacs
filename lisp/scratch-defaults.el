@@ -153,5 +153,68 @@
                  ;; first lands before focus shifts.
                  (post-command-select-window . t))))
 
+;;;; Smart kill-word -- stop at whitespace / line boundaries instead of
+;;;; eating across them (IntelliJ-style).
+
+(defun scratch/backward-kill-word ()
+  "Kill the previous word, stopping at whitespace / blank-line boundaries.
+Falls back to a one-character delete on wide / multibyte characters
+where word boundaries aren't meaningful."
+  (interactive)
+  (let* ((cp (point))
+         (back-char (if (bobp) "" (buffer-substring cp (1- cp))))
+         backword end space-pos)
+    (if (= (length back-char) (string-width back-char))
+        (progn
+          (save-excursion
+            (setq backword (buffer-substring (point)
+                                             (progn (forward-word -1)
+                                                    (point)))))
+          (save-excursion
+            (when (and backword (string-search " " backword))
+              (setq space-pos (ignore-errors (search-backward " ")))))
+          (save-excursion
+            (let* ((pos    (ignore-errors (search-backward-regexp "\n")))
+                   (substr (when pos (buffer-substring pos cp))))
+              (when (or (and substr (string-empty-p (string-trim substr)))
+                        (and backword (string-search "\n" backword)))
+                (setq end pos))))
+          (cond (end       (kill-region cp end))
+                (space-pos (kill-region cp space-pos))
+                (t         (backward-kill-word 1))))
+      (kill-region cp (1- cp)))))
+
+(defun scratch/forward-kill-word ()
+  "Kill the next word, stopping at whitespace / blank-line boundaries.
+Symmetric counterpart of `scratch/backward-kill-word'."
+  (interactive)
+  (let* ((cp (point))
+         (forward-char (if (eobp) "" (buffer-substring cp (1+ cp))))
+         forward-word end space-pos)
+    (if (= (length forward-char) (string-width forward-char))
+        (progn
+          (save-excursion
+            (setq forward-word (buffer-substring (point)
+                                                 (progn (forward-word 1)
+                                                        (point)))))
+          (save-excursion
+            (when (and forward-word (string-search " " forward-word))
+              (setq space-pos (ignore-errors (search-forward " " nil t)))))
+          (save-excursion
+            (let* ((pos    (ignore-errors (search-forward-regexp "\n" nil t)))
+                   (substr (when pos (buffer-substring cp pos))))
+              (when (or (and substr (string-empty-p (string-trim substr)))
+                        (and forward-word (string-search "\n" forward-word)))
+                (setq end pos))))
+          (cond (end       (kill-region cp end))
+                (space-pos (kill-region cp space-pos))
+                (t         (kill-word 1))))
+      (kill-region cp (1+ cp)))))
+
+(global-set-key (kbd "C-<backspace>") #'scratch/backward-kill-word)
+(global-set-key (kbd "M-<backspace>") #'scratch/backward-kill-word)
+(global-set-key (kbd "C-<delete>")    #'scratch/forward-kill-word)
+(global-set-key (kbd "M-<delete>")    #'scratch/forward-kill-word)
+
 (provide 'scratch-defaults)
 ;;; scratch-defaults.el ends here
