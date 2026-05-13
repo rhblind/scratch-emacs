@@ -67,24 +67,16 @@
     (add-to-list 'lsp-file-watch-ignored-directories pat)))
 
 ;; Register `dexter' as an LSP client. Priority 2 wins over lsp-mode's
-;; built-in `elixir-ls' client (priority -1). The connection resolves
-;; `dexter' via `mise which dexter' rather than relying on `executable
-;; -find' / PATH alone, because Emacs' PATH doesn't always include
-;; mise's shim directory even when the user's shell does. `mise which'
-;; returns the absolute path to whatever dexter version mise has active
-;; for the current project, regardless of shim wiring.
-;;
-;; `:initialization-options' sends the per-project init params dexter
-;; expects: follow delegate redirects (so go-to-definition works
-;; through behaviour callbacks etc.) and debug logging off.
+;; built-in `elixir-ls' client (priority -1). Binary resolution relies
+;; on `exec-path': when `:tools mise' is enabled, `mise.el' sets a
+;; buffer-local `exec-path' that includes dexter's install directory
+;; (after handling trust prompts); without mise, `scratch env' captures
+;; the user's shell PATH at startup. Either way `executable-find'
+;; resolves the right binary per project.
 (with-eval-after-load 'lsp-mode
   (lsp-register-client
    (make-lsp-client
-    :new-connection (lsp-stdio-connection
-                     (lambda ()
-                       (list (string-trim
-                              (shell-command-to-string "mise which dexter"))
-                             "lsp")))
+    :new-connection (lsp-stdio-connection '("dexter" "lsp"))
     :major-modes '(elixir-mode elixir-ts-mode heex-ts-mode)
     :priority 2
     :server-id 'dexter-ls
