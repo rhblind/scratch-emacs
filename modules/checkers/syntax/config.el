@@ -25,6 +25,7 @@
         flycheck-indication-mode 'right-fringe)
 
   :config
+  (which-key-add-key-based-replacements "C-c !" "flycheck")
   ;; Org 9.7+ returns propertized strings for line numbers in org-lint
   ;; results; flycheck 36.0 passes them straight to
   ;; `flycheck-error-new-at' which expects integers. The override runs

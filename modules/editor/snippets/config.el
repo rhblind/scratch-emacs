@@ -21,6 +21,7 @@
   (setq yas-snippet-dirs
         (list (expand-file-name "snippets/" scratch-user-dir)))
   :config
+  (which-key-add-key-based-replacements "C-c &" "snippets")
   ;; Don't print "[yas] reload took ... ms" on every reload.
   (setq yas-verbosity 1)
   ;; `yasnippet-snippets' just auto-adds itself to `yas-snippet-dirs'.

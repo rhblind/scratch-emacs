@@ -22,6 +22,8 @@
 
 ;; Scale outline heading faces to match org/markdown heading styling.
 (with-eval-after-load 'outline
+  (which-key-add-key-based-replacements "C-c @" "outline")
+
   (dolist (spec '((outline-1 extra-bold 1.25)
                   (outline-2 bold       1.15)
                   (outline-3 bold       1.12)

@@ -23,6 +23,12 @@
 ;; Heading face polish ported from the user's Doom config: scaled
 ;; h1..h6 with weight tapering off at deeper levels.
 (with-eval-after-load 'markdown-mode
+  (which-key-add-key-based-replacements
+    "C-c C-a" "links"
+    "C-c C-c" "commands"
+    "C-c C-s" "style"
+    "C-c C-t" "headers"
+    "C-c C-x" "extras")
   (set-face-attribute 'markdown-header-delimiter-face nil
                       :height 0.9)
   (dolist (spec '((markdown-header-face-1 bold 1.25)
