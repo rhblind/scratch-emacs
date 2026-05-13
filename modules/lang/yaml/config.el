@@ -20,6 +20,8 @@
   (add-to-list 'treesit-language-source-alist
                '(yaml "https://github.com/ikatyang/tree-sitter-yaml")))
 
+(add-hook 'yaml-ts-mode-hook (lambda () (setq-local tab-width 2)))
+
 ;; Tree-sitter mode remap, only when the grammar is installed.
 ;; Otherwise `yaml-mode' (the package above) handles `.yaml' / `.yml'
 ;; cleanly via its own auto-mode-alist entry.
