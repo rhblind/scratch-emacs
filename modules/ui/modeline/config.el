@@ -22,6 +22,15 @@
   :config
   (doom-modeline-mode 1)
 
+  ;; Upstream bug: `doom-modeline--evil' calls `(funcall tag)' where
+  ;; tag can be nil for evil states without a :tag property (e.g.
+  ;; magit transient states). The .elc for this file is deleted so
+  ;; the defsubst is not inlined and advice works.
+  (defun scratch-modeline--safe-evil-tag (fn)
+    (condition-case nil (funcall fn)
+      (void-function nil)))
+  (advice-add #'doom-modeline--evil :around #'scratch-modeline--safe-evil-tag)
+
   ;; Modified-buffer indicator: italic, with the foreground left to the
   ;; theme's `doom-modeline-buffer-modified' default (modus-themes pick a
   ;; high-contrast warning hue automatically).
