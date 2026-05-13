@@ -1,15 +1,19 @@
 ;;; modules/editor/leader/window.el -*- lexical-binding: t; -*-
 ;;
-;; SPC w -- window-related leader bindings. Loaded by leader/config.el.
+;; SPC w -- window management. Maps to evil-window-map (vim's C-w
+;; prefix) so all standard vim window commands work, plus extras.
+;; Loaded by leader/config.el.
+
+(winner-mode 1)
 
 (map! :leader
-  (:prefix-map ("w" . "window")
-   :desc "left"             "h" #'windmove-left
-   :desc "down"             "j" #'windmove-down
-   :desc "up"               "k" #'windmove-up
-   :desc "right"            "l" #'windmove-right
-   :desc "split below"      "s" #'split-window-below
-   :desc "split right"      "v" #'split-window-right
-   :desc "delete window"    "d" #'delete-window
-   :desc "delete others"    "D" #'delete-other-windows
-   :desc "maximize (toggle)" "m" #'scratch/toggle-maximize-window))
+  :desc "window" "w" evil-window-map)
+
+(map! :map evil-window-map
+  "d"   #'evil-window-delete
+  "D"   #'delete-other-windows
+  "m"   #'scratch/toggle-maximize-window
+  "u"   #'winner-undo
+  "C-u" #'winner-undo
+  "C-r" #'winner-redo
+  "T"   #'tear-off-window)
