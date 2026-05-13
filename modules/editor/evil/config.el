@@ -26,21 +26,13 @@
         evil-vsplit-window-right t                             ; focus new window after vsplit
         evil-kill-on-visual-paste nil                          ; don't pollute the kill ring
         evil-respect-visual-line-mode t                        ; j/k follow visual lines when wrapped
-        evil-shift-width tab-width)
+        evil-shift-width 2)
   :config
-  (evil-mode 1))
+  (evil-mode 1)
+  (add-hook 'after-change-major-mode-hook
+            (defun scratch-evil--sync-shift-width ()
+              (setq-local evil-shift-width tab-width))))
 
-;; Leader binds SPC w s/v to the Emacs built-ins which don't focus the
-;; new window. Rebind to the evil versions that honour
-;; `evil-split-window-below' / `evil-vsplit-window-right' (both t).
-;; Deferred to `after-init-hook' so it applies regardless of module
-;; load order.
-(add-hook 'after-init-hook
-  (defun scratch-evil--override-split-bindings ()
-    (map! :leader
-      (:prefix "w"
-       :desc "split below" "s" #'evil-window-split
-       :desc "split right" "v" #'evil-window-vsplit))))
 
 (when (modulep! +everywhere)
   ;; Set evil-collection knobs BEFORE `evil-collection-init' runs so the
