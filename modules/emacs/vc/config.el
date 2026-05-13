@@ -221,6 +221,32 @@ Polls HEAD every 0.5s for up to 30s instead of blocking."
     ;; bindings); turn the auto-bind off so forge never attempts it.
     (setq forge-add-default-bindings nil)))
 
+;;;; Ediff -- keep everything in the current frame
+
+(with-eval-after-load 'ediff
+  (setq ediff-diff-options "-w"
+        ediff-split-window-function #'split-window-horizontally
+        ediff-window-setup-function #'ediff-setup-windows-plain)
+
+  (defvar scratch-vc--ediff-saved-wconf nil)
+
+  (add-hook 'ediff-before-setup-hook
+    (defun scratch-vc--ediff-save-wconf ()
+      (setq scratch-vc--ediff-saved-wconf (current-window-configuration))))
+
+  (add-hook 'ediff-quit-hook
+    (defun scratch-vc--ediff-restore-wconf ()
+      (when (window-configuration-p scratch-vc--ediff-saved-wconf)
+        (set-window-configuration scratch-vc--ediff-saved-wconf)))
+    'append)
+  (add-hook 'ediff-suspend-hook #'scratch-vc--ediff-restore-wconf 'append)
+
+  (add-hook 'ediff-quit-hook
+    (defun scratch-vc--ediff-refresh-magit ()
+      (when (fboundp 'magit-refresh-all)
+        (magit-refresh-all)))
+    'append))
+
 ;;;; smerge -- auto-enable on conflict markers
 
 (defun scratch-vc--maybe-enable-smerge ()
@@ -236,6 +262,7 @@ Polls HEAD every 0.5s for up to 30s instead of blocking."
   :init
   (add-hook 'find-file-hook #'scratch-vc--maybe-enable-smerge)
   :config
+  (which-key-add-key-based-replacements "C-c ^" "smerge")
   ;; Smerge actions on the localleader: SPC m n / , n / etc. when point is
   ;; in a buffer where smerge-mode is active.
   (when (modulep! :editor leader)
