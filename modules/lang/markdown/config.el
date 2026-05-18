@@ -8,7 +8,8 @@
 (use-package markdown-mode
   :mode (("\\.md\\'"       . gfm-mode)
          ("\\.markdown\\'" . gfm-mode))
-  :hook (markdown-mode . visual-line-mode)
+  :hook ((markdown-mode . visual-line-mode)
+         (markdown-mode . outline-minor-mode))
   :init
   ;; Highlight code blocks per their declared language (` ```python`,
   ;; etc.) instead of leaving them as plain text.
@@ -300,15 +301,22 @@ back to `markdown-preview' (opens in external browser)."
 (defun scratch-markdown--xwidget-heading-picker (json-str xw)
   "Show a heading picker from JSON-STR and scroll xwidget XW to selection."
   (let* ((headings (json-parse-string json-str :object-type 'alist))
+         (outline-faces [outline-1 outline-2 outline-3 outline-4
+                         outline-5 outline-6 outline-7 outline-8])
          (candidates
           (mapcar (lambda (h)
                     (let* ((level (string-to-number (substring (alist-get 'level h) 1)))
                            (indent (make-string (* 2 (1- level)) ?\s))
                            (text (alist-get 'text h))
+                           (face (aref outline-faces (min (1- level) 7)))
                            (idx (alist-get 'index h)))
-                      (cons (concat indent text) idx)))
+                      (cons (concat indent (propertize text 'face face)) idx)))
                   (append headings nil)))
-         (chosen (completing-read "Heading: " candidates nil t))
+         (table (lambda (str pred action)
+                  (if (eq action 'metadata)
+                      `(metadata (display-sort-function . ,(lambda (cands) cands)))
+                    (complete-with-action action candidates str pred))))
+         (chosen (completing-read "Heading: " table nil t))
          (idx (cdr (assoc chosen candidates))))
     (when idx
       (xwidget-webkit-execute-script xw
@@ -400,17 +408,12 @@ In an xwidget preview buffer, show a heading picker from the HTML."
        :desc "narrow to block"      "b" #'markdown-narrow-to-block))
 
     ;; Override SPC s o in markdown and xwidget preview buffers.
-    ;; Uses general's :predicate on the override map so it takes
-    ;; precedence over the global leader binding.
+    ;; A single binding with a combined predicate; two separate
+    ;; general-define-key calls on the same key in :keymaps 'override
+    ;; clobber each other (last-write-wins on the menu-item filter).
     (general-define-key
      :keymaps 'override
      :states '(normal visual motion)
      :prefix scratch-leader-key
-     :predicate '(derived-mode-p 'markdown-mode)
-     "s o" #'scratch/markdown-outline)
-    (general-define-key
-     :keymaps 'override
-     :states '(normal visual motion)
-     :prefix scratch-leader-key
-     :predicate '(derived-mode-p 'xwidget-webkit-mode)
+     :predicate '(derived-mode-p 'markdown-mode 'xwidget-webkit-mode)
      "s o" #'scratch/markdown-outline)))
