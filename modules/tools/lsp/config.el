@@ -422,7 +422,7 @@ session and runs the workspace-folders-changed hooks."
                        :desc "find type definition" "t" #'lsp-find-type-definition
                        :desc "lsp-ui doc popup"     "K" #'lsp-ui-doc-show
                        :desc "code action"          "a" #'lsp-execute-code-action
-                       :desc "rename symbol"        "r" #'scratch/rename
+                       :desc "rename symbol (project)" "R" #'lsp-rename
                        :desc "organize imports"     "o" #'lsp-organize-imports))
     ;; `+peek' bindings are wired below at the top level (outside this
     ;; `with-eval-after-load 'lsp-mode' body) because `modulep!' on a

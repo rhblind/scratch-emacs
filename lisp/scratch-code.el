@@ -105,15 +105,11 @@ Respects `sort-fold-case'."
   (sort-regexp-fields reverse "\\(\\sw\\|\\s_\\)+" "\\&" beg end))
 
 (defun scratch/rename ()
-  "Rename the symbol at point using the best handler.
-Uses `lsp-rename' when LSP is attached and the server supports it;
-falls back to `symbol-overlay-rename' for a buffer-local rename."
+  "Rename the symbol at point in the current buffer.
+Uses `symbol-overlay-rename' when `symbol-overlay-mode' is active;
+falls back to `query-replace'."
   (interactive)
   (cond
-   ((and (bound-and-true-p lsp-mode)
-         (fboundp 'lsp-feature?)
-         (lsp-feature? "textDocument/rename"))
-    (call-interactively #'lsp-rename))
    ((and (bound-and-true-p symbol-overlay-mode)
          (fboundp 'symbol-overlay-rename))
     (call-interactively #'symbol-overlay-rename))

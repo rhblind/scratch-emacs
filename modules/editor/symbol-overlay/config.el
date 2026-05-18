@@ -8,8 +8,9 @@
 ;;                 to the next / previous occurrence. Once promoted,
 ;;                 n / N continue as normal evil search navigation.
 ;;                 ESC or SPC s c clears the search highlights.
-;;   SPC c r    -- rename symbol (LSP rename if available, otherwise
-;;                 `symbol-overlay-rename' for buffer-local rename)
+;;   SPC c r    -- rename symbol in buffer (`symbol-overlay-rename')
+;;   SPC c R    -- rename symbol across project (`lsp-rename', when
+;;                 `:tools lsp' is active)
 
 (use-package symbol-overlay
   :hook (prog-mode . symbol-overlay-mode)
