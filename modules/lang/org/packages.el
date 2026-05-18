@@ -13,6 +13,14 @@
 (when (modulep! +hugo)
   (straight-use-package 'ox-hugo))
 
+;; +pretty: polished org-agenda out of the box (olivetti centering,
+;; org-super-agenda grouping, cleaner prefix, reduced visual noise)
+;; and icon-decorated capture templates via doct.
+(when (modulep! +pretty)
+  (straight-use-package 'olivetti)
+  (straight-use-package 'org-super-agenda)
+  (straight-use-package 'doct))
+
 ;; evil-org: vim-style heading / list / table manipulation in org-mode,
 ;; plus dedicated `evil-org-agenda-mode' so the agenda buffer respects
 ;; evil keys (j/k navigate, etc.).  evil-collection's org support is
