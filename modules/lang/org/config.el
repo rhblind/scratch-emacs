@@ -559,7 +559,7 @@ Set this in your user config, e.g.:
                        :desc "down"                 "d" #'org-agenda-priority-down
                        :desc "set"                  "p" #'org-agenda-priority
                        :desc "up"                   "u" #'org-agenda-priority-up)
-          :desc "set tags"              "q" #'org-agenda-set-tags
+          :desc "set tags"              "t" #'org-agenda-set-tags
           :desc "refile"                "r" #'org-agenda-refile)))
 
 ;;;; DWIM at point (ported from Doom's +org/dwim-at-point)
@@ -689,7 +689,19 @@ tables, cycle TODOs, preview LaTeX, and more."
       (kbd "RET") #'scratch-org/dwim-at-point)
     (evil-define-key 'insert org-mode-map
       (kbd "RET")        #'scratch-org/return
-      (kbd "S-<return>") #'scratch-org/shift-return))
+      (kbd "S-<return>") #'scratch-org/shift-return)
+
+    ;; Evil insert-state steals S-left/S-right (word motion) from org's
+    ;; date-picker minibuffer. Restore the calendar navigation keys.
+    (evil-define-key 'insert org-read-date-minibuffer-local-map
+      (kbd "S-<left>")    #'org-calendar-backward-day
+      (kbd "S-<right>")   #'org-calendar-forward-day
+      (kbd "S-<up>")      #'org-calendar-backward-week
+      (kbd "S-<down>")    #'org-calendar-forward-week
+      (kbd "M-S-<left>")  #'org-calendar-backward-month
+      (kbd "M-S-<right>") #'org-calendar-forward-month
+      (kbd "M-S-<up>")    #'org-calendar-backward-year
+      (kbd "M-S-<down>")  #'org-calendar-forward-year))
 
   ;; `evil-org-agenda' ships in the `evil-org' package; require +
   ;; activate it once `org-agenda' is up. The setter writes bindings
