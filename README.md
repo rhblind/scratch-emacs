@@ -18,8 +18,9 @@ You're welcome to use it as-is, fork it, or send PRs, but this is mostly  a pers
 - **Emacs 30+**
 - **Git** for package management via [straight.el](https://github.com/radian-software/straight.el)
 - **A nerd font** (`M-x nerd-icons-install-fonts` on first install)
-- **Tree-sitter grammars** (`M-x treesit-auto-install-all` on first install, or
-  accept the per-language prompt on first file open)
+- **Tree-sitter grammars** (`M-x treesit-auto-install-all` on first install and
+  after enabling a new language module, or accept the per-language prompt on
+  first file open)
 - **[ripgrep](https://github.com/BurntSushi/ripgrep)** for `SPC /` project search
 - **cmake + libtool** for `:term vterm` (builds a native module on first load)
 - **[cmark-gfm](https://github.com/github/cmark-gfm)** (optional) for `:lang markdown` live preview
