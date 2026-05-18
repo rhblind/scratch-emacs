@@ -149,6 +149,52 @@
     ">" #'scratch-evil/visual-shift-right
     "<" #'scratch-evil/visual-shift-left))
 
+;;;; End-of-visual-line motion
+;;
+;; A proper evil motion wrapping `end-of-visual-line'.  Defining it
+;; with `evil-define-motion' and `:type inclusive' lets evil's visual
+;; selection machinery include the last visible character correctly.
+
+(with-eval-after-load 'evil
+  (evil-define-motion scratch-evil/end-of-visual-line (count)
+    "Move to the last character of the current visual line."
+    :type inclusive
+    (end-of-visual-line count)
+    (unless (or (evil-visual-state-p) (bolp))
+      (backward-char))))
+
+;;;; Linewise yank promotion
+;;
+;; Ensure that full-line yanks always have a linewise yank-handler on
+;; the kill-ring entry so `p' pastes on a new line.  Covers both the
+;; `V y' case (safety net when evil's own handler is missing) and
+;; characterwise visual yanks that happen to span complete lines.
+
+(defun scratch-evil--promote-linewise-yank-a (beg end &optional type register _yank-handler)
+  "Ensure full-line yanks paste linewise.
+After-advice for `evil-yank'.  For linewise yanks and for
+characterwise yanks that span complete lines, set the yank-handler
+to `evil-yank-line-handler' so `p' opens a new line."
+  (when (and (not register) kill-ring)
+    (let* ((text (car kill-ring))
+           (eff-end (if (eq type 'inclusive) (1+ end) end)))
+      (when (and text
+                 (or (eq type 'line)
+                     (and (memq type '(inclusive exclusive))
+                          (save-excursion (goto-char beg) (bolp))
+                          (save-excursion
+                            (goto-char eff-end)
+                            (or (eolp)
+                                (and (bolp) (> eff-end beg)))))))
+        (unless (string-suffix-p "\n" text)
+          (setcar kill-ring (concat text "\n")))
+        (put-text-property 0 (length (car kill-ring))
+                           'yank-handler '(evil-yank-line-handler)
+                           (car kill-ring))))))
+
+(with-eval-after-load 'evil
+  (advice-add 'evil-yank :after #'scratch-evil--promote-linewise-yank-a))
+
 ;;;; Recenter point after scroll / search motions (implicit `zz').
 
 (defun scratch-evil--recenter-line-a (&rest _)

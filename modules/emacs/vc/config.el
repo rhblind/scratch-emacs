@@ -164,7 +164,7 @@ Uses string prefix matching so it works even after DIRECTORY is deleted."
 ;;;; git-commit -- commit message conventions
 
 (with-eval-after-load 'git-commit
-  (setq git-commit-summary-max-length 60
+  (setq git-commit-summary-max-length 80
         git-commit-style-convention-checks '(overlong-summary-line non-empty-second-line))
 
   ;; The stock `git-commit-run-post-finish-hook' blocks Emacs in a
@@ -190,7 +190,7 @@ Polls HEAD every 0.5s for up to 30s instead of blocking."
   (advice-add 'git-commit-run-post-finish-hook :override
               #'scratch-vc--run-post-finish-hook-async)
   (add-hook 'git-commit-mode-hook
-            (lambda () (setq-local fill-column 72)))
+            (lambda () (setq-local fill-column 80)))
   (when (modulep! :editor evil)
     (add-hook 'git-commit-setup-hook
               (defun scratch-vc--commit-start-in-insert-state ()

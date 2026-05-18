@@ -198,6 +198,17 @@ Routes to:
 (define-key minibuffer-local-map (kbd "C-c C-e") #'scratch/vertico-embark-export-write)
 (define-key minibuffer-local-map (kbd "C-c C-l") #'embark-collect)
 
+;;;; Helpers
+
+(defun scratch/search-project-for-symbol-at-point ()
+  "Search the current project for the symbol at point using ripgrep.
+If region is active, search for the selected text instead."
+  (interactive)
+  (let ((initial (if (use-region-p)
+                     (buffer-substring-no-properties (region-beginning) (region-end))
+                   (thing-at-point 'symbol t))))
+    (consult-ripgrep nil initial)))
+
 ;;;; Leader bindings (this module owns SPC s, the yank-ring under SPC y,
 ;;;; and upgrades a few of the leader's defaults to the consult variants.)
 
@@ -249,6 +260,7 @@ Routes to:
     :desc "project buffers"    "p b" #'consult-project-buffer
     ;; Doom-style top-level shortcut for project-wide ripgrep search.
     :desc "search project (rg)" "/"  #'consult-ripgrep
+    :desc "search project for symbol at point" "*" #'scratch/search-project-for-symbol-at-point
     ;; Embark "act on candidate / thing at point" (Doom default).
     :desc "embark act"          "a"  #'embark-act
     ;; New SPC s search submenu.
