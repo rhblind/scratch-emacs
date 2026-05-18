@@ -31,7 +31,8 @@
   (evil-mode 1)
   (add-hook 'after-change-major-mode-hook
             (defun scratch-evil--sync-shift-width ()
-              (setq-local evil-shift-width tab-width))))
+              (setq-local evil-shift-width tab-width)))
+  (map! :n "<escape>" #'evil-ex-nohighlight))
 
 
 (when (modulep! +everywhere)

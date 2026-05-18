@@ -19,5 +19,6 @@
    :desc "find symbol (apropos)"   "/" #'xref-find-apropos
    :desc "describe symbol"         "k" #'scratch/describe-symbol-or-lsp
    :desc "format buffer/region"    "f" #'scratch/format
+   :desc "rename symbol"                "r" #'scratch/rename
    :desc "trim trailing whitespace"   "w" #'delete-trailing-whitespace
    :desc "trim trailing blank lines"  "W" #'scratch/delete-trailing-newlines))

@@ -269,4 +269,5 @@ If region is active, search for the selected text instead."
      :desc "imenu"                "i" #'consult-imenu
      :desc "search project (rg)"  "p" #'consult-ripgrep
      :desc "find file (project)"  "f" #'consult-find
-     :desc "outline headings"     "o" #'consult-outline)))
+     :desc "outline headings"     "o" #'consult-outline
+     :desc "clear highlights"    "c" #'evil-ex-nohighlight)))
