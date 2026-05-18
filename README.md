@@ -4,13 +4,14 @@
 </div>
 
 <p align="center">
-A personal Emacs framework born out of config bankruptcy. </p>
+A personal and opinionated Emacs framework born out of config bankruptcy.
+</p>
 
-I love [Doom Emacs](https://github.com/doomemacs/doomemacs) but wanted a smaller codebase I can fully understand,
-with deliberate choices instead of inherited ones. Several modules are direct adaptations of Doom's, trimmed of Doom-specific helpers.
+Scratch is a small [Doom](https://github.com/doomemacs/doomemacs) inspired configuration framework with fewer and
+deliberately chosen packages. Some modules are directly copied from Doom, others are adapted to fit better with my personal taste.
 
-Defaults reflect what I actually use day to day and may change at any time.
-You're welcome to use it as-is, fork it, or send PRs, but this is mostl  a personal project and comes with no guarantees.
+What comes in the box reflects what I actually use day to day and may change at any time.
+You're welcome to use it as-is, fork it, or send PRs, but this is mostly  a personal project and comes with no guarantees.
 
 ## Requirements
 
