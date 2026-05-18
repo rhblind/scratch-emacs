@@ -1,18 +1,15 @@
 ;;; modules/editor/symbol-overlay/config.el -*- lexical-binding: t; -*-
 ;;
 ;; symbol-overlay: highlight every occurrence of the symbol at point
-;; with an overlay; jump between them. Auto-enabled in `prog-mode'.
+;; with an overlay. Auto-enabled in `prog-mode'.
 ;;
-;; Default keys (active when `symbol-overlay-mode' is on, i.e. inside
-;; prog buffers):
-;;   M-i  -- toggle overlay on the symbol at point (`symbol-overlay-put')
-;;   M-n  -- jump to next overlay  (`symbol-overlay-jump-next')
-;;   M-p  -- jump to previous      (`symbol-overlay-jump-prev')
-;;   M-N / M-P -- next / prev definition
-;;
-;; (`M-i' in stock Emacs is `tab-to-tab-stop' which most users never
-;; reach for; symbol-overlay rebinds it to its more useful action.
-;; If you actually use `tab-to-tab-stop', override in your config.)
+;; Keys (active in `symbol-overlay-mode' buffers):
+;;   n / N      -- promote symbol at point to evil search, then jump
+;;                 to the next / previous occurrence. Once promoted,
+;;                 n / N continue as normal evil search navigation.
+;;                 ESC or SPC s c clears the search highlights.
+;;   SPC c r    -- rename symbol (LSP rename if available, otherwise
+;;                 `symbol-overlay-rename' for buffer-local rename)
 
 (use-package symbol-overlay
   :hook (prog-mode . symbol-overlay-mode)
