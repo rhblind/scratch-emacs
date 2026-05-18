@@ -9,7 +9,8 @@
   :mode (("\\.md\\'"       . gfm-mode)
          ("\\.markdown\\'" . gfm-mode))
   :hook ((markdown-mode . visual-line-mode)
-         (markdown-mode . outline-minor-mode))
+         (markdown-mode . outline-minor-mode)
+         (markdown-mode . (lambda () (display-line-numbers-mode -1))))
   :init
   ;; Highlight code blocks per their declared language (` ```python`,
   ;; etc.) instead of leaving them as plain text.
