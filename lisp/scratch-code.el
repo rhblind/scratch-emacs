@@ -54,11 +54,6 @@ Bound to `SPC c f' under `:editor leader' and discoverable via
      (t
       (indent-region beg end)))))
 
-;; Old name kept as an alias so nothing breaks for callers that wired
-;; the verbose form (and so `M-x format-region-or-buffer' still finds
-;; it). New code should use `scratch/format'.
-(defalias 'scratch/format-region-or-buffer 'scratch/format)
-
 (defun scratch/find-implementations ()
   "Find implementations of the symbol at point.
 Uses `lsp-find-implementation' when LSP is attached and the server
