@@ -7,8 +7,8 @@
 A personal and opinionated Emacs framework born out of config bankruptcy.
 </p>
 
-Scratch is a small [Doom](https://github.com/doomemacs/doomemacs) inspired configuration framework with fewer and
-deliberately chosen packages. Some modules are directly copied from Doom, others are adapted to fit better with my personal taste.
+Scratch is a small [Doom](https://github.com/doomemacs/doomemacs) inspired configuration
+framework with fewer and deliberately chosen packages.
 
 What comes in the box reflects what I actually use day to day and may change at any time.
 You're welcome to use it as-is, fork it, or send PRs, but this is mostly  a personal project and comes with no guarantees.
@@ -18,42 +18,30 @@ You're welcome to use it as-is, fork it, or send PRs, but this is mostly  a pers
 - **Emacs 30+**
 - **Git** for package management via [straight.el](https://github.com/radian-software/straight.el)
 - **A nerd font** (`M-x nerd-icons-install-fonts` on first install)
-- **Tree-sitter grammars** (`M-x treesit-auto-install-all` on first install and
-  after enabling a new language module, or accept the per-language prompt on
-  first file open)
-- **[ripgrep](https://github.com/BurntSushi/ripgrep)** for `SPC /` project search
+- **Tree-sitter grammars** (`M-x treesit-auto-install-all` after enabling a new language module)
+- **[ripgrep](https://github.com/BurntSushi/ripgrep)** for project search
 - **cmake + libtool** for `:term vterm` (builds a native module on first load)
-- **[cmark-gfm](https://github.com/github/cmark-gfm)** (optional) for `:lang markdown` live preview
+- **[cmark-gfm](https://github.com/github/cmark-gfm)**  for `:lang markdown` live preview
 
 ## Install
 
-The repo is the framework. User config lives separately in
-`~/.scratch.d/` (the "user dir"). Set the `$SCRATCHDIR` environment
-variable to use a different path. This is the directory you put in
-version control.
+Clone the repo as your Emacs directory and run the bootstrap:
 
 ```bash
-git clone https://github.com/rhblind/emacs-scratch ~/.config/emacs-scratch
-~/.config/emacs-scratch/bin/scratch install   # bootstrap user config
-~/.config/emacs-scratch/bin/scratch sync      # install packages + tangle config.org
+git clone https://github.com/rhblind/scratch-emacs.git ~/.config/emacs
+~/.config/emacs/bin/scratch install
+~/.config/emacs/bin/scratch sync
 ```
 
-GUI Emacs doesn't inherit your shell environment; run `scratch env` to
-snapshot it (re-run after editing shell rc files).
+> [!TIP]
+> It's a good idea to add `~/.config/emacs/bin/scratch` to your `PATH` so that it's easy to run it from anywhere.
 
-## The `scratch` CLI
-
-The `bin/scratch` script handles everything outside the editor:
-bootstrapping, syncing packages, pinning versions, and capturing the
-shell environment. Modelled after Doom's `bin/doom`, stripped down to
-the commands that matter here.
-
-| Command           | Description                                           |
-|-------------------|-------------------------------------------------------|
-| `scratch install` | Bootstrap `~/.scratch.d/` with a starter `config.org` |
-| `scratch sync`    | Install packages and tangle `config.org`              |
-| `scratch freeze`  | Pin packages to `~/.scratch.d/straight-lock.el`       |
-| `scratch env`     | Snapshot shell environment for GUI Emacs              |
+| Command           | Description                                                                            |
+|-------------------|----------------------------------------------------------------------------------------|
+| `scratch install` | Bootstrap `~/.scratch.d/` with a starter `config.org`. This is your personal config.   |
+| `scratch sync`    | Install or purges packages and tangle `config.org` into elisp files for the framework. |
+| `scratch freeze`  | Pin packages to `~/.scratch.d/straight-lock.el` for reproducible builds.               |
+| `scratch env`     | Snapshot shell environment for Emacs. Re-run after editing shell rc files.             |
 
 After adding or upgrading a package, run `scratch freeze` and commit
 the lockfile for reproducible installs.
@@ -70,7 +58,7 @@ Each module has a `packages.el` (package declarations) and a
          :completion  vertico corfu
          :emacs       (vc +forge +gutter) ibuffer dired
          :checkers    syntax
-         :tools       (lsp +peek) direnv mise
+         :tools       (lsp +peek) editorconfig direnv mise
          :lang        org markdown json yaml
          :term        vterm
          :os          macos
@@ -108,10 +96,15 @@ all of these before the `scratch!` call.
 
 ## Layout
 
+The framework and your personal config are kept in separate
+directories. The framework directory is a git clone you can pull or
+reset without losing your settings. The user directory holds your
+personal config and is the one you version-control.
+
 ```
-~/.config/emacs-scratch/
-  init.el                   framework entry point
-  early-init.el             performance knobs
+~/.config/emacs/
+  init.el                    framework entry point
+  early-init.el              performance knobs
   bin/scratch                CLI
   lisp/                      framework-level elisp
   modules/<category>/<name>/

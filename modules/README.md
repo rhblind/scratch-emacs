@@ -44,7 +44,7 @@ keybindings, and integrations.
 |-----------|--------------------|----------------------------------------------------|
 | `vc`      | `+forge`, `+gutter`| Magit, browse-at-remote, git-timemachine, diff-hl   |
 | `ibuffer` |                    | Enhanced buffer list with VC grouping               |
-| `dired`   |                    | File manager with async ops, nerd-icons, dotfiles   |
+| `dired`   |                    | File manager with async ops, nerd-icons, preview    |
 
 ## `:checkers` -- on-the-fly diagnostics
 
@@ -58,12 +58,13 @@ Live feedback while you edit.
 
 Language-agnostic tools that `:lang` modules build on.
 
-| Module   | Flags   | Summary                                      |
-|----------|---------|----------------------------------------------|
-| `lsp`    | `+peek` | lsp-mode + lsp-ui + consult-lsp, perf-tuned  |
-| `direnv` |         | Buffer-local direnv via envrc.el              |
-| `mise`   |         | Buffer-local mise for runtime versions        |
-| `just`   |         | Major mode for Justfiles via just-mode         |
+| Module           | Flags   | Summary                                       |
+|------------------|---------|-----------------------------------------------|
+| `lsp`            | `+peek` | lsp-mode + lsp-ui + consult-lsp, perf-tuned   |
+| `editorconfig`   |         | Built-in EditorConfig (Emacs 30+), auto style  |
+| `direnv`         |         | Buffer-local direnv via envrc.el               |
+| `mise`           |         | Buffer-local mise for runtime versions         |
+| `just`           |         | Major mode for Justfiles via just-mode         |
 
 ## `:lang` -- language support
 
@@ -73,7 +74,7 @@ to tree-sitter major modes when a grammar is available.
 | Module     | Flags   | Summary                                          |
 |------------|---------|--------------------------------------------------|
 | `org`      | `+roam` | org-modern, org-appear, org-cliplink; +roam       |
-| `markdown` |         | markdown-mode with native code-block highlighting |
+| `markdown` |         | markdown-mode, xwidget live preview, mermaid      |
 | `csharp`   |         | csharp-ts-mode, dotnet minor mode, csharp-ls      |
 | `elixir`   |         | elixir-ts-mode, exunit runner, LSP via lexical    |
 | `erlang`   |         | erlang-ts-mode, ELP language server, erlfmt        |
@@ -102,11 +103,10 @@ editing behaviour; they control how things look and where they appear.
 | `dashboard`         |                            | Startup dashboard                            |
 | `theme`             | `+auto`, `+light`, `+dark` | Theme switching; +auto follows OS appearance |
 | `modeline`          |                            | doom-modeline                                |
-| `fonts`             |                            | Default/fixed/variable-pitch + mixed-pitch   |
+| `fonts`             |                            | Font config, mixed-pitch, global text scaling|
 | `treemacs`          |                            | Side-pane file tree, integrates with vc/lsp  |
 | `workspaces`        |                            | Named buffer sets via persp-mode             |
 | `smooth-scroll`     | `+interpolate`             | Pixel-precise scrolling via ultra-scroll     |
 | `hl-todo`           |                            | Highlight TODO/FIXME/HACK + consult picker   |
 | `info-colors`       |                            | Colorize Info manual pages                   |
 | `rainbow`           |                            | Paint CSS color literals with their color    |
-| `default-text-scale`|                            | Global text size with C-M-=/C-M--/C-M-0      |
