@@ -990,12 +990,18 @@ Return the number of warnings emitted."
 
       ;; Pull.
       (scratch-cli--print "Pulling latest changes...")
-      (let ((ret (call-process "git" nil t nil "pull" "--ff-only")))
-        (unless (= ret 0)
+      (let ((output (with-temp-buffer
+                      (let* ((default-directory scratch-cli--emacs-dir)
+                             (ret (call-process "git" nil '(t t) nil
+                                                "pull" "--ff-only")))
+                        (cons ret (string-trim (buffer-string)))))))
+        (when (> (length (cdr output)) 0)
+          (scratch-cli--print "%s" (cdr output)))
+        (unless (= (car output) 0)
           (scratch-cli--die
            (concat "upgrade: git pull --ff-only failed (exit %d).\n"
                    "If you have local commits, rebase or merge manually.")
-           ret))))
+           (car output)))))
 
     ;; Validate: load the module system (but not the full framework)
     ;; so we can parse and resolve module specs.
