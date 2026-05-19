@@ -73,6 +73,12 @@
    "After adding a new package or intentionally upgrading one, run\n"
    "~scratch freeze~ to refresh the lockfile, then commit it.\n"
    "\n"
+   "To pull the latest framework version, run ~scratch upgrade~. It\n"
+   "fetches changes, validates your ~scratch!~ call against the current\n"
+   "module tree (warning about removed modules or unrecognized flags),\n"
+   "and runs ~scratch sync~ automatically. Pass ~--skip-sync~ to pull\n"
+   "and validate without syncing.\n"
+   "\n"
    "** Shell env (GUI Emacs)\n"
    "GUI Emacs (Dock / Finder / launchd, also Linux app launchers) doesn't\n"
    "inherit your shell environment, so PATH additions in ~.zshrc~ / ~.zprofile~\n"
@@ -854,6 +860,163 @@
     (scratch-cli--print "")
     (scratch-cli--print "Sync complete.")))
 
+;;; upgrade -------------------------------------------------------------------
+
+(defun scratch-cli--upgrade-help ()
+  (scratch-cli--print "Usage: scratch upgrade [options]")
+  (scratch-cli--print "")
+  (scratch-cli--print "Pull the latest framework, validate the user config against it,")
+  (scratch-cli--print "and sync packages.")
+  (scratch-cli--print "")
+  (scratch-cli--print "Options:")
+  (scratch-cli--print "  --skip-sync   Pull and validate only; don't run sync afterwards."))
+
+(defun scratch-cli--upgrade-collect-flags (dir)
+  "Return a list of flag symbols referenced by `modulep!' in DIR."
+  (let ((flags nil))
+    (dolist (file '("config.el" "packages.el"))
+      (let ((path (expand-file-name file dir)))
+        (when (file-exists-p path)
+          (with-temp-buffer
+            (insert-file-contents path)
+            (goto-char (point-min))
+            (while (re-search-forward
+                    "(modulep!\\s-+\\(\\+[a-z0-9_-]+\\)" nil t)
+              (push (intern (match-string 1)) flags))))))
+    (delete-dups flags)))
+
+(defun scratch-cli--upgrade-levenshtein (a b)
+  "Levenshtein distance between strings A and B."
+  (let* ((la (length a))
+         (lb (length b))
+         (prev (make-vector (1+ lb) 0))
+         (curr (make-vector (1+ lb) 0)))
+    (dotimes (j (1+ lb)) (aset prev j j))
+    (dotimes (i la)
+      (aset curr 0 (1+ i))
+      (dotimes (j lb)
+        (let ((cost (if (= (aref a i) (aref b j)) 0 1)))
+          (aset curr (1+ j)
+                (min (1+ (aref curr j))
+                     (1+ (aref prev (1+ j)))
+                     (+ (aref prev j) cost)))))
+      (cl-rotatef prev curr))
+    (aref prev lb)))
+
+(defun scratch-cli--upgrade-suggest-flag (flag known-flags)
+  "If FLAG is close to one of KNOWN-FLAGS, return a suggestion string."
+  (let ((name (symbol-name flag))
+        (best nil)
+        (best-dist most-positive-fixnum))
+    (dolist (k known-flags)
+      (let ((d (scratch-cli--upgrade-levenshtein name (symbol-name k))))
+        (when (< d best-dist)
+          (setq best k best-dist d))))
+    (when (and best (<= best-dist 2) (not (eq flag best)))
+      (format " (did you mean %s?)" best))))
+
+(defun scratch-cli--upgrade-validate ()
+  "Validate the user's scratch! modules against the framework.
+Return the number of warnings emitted."
+  (let* ((user-dir (file-name-as-directory
+                    (expand-file-name (or (getenv "SCRATCHDIR")
+                                          scratch-cli--default-user-dir))))
+         (packages-el (expand-file-name "packages.el" user-dir))
+         (warnings 0)
+         (ok-count 0)
+         (modules nil))
+    (unless (file-exists-p packages-el)
+      (scratch-cli--print "  No packages.el found; skipping validation.")
+      (cl-return-from scratch-cli--upgrade-validate 0))
+    (with-temp-buffer
+      (insert-file-contents packages-el)
+      (goto-char (point-min))
+      (condition-case nil
+          (while t
+            (let ((form (read (current-buffer))))
+              (when (and (consp form) (eq (car form) 'scratch!))
+                (setq modules (scratch--parse-spec (cdr form))))))
+        (end-of-file nil)))
+    (unless modules
+      (scratch-cli--print "  No scratch! call found in packages.el; skipping validation.")
+      (cl-return-from scratch-cli--upgrade-validate 0))
+    (dolist (entry modules)
+      (let* ((category (car entry))
+             (name (cadr entry))
+             (flags (nth 2 entry))
+             (dir (scratch--module-dir category name)))
+        (cond
+         ((null dir)
+          (scratch-cli--print "  ⚠ %s %s — module not found (removed?)"
+                              category name)
+          (cl-incf warnings))
+         (t
+          (when flags
+            (let ((known (scratch-cli--upgrade-collect-flags dir)))
+              (dolist (f flags)
+                (unless (memq f known)
+                  (let ((suggestion (scratch-cli--upgrade-suggest-flag f known)))
+                    (scratch-cli--print "  ⚠ %s %s %s — flag not recognized%s"
+                                        category name f (or suggestion ""))
+                    (cl-incf warnings))))))
+          (cl-incf ok-count)))))
+    (scratch-cli--print "  %d module%s OK%s."
+                        ok-count
+                        (if (= ok-count 1) "" "s")
+                        (if (> warnings 0)
+                            (format ", %d warning%s"
+                                    warnings (if (= warnings 1) "" "s"))
+                          ""))
+    warnings))
+
+(defun scratch-cli-upgrade (args)
+  "Pull the framework, validate user config, and sync."
+  (let ((skip-sync nil))
+    (while args
+      (pcase (car args)
+        ("--skip-sync" (setq skip-sync t args (cdr args)))
+        ((or "-h" "--help") (scratch-cli--upgrade-help) (kill-emacs 0))
+        (arg (scratch-cli--die "upgrade: unknown option: %s" arg))))
+
+    ;; Pre-flight: ensure the framework dir is a clean git repo.
+    (let ((default-directory scratch-cli--emacs-dir))
+      (unless (file-directory-p (expand-file-name ".git" scratch-cli--emacs-dir))
+        (scratch-cli--die "upgrade: %s is not a git repository" scratch-cli--emacs-dir))
+      (let ((status (string-trim
+                     (shell-command-to-string "git status --porcelain"))))
+        (when (> (length status) 0)
+          (scratch-cli--die
+           "upgrade: framework has uncommitted changes; commit or stash first")))
+
+      ;; Pull.
+      (scratch-cli--print "Pulling latest changes...")
+      (let ((ret (call-process "git" nil t nil "pull" "--ff-only")))
+        (unless (= ret 0)
+          (scratch-cli--die
+           (concat "upgrade: git pull --ff-only failed (exit %d).\n"
+                   "If you have local commits, rebase or merge manually.")
+           ret))))
+
+    ;; Validate: load the module system (but not the full framework)
+    ;; so we can parse and resolve module specs.
+    (let ((scratch-emacs-dir scratch-cli--emacs-dir)
+          (scratch-user-dir (file-name-as-directory
+                             (expand-file-name (or (getenv "SCRATCHDIR")
+                                                   scratch-cli--default-user-dir)))))
+      (load (expand-file-name "lisp/scratch-modules.el" scratch-cli--emacs-dir)
+            nil 'nomessage)
+      (scratch-cli--print "")
+      (scratch-cli--print "Validating modules...")
+      (scratch-cli--upgrade-validate))
+
+    ;; Sync.
+    (unless skip-sync
+      (scratch-cli--print "")
+      (scratch-cli-sync nil))
+
+    (scratch-cli--print "")
+    (scratch-cli--print "Upgrade complete.")))
+
 ;;; freeze --------------------------------------------------------------------
 
 (defun scratch-cli--freeze-help ()
@@ -1040,6 +1203,7 @@ ALLOW and BLOCK are lists of regexps; ALLOW overrides BLOCK."
   (scratch-cli--print "Commands:")
   (scratch-cli--print "  install [--user-dir DIR] [--force]   Bootstrap the user overrides dir")
   (scratch-cli--print "  sync [--force-tangle] [--rebuild]    Re-tangle and install all packages")
+  (scratch-cli--print "  upgrade [--skip-sync]                Pull framework, validate config, sync")
   (scratch-cli--print "  freeze                               Pin every installed package to its current commit")
   (scratch-cli--print "  env [clear] [--shell SHELL]          Snapshot shell env (PATH etc.) for GUI Emacs")
   (scratch-cli--print "  help                                 Show this message")
@@ -1053,6 +1217,7 @@ ALLOW and BLOCK are lists of regexps; ALLOW overrides BLOCK."
                     (scratch-cli--usage) (kill-emacs 0))
     ("install"      (scratch-cli-install (cdr argv)) (kill-emacs 0))
     ("sync"         (scratch-cli-sync    (cdr argv)) (kill-emacs 0))
+    ("upgrade"      (scratch-cli-upgrade (cdr argv)) (kill-emacs 0))
     ("freeze"       (scratch-cli-freeze  (cdr argv)) (kill-emacs 0))
     ("env"          (scratch-cli-env     (cdr argv)) (kill-emacs 0))
     (cmd

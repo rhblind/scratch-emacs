@@ -40,8 +40,10 @@ git clone https://github.com/rhblind/scratch-emacs.git ~/.config/emacs
 |-------------------|----------------------------------------------------------------------------------------|
 | `scratch install` | Bootstrap `~/.scratch.d/` with a starter `config.org`. This is your personal config.   |
 | `scratch sync`    | Install or purges packages and tangle `config.org` into elisp files for the framework. |
+| `scratch upgrade` | Pull the framework, validate your config against it, and sync.                         |
 | `scratch freeze`  | Pin packages to `~/.scratch.d/straight-lock.el` for reproducible builds.               |
-| `scratch env`     | Snapshot shell environment for Emacs. Re-run after editing shell rc files.             |
+| `scratch env`     | Snapshot shell environment for Emacs. Re-run after editing shell rc files.              |
+| `scratch help`    | Show available commands and options.                                                    |
 
 After adding or upgrading a package, run `scratch freeze` and commit
 the lockfile for reproducible installs.
