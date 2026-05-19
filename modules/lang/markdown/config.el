@@ -177,9 +177,42 @@ th { background: %s; }
 img { max-width: 100%%; }
 a { color: %s; }
 a[data-href] { color: %s; text-decoration: underline; cursor: pointer; }
+.mermaid { text-align: center; margin: 1em 0; overflow-x: auto; }
+.mermaid svg { max-width: 100%%; height: auto; }
 </style>"
             bg fg h-fg border border code-bg code-bg
             border comment border code-bg link link)))
+
+(defvar scratch-markdown--mermaid-cdn
+  "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"
+  "CDN URL for mermaid.js.")
+
+(defvar scratch-markdown--mermaid-init-js
+  "function scratchMermaidRender(theme) {
+     var codes = document.querySelectorAll('pre code.language-mermaid');
+     for (var i = 0; i < codes.length; i++) {
+       var code = codes[i], pre = code.parentElement,
+           div = document.createElement('div');
+       div.className = 'mermaid';
+       div.textContent = code.textContent;
+       pre.parentElement.replaceChild(div, pre);
+     }
+     if (typeof mermaid !== 'undefined'
+         && document.querySelectorAll('.mermaid').length > 0) {
+       mermaid.initialize({startOnLoad: false, theme: theme || 'default'});
+       mermaid.run();
+     }
+   }"
+  "JS function that transforms mermaid code blocks into rendered diagrams.")
+
+(defun scratch-markdown--mermaid-theme ()
+  "Return the mermaid theme string matching the current Emacs background."
+  (let* ((bg (color-values (face-background 'default)))
+         (luminance (/ (+ (* 0.299 (nth 0 bg))
+                          (* 0.587 (nth 1 bg))
+                          (* 0.114 (nth 2 bg)))
+                       65535.0)))
+    (if (< luminance 0.5) "dark" "default")))
 
 (defun scratch-markdown--render-body ()
   "Return the HTML body for the current markdown buffer via `markdown-command'."
@@ -193,13 +226,17 @@ a[data-href] { color: %s; text-decoration: underline; cursor: pointer; }
   "Return a standalone HTML string for the current markdown buffer."
   (let ((base-dir (or (and buffer-file-name
                            (file-name-directory buffer-file-name))
-                      default-directory)))
+                      default-directory))
+        (mermaid-theme (scratch-markdown--mermaid-theme)))
     (concat "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
             "<base href=\"" (browse-url-file-url (expand-file-name base-dir)) "/\">"
             (scratch-markdown--preview-css)
+            "<script src=\"" scratch-markdown--mermaid-cdn "\"></script>"
+            "<script>" scratch-markdown--mermaid-init-js "</script>"
             "</head><body>" (scratch-markdown--render-body)
-            "<script>" scratch-markdown--post-render-js "</script>"
-            "</body></html>")))
+            "<script>" scratch-markdown--post-render-js
+            "scratchMermaidRender(" (json-encode mermaid-theme) ");"
+            "</script></body></html>")))
 
 (defun scratch-markdown--refresh-preview ()
   "Re-render the markdown preview, preserving scroll position."
@@ -211,12 +248,14 @@ a[data-href] { color: %s; text-decoration: underline; cursor: pointer; }
                         (set-buffer src-buf)))))
       (when xw
         (let ((body (scratch-markdown--render-body))
-              (css (scratch-markdown--preview-css)))
+              (css (scratch-markdown--preview-css))
+              (mermaid-theme (scratch-markdown--mermaid-theme)))
           (xwidget-webkit-execute-script xw
-            (format "document.body.innerHTML = %s; document.querySelector('style').outerHTML = %s; %s"
+            (format "document.body.innerHTML = %s; document.querySelector('style').outerHTML = %s; %s scratchMermaidRender(%s);"
                     (json-encode body)
                     (json-encode css)
-                    scratch-markdown--post-render-js)))))))
+                    scratch-markdown--post-render-js
+                    (json-encode mermaid-theme))))))))
 
 (defun scratch-markdown--on-theme-change (&rest _)
   "Re-render the preview CSS when the Emacs theme changes."
