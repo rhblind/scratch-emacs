@@ -161,6 +161,16 @@
   :config
   (setq wgrep-auto-save-buffer t))
 
+;; consult-dir: insert or jump to directories from the minibuffer or
+;; any buffer (bookmarks, projects, recentf dirs).  `C-x C-d' in the
+;; minibuffer narrows to directories; in dired, `G' jumps to a dir.
+(use-package consult-dir
+  :after consult
+  :bind (("C-x C-d" . consult-dir)
+         :map minibuffer-local-map
+         ("C-x C-d" . consult-dir)
+         ("C-x C-j" . consult-dir-jump-file)))
+
 ;; Smart "export to writable buffer": picks wgrep / wdired / occur-edit
 ;; based on the candidate type. Bound to `C-c e' inside the minibuffer.
 ;; Ported from Doom's `+vertico/embark-export-write'.
