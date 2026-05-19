@@ -10,3 +10,6 @@
 (straight-use-package 'dired-recent)
 
 (straight-use-package 'nerd-icons-dired)
+
+(when (modulep! +preview)
+  (straight-use-package 'dired-preview))

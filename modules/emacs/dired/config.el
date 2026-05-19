@@ -92,6 +92,28 @@
                           :foreground 'unspecified
                           :inherit 'treemacs-directory-face))))
 
+;;;; +preview: live file preview as point moves
+
+(when (modulep! +preview)
+  (use-package dired-preview
+    :after dired
+    :init
+    (setq dired-preview-delay 0.2
+          dired-preview-max-size (* 512 1024)
+          dired-preview-ignored-extensions-regexp
+          (rx "." (or "elc" "pyc" "o" "so" "dylib" "a"
+                      "gz" "tar" "xz" "zst" "bz2" "zip"
+                      "png" "jpg" "jpeg" "gif" "bmp" "svg" "webp"
+                      "mp3" "mp4" "mkv" "avi" "mov" "wav" "flac"
+                      "pdf" "doc" "docx" "xls" "xlsx"
+                      "sqlite" "db")
+              eos)))
+  (when (modulep! :editor evil)
+    (with-eval-after-load 'dired
+      (with-eval-after-load 'evil-collection
+        (evil-collection-define-key 'normal 'dired-mode-map
+          "p" #'dired-preview-mode)))))
+
 ;;;; Compress / extract: extra archive formats
 
 (with-eval-after-load 'dired-aux
