@@ -14,6 +14,7 @@
   :init
   (setq dired-dwim-target t                 ; suggest the OTHER dired window's path on move/copy
         dired-auto-revert-buffer #'dired-buffer-stale-p
+        dired-kill-when-opening-new-dired-buffer t
         dired-recursive-copies  'always
         dired-recursive-deletes 'top
         dired-create-destination-dirs 'ask  ; prompt to mkdir on copy/move
@@ -73,11 +74,23 @@
   ;; recent dirs via the `r' evil binding below instead.
   (define-key dired-recent-mode-map (kbd "C-x C-d") nil))
 
-;; nerd-icons-dired: file/dir icons in the listing, matching the
-;; modeline / treemacs theme.
-(when (or (modulep! :ui modeline) (modulep! :ui treemacs))
-  (use-package nerd-icons-dired
-    :hook (dired-mode . nerd-icons-dired-mode)))
+;; nerd-icons-dired: overlay-based file/dir icons in the listing.
+(use-package nerd-icons-dired
+  :hook (dired-mode . nerd-icons-dired-mode)
+  :config
+  ;; When `:ui treemacs' is active, align dired's visual style with the
+  ;; treemacs nerd-icons theme: same directory glyph, face, and muted
+  ;; directory-name coloring.
+  (when (modulep! :ui treemacs)
+    (with-eval-after-load 'treemacs-nerd-icons
+      (setq nerd-icons-dired-dir-icon-function
+            (lambda (_dir &rest _args)
+              (nerd-icons-sucicon "nf-custom-folder_oct"
+                                  :face 'treemacs-nerd-icons-file-face
+                                  :height nerd-icons-dired-icon-size)))
+      (set-face-attribute 'dired-directory nil
+                          :foreground 'unspecified
+                          :inherit 'treemacs-directory-face))))
 
 ;;;; Compress / extract: extra archive formats
 
@@ -110,4 +123,4 @@
 
 (when (modulep! :editor leader)
   (map! :leader
-    :desc "dired (jump)" "-" #'dired-jump))
+        :desc "dired (jump)" "-" #'dired-jump))

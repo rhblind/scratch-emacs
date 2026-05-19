@@ -91,11 +91,6 @@ Set this BEFORE `treemacs' loads.")
   :config
   (treemacs-load-theme "nerd-icons"))
 
-;; treemacs-icons-dired: same icon theme (loaded by treemacs-nerd-icons
-;; above) in `dired' listings.
-(use-package treemacs-icons-dired
-  :hook (dired-mode . treemacs-icons-dired-enable-once))
-
 (when (modulep! :editor evil +everywhere)
   (use-package treemacs-evil
     :defer t
@@ -148,6 +143,6 @@ Set this BEFORE `treemacs' loads.")
 
 (when (modulep! :editor leader)
   (map! :leader
-    (:prefix-map ("o" . "open")
-     :desc "project tree (treemacs)"  "p" #'treemacs
-     :desc "find file in tree"        "P" #'treemacs-find-file)))
+        (:prefix-map ("o" . "open")
+                     :desc "project tree (treemacs)"  "p" #'treemacs
+                     :desc "find file in tree"        "P" #'treemacs-find-file)))
