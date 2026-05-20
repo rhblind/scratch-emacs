@@ -56,15 +56,15 @@ Each module has a `packages.el` (package declarations) and a
 `scratch!` macro in your `config.org`:
 
 ```elisp
-(scratch! :editor     (evil +everywhere) leader smartparens
-         :completion  vertico corfu
-         :emacs       (vc +forge +gutter) ibuffer dired
-         :checkers    syntax
-         :tools       (lsp +peek) editorconfig direnv mise
-         :lang        org markdown json yaml
-         :term        vterm
-         :os          macos
-         :ui          theme modeline fonts treemacs workspaces)
+(scratch! :editor      (evil +everywhere) leader smartparens
+          :completion  vertico corfu
+          :emacs       (vc +forge +gutter) ibuffer dired
+          :checkers    syntax
+          :tools       (lsp +peek) editorconfig direnv mise
+          :lang        org markdown json yaml
+          :term        vterm
+          :os          macos
+          :ui          theme modeline fonts treemacs workspaces)
 ```
 
 Flags (like `+everywhere`, `+forge`) toggle optional features within a
