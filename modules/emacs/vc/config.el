@@ -67,6 +67,21 @@
                         nil t)))))))
 
   (add-hook 'with-editor-mode-hook #'scratch-vc--setup-commit-window)
+
+  ;; Place worktrees inside .worktrees/ at the project root, named by
+  ;; branch only (no project-name prefix).
+  (defun scratch-vc--read-worktree-directory (prompt branch)
+    "Read worktree directory defaulting to .worktrees/<branch> in the repo root."
+    (let ((base (expand-file-name (concat scratch-vc-worktree-dir-name "/")
+                                         (magit-toplevel))))
+      (make-directory base t)
+      (read-directory-name
+       prompt base nil nil
+       (and branch (string-replace "/" "-" branch)))))
+
+  (setq magit-read-worktree-directory-function
+        #'scratch-vc--read-worktree-directory)
+
   ;; Upstream magit binds `Z' to `magit-worktree' on `magit-mode-map',
   ;; but in evil normal state `Z' is the vim save-and-quit prefix
   ;; (`ZZ' / `ZQ'), and evil-state maps win over mode-maps. evil-

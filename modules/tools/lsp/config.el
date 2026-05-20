@@ -123,10 +123,7 @@
 ;; jump-to-definition into a dependency under `~/.cache/...' or `_build'
 ;; still works.
 
-(defvar scratch-lsp-worktree-dir-name ".worktrees"
-  "Directory name (relative to the main repo) that holds git worktrees.
-Used by the LSP response filter to identify the worktree-group root.
-Defaults to `.worktrees', matching the framework convention.")
+(defvaralias 'scratch-lsp-worktree-dir-name 'scratch-vc-worktree-dir-name)
 
 (defun scratch-lsp--location-uri (loc)
   "Return the URI string for a Location / LocationLink LOC, or nil."

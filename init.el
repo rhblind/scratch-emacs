@@ -145,6 +145,7 @@
 (require 'scratch-window)     ; window numbering + M-N bindings
 (require 'scratch-mouse)      ; mouse support (GUI + TTY via xterm-mouse-mode)
 (require 'scratch-treesit)    ; `scratch-treesit-want' (consumed by :editor tree-sitter)
+(require 'scratch-vc)         ; `scratch-vc-worktree-dir-name' (consumed by :emacs vc, :tools lsp)
 (require 'scratch-lsp)        ; `scratch-lsp-auto-modes' (consumed by :tools lsp)
 
 ;;; Tangle helper for the Local Variables `after-save-hook' at the end
