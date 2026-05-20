@@ -20,6 +20,7 @@
         doom-modeline-buffer-state-icon t
         doom-modeline-env-version       nil)   ; lang-version segment is too noisy
   :config
+  (column-number-mode 1)
   (doom-modeline-mode 1)
 
   ;; Upstream bug: `doom-modeline--evil' calls `(funcall tag)' where
