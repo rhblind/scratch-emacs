@@ -166,6 +166,11 @@ Set to nil or 1.0 to keep org at the global font size. Override by
 (use-package org-pretty-table
   :hook (org-mode . org-pretty-table-mode))
 
+;; toc-org: auto-generate a Table of Contents from headings tagged
+;; :TOC: (or :TOC_N: for depth control). Regenerates on save.
+(use-package toc-org
+  :hook (org-mode . toc-org-mode))
+
 ;;;; Capture file helpers (project.el integration)
 ;;
 ;; Functions that resolve capture target files relative to the current

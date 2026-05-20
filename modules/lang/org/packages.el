@@ -4,6 +4,7 @@
  '(org-appear :type git :host github :repo "awth13/org-appear"))
 (straight-use-package 'org-cliplink)
 (straight-use-package 'org-download)
+(straight-use-package 'toc-org)
 
 ;; +roam: Zettelkasten-style note network via org-roam (v2).
 (when (modulep! +roam)
