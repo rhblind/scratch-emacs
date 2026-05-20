@@ -72,12 +72,16 @@
   ;; branch only (no project-name prefix).
   (defun scratch-vc--read-worktree-directory (prompt branch)
     "Read worktree directory defaulting to .worktrees/<branch> in the repo root."
-    (let ((base (expand-file-name (concat scratch-vc-worktree-dir-name "/")
-                                         (magit-toplevel))))
+    (let* ((base (file-name-as-directory
+                  (expand-file-name scratch-vc-worktree-dir-name (magit-toplevel))))
+           (rev (or branch
+                    (and (string-match "Checkout \\(.+?\\) in new worktree" prompt)
+                         (match-string 1 prompt))))
+           (rev (and rev (replace-regexp-in-string "\\`[^/]+/" "" rev)))
+           (name (and rev (string-replace "/" "-" rev)))
+           (default (concat base (or name ""))))
       (make-directory base t)
-      (read-directory-name
-       prompt base nil nil
-       (and branch (string-replace "/" "-" branch)))))
+      (read-string prompt default)))
 
   (setq magit-read-worktree-directory-function
         #'scratch-vc--read-worktree-directory)
@@ -234,7 +238,29 @@ Polls HEAD every 0.5s for up to 30s instead of blocking."
     ;; "Cannot insert ... not found" warning. We don't need that auto
     ;; binding (forge commands are reachable via M-x and their own
     ;; bindings); turn the auto-bind off so forge never attempts it.
-    (setq forge-add-default-bindings nil)))
+    (setq forge-add-default-bindings nil)
+    :config
+    (defun scratch-vc--forge-read-worktree-directory (pullreq)
+      "Read worktree directory for PULLREQ, defaulting to .worktrees/<number>-<branch>."
+      (pcase-let* (((eieio number head-ref) pullreq)
+                   (branch (forge--pullreq-branch-internal pullreq))
+                   (name (if (string-match-p "\\`pr-[0-9]+\\'" branch)
+                             (number-to-string number)
+                           (format "%s-%s" number
+                                   (string-replace "/" "-" head-ref))))
+                   (base (file-name-as-directory
+                          (expand-file-name scratch-vc-worktree-dir-name
+                                            (magit-toplevel))))
+                   (default (concat base name)))
+        (make-directory base t)
+        (let ((path (read-string
+                     (format "Checkout #%s in new worktree: " number)
+                     default)))
+          (when (equal path "")
+            (user-error "The empty string isn't a valid path"))
+          path)))
+    (setq forge-checkout-worktree-read-directory-function
+          #'scratch-vc--forge-read-worktree-directory)))
 
 ;;;; Ediff -- keep everything in the current frame
 
