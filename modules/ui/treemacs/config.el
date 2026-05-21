@@ -98,6 +98,10 @@ Set this BEFORE `treemacs' loads.")
     (with-eval-after-load 'treemacs
       (require 'treemacs-evil))
     :config
+    ;; treemacs-evil omits :tag, which makes doom-modeline crash with
+    ;; (void-function nil) when it tries to display the modal indicator.
+    (setq evil-treemacs-state-tag " <T> ")
+
     ;; Match Doom's tweak: split bindings consistent with C-w {v,s}.
     (define-key evil-treemacs-state-map (kbd "RET") #'treemacs-RET-action)
     (define-key evil-treemacs-state-map (kbd "TAB") #'treemacs-TAB-action)
