@@ -183,9 +183,13 @@ a[data-href] { color: %s; text-decoration: underline; cursor: pointer; }
             bg fg h-fg border border code-bg code-bg
             border comment border code-bg link link)))
 
-(defvar scratch-markdown--mermaid-cdn
-  "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"
-  "CDN URL for mermaid.js.")
+(defvar scratch-markdown--vendor-dir
+  (expand-file-name "vendor/" (file-name-directory load-file-name))
+  "Directory containing vendored JS/CSS assets for the preview.")
+
+(defun scratch-markdown--vendor-uri (filename)
+  "Return a file:// URI for FILENAME in the vendor directory."
+  (browse-url-file-url (expand-file-name filename scratch-markdown--vendor-dir)))
 
 (defvar scratch-markdown--mermaid-init-js
   "function scratchMermaidRender(theme) {
@@ -205,14 +209,33 @@ a[data-href] { color: %s; text-decoration: underline; cursor: pointer; }
    }"
   "JS function that transforms mermaid code blocks into rendered diagrams.")
 
-(defun scratch-markdown--mermaid-theme ()
-  "Return the mermaid theme string matching the current Emacs background."
+(defvar scratch-markdown--highlight-init-js
+  "function scratchHighlight() {
+     if (typeof hljs === 'undefined') return;
+     hljs.configure({cssSelector: 'pre code[class*=\"language-\"]'});
+     document.querySelectorAll('pre code[class*=\"language-\"]').forEach(function(el) {
+       if (!el.classList.contains('language-mermaid')) hljs.highlightElement(el);
+     });
+   }"
+  "JS function that runs highlight.js on fenced code blocks.")
+
+(defun scratch-markdown--dark-theme-p ()
+  "Return non-nil if the current Emacs theme has a dark background."
   (let* ((bg (color-values (face-background 'default)))
          (luminance (/ (+ (* 0.299 (nth 0 bg))
                           (* 0.587 (nth 1 bg))
                           (* 0.114 (nth 2 bg)))
                        65535.0)))
-    (if (< luminance 0.5) "dark" "default")))
+    (< luminance 0.5)))
+
+(defun scratch-markdown--mermaid-theme ()
+  "Return the mermaid theme string matching the current Emacs background."
+  (if (scratch-markdown--dark-theme-p) "dark" "default"))
+
+(defun scratch-markdown--highlight-css-uri ()
+  "Return the file:// URI for the highlight.js theme matching the Emacs background."
+  (scratch-markdown--vendor-uri
+   (if (scratch-markdown--dark-theme-p) "github-dark.min.css" "github.min.css")))
 
 (defun scratch-markdown--render-body ()
   "Return the HTML body for the current markdown buffer via `markdown-command'."
@@ -231,10 +254,14 @@ a[data-href] { color: %s; text-decoration: underline; cursor: pointer; }
     (concat "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
             "<base href=\"" (browse-url-file-url (expand-file-name base-dir)) "/\">"
             (scratch-markdown--preview-css)
-            "<script src=\"" scratch-markdown--mermaid-cdn "\"></script>"
+            "<link rel=\"stylesheet\" href=\"" (scratch-markdown--highlight-css-uri) "\">"
+            "<script src=\"" (scratch-markdown--vendor-uri "highlight.min.js") "\"></script>"
+            "<script src=\"" (scratch-markdown--vendor-uri "mermaid.min.js") "\"></script>"
+            "<script>" scratch-markdown--highlight-init-js "</script>"
             "<script>" scratch-markdown--mermaid-init-js "</script>"
             "</head><body>" (scratch-markdown--render-body)
             "<script>" scratch-markdown--post-render-js
+            "scratchHighlight();"
             "scratchMermaidRender(" (json-encode mermaid-theme) ");"
             "</script></body></html>")))
 
@@ -249,11 +276,16 @@ a[data-href] { color: %s; text-decoration: underline; cursor: pointer; }
       (when xw
         (let ((body (scratch-markdown--render-body))
               (css (scratch-markdown--preview-css))
+              (hljs-css (scratch-markdown--highlight-css-uri))
               (mermaid-theme (scratch-markdown--mermaid-theme)))
           (xwidget-webkit-execute-script xw
-            (format "document.body.innerHTML = %s; document.querySelector('style').outerHTML = %s; %s scratchMermaidRender(%s);"
+            (format "document.body.innerHTML = %s;\
+ document.querySelector('style').outerHTML = %s;\
+ document.querySelector('link[rel=stylesheet]').href = %s;\
+ %s scratchHighlight(); scratchMermaidRender(%s);"
                     (json-encode body)
                     (json-encode css)
+                    (json-encode hljs-css)
                     scratch-markdown--post-render-js
                     (json-encode mermaid-theme))))))))
 
