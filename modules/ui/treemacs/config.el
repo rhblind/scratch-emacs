@@ -135,15 +135,15 @@ Set this BEFORE `treemacs' loads.")
 
 ;;;; Bindings
 
-;; M-0 globally focuses (or pops up) the treemacs window -- the same
-;; "window 0" mental model used for the numbered windows in
-;; `lisp/scratch-window.el'. State-aware so it wins over evil-collection
-;; aux maps in magit, dired, etc. (same trick used by the M-1..M-9
-;; window-select bindings).
+;; M-0 toggles treemacs: opens if hidden, focuses if visible but not
+;; focused, hides if already focused. Same "window 0" mental model
+;; used for the numbered windows in `lisp/scratch-window.el'.
+;; State-aware so it wins over evil-collection aux maps in magit,
+;; dired, etc. (same trick used by the M-1..M-9 window-select bindings).
 (general-define-key
  :states '(normal visual motion emacs insert hybrid replace operator)
  :keymaps 'override
- (kbd "M-0") #'treemacs-select-window)
+ (kbd "M-0") #'treemacs)
 
 (when (modulep! :editor leader)
   (map! :leader
