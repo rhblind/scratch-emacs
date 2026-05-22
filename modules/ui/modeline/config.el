@@ -43,8 +43,8 @@
   ;; built-in's behavior visually.
   (require 'cl-lib)
   (doom-modeline-def-segment window-number
-    "Window number based on `scratch-window--by-number' (native, no winum)."
-    (let* ((wins (window-list nil 'never (frame-first-window)))
+    "Window number based on `scratch-window--numbered-list' (native, no winum)."
+    (let* ((wins (scratch-window--numbered-list))
            (idx  (cl-position (selected-window) wins)))
       (when (and idx (> (length wins) 1))
         (propertize (format " %d " (1+ idx))
