@@ -68,12 +68,23 @@
 
   (add-hook 'with-editor-mode-hook #'scratch-vc--setup-commit-window)
 
-  ;; Place worktrees inside .worktrees/ at the project root, named by
-  ;; branch only (no project-name prefix).
+  (defun scratch-vc--main-worktree-root ()
+    "Return the root of the main (non-worktree) working tree.
+Falls back to `magit-toplevel' when the git command fails."
+    (let ((line (car (process-lines "git" "worktree" "list" "--porcelain"))))
+      (if (and line (string-prefix-p "worktree " line))
+          (substring line 9)
+        (magit-toplevel))))
+
+  ;; Place worktrees inside .worktrees/ at the *main* repo root, named
+  ;; by branch only (no project-name prefix).  Uses the main worktree
+  ;; root (not magit-toplevel) so creating a worktree from inside an
+  ;; existing worktree doesn't nest the directory.
   (defun scratch-vc--read-worktree-directory (prompt branch)
     "Read worktree directory defaulting to .worktrees/<branch> in the repo root."
     (let* ((base (file-name-as-directory
-                  (expand-file-name scratch-vc-worktree-dir-name (magit-toplevel))))
+                  (expand-file-name scratch-vc-worktree-dir-name
+                                    (scratch-vc--main-worktree-root))))
            (rev (or branch
                     (and (string-match "Checkout \\(.+?\\) in new worktree" prompt)
                          (match-string 1 prompt))))
@@ -250,7 +261,7 @@ Polls HEAD every 0.5s for up to 30s instead of blocking."
                                    (string-replace "/" "-" head-ref))))
                    (base (file-name-as-directory
                           (expand-file-name scratch-vc-worktree-dir-name
-                                            (magit-toplevel))))
+                                            (scratch-vc--main-worktree-root))))
                    (default (concat base name)))
         (make-directory base t)
         (let ((path (read-string
