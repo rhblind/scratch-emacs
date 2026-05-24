@@ -139,9 +139,28 @@ default behavior in non-preview xwidget buffers."
                    (run-at-time 0.01 nil #'scratch-markdown--handle-link result ,xw))))
           (mouse-set-point event))))))
 
+(defun scratch-markdown--copy-selection ()
+  "Copy the xwidget-webkit selection to the kill ring and system clipboard."
+  (interactive)
+  (xwidget-webkit-get-selection
+   (lambda (text)
+     (if (or (null text) (string-empty-p text))
+         (message "No text selected")
+       (kill-new text)
+       (gui-set-selection 'CLIPBOARD text)
+       (message "Copied %d characters" (length text))))))
+
 (with-eval-after-load 'xwidget
   (define-key xwidget-webkit-mode-map [mouse-1]
-    #'scratch-markdown--follow-link-at-click))
+    #'scratch-markdown--follow-link-at-click)
+  (define-key xwidget-webkit-mode-map (kbd "s-c")
+    #'scratch-markdown--copy-selection)
+  (define-key xwidget-webkit-mode-map (kbd "y")
+    #'scratch-markdown--copy-selection)
+  (when (modulep! :editor evil)
+    (evil-define-key 'normal xwidget-webkit-mode-map
+      [down-mouse-1] nil
+      [drag-mouse-1] nil)))
 
 (defvar-local scratch-markdown--preview-buffer nil
   "The xwidget-webkit buffer showing this markdown buffer's preview.")
