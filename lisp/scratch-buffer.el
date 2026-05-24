@@ -52,13 +52,22 @@
     (erase-buffer)))
 
 (defun scratch/copy-buffer-filepath ()
-  "Copy the current buffer's file path to the kill ring as `path:line'.
-With a prefix argument, copy just the path (no line number)."
+  "Copy the current buffer's file path to the kill ring.
+With an active region, copy as `path:L1-L2' (GitHub-style range).
+Without a region, copy just the path."
   (interactive)
   (if-let ((path (buffer-file-name)))
-      (let ((s (if current-prefix-arg
-                   path
-                 (format "%s:%d" path (line-number-at-pos)))))
+      (let ((s (cond
+                ((use-region-p)
+                 (let ((beg (line-number-at-pos (region-beginning)))
+                       (end (line-number-at-pos (region-end))))
+                   (when (and (> end beg)
+                              (= (region-end) (line-beginning-position)))
+                     (cl-decf end))
+                   (if (= beg end)
+                       (format "%s:L%d" path beg)
+                     (format "%s:L%d-L%d" path beg end))))
+                (t path))))
         (kill-new s)
         (message "Copied: %s" s))
     (user-error "Buffer is not visiting a file")))

@@ -26,7 +26,7 @@
                    :desc "new empty buffer"  "N" #'scratch/new-empty-buffer
                    :desc "erase buffer"      "e" #'scratch/erase-buffer
                    :desc "yank buffer"       "y" #'scratch/yank-buffer
-                   :desc "copy filepath:line" "Y" #'scratch/copy-buffer-filepath
+                   :desc "copy filepath"      "Y" #'scratch/copy-buffer-filepath
                    :desc "paste over buffer" "P" #'scratch/replace-buffer-from-clipboard
                    ;; Move (or, with prefix arg, swap) current buffer to window N. M-N
                    ;; globally focuses the corresponding window.
