@@ -42,8 +42,8 @@ git clone https://github.com/rhblind/scratch-emacs.git ~/.config/emacs
 | `scratch sync`    | Install or purges packages and tangle `config.org` into elisp files for the framework. |
 | `scratch upgrade` | Pull the framework, validate your config against it, and sync.                         |
 | `scratch freeze`  | Pin packages to `~/.scratch.d/straight-lock.el` for reproducible builds.               |
-| `scratch env`     | Snapshot shell environment for Emacs. Re-run after editing shell rc files.              |
-| `scratch help`    | Show available commands and options.                                                    |
+| `scratch env`     | Snapshot shell environment for Emacs. Re-run after editing shell rc files.             |
+| `scratch help`    | Show available commands and options.                                                   |
 
 After adding or upgrading a package, run `scratch freeze` and commit
 the lockfile for reproducible installs.
@@ -62,6 +62,7 @@ Each module has a `packages.el` (package declarations) and a
           :checkers    syntax
           :tools       (lsp +peek) editorconfig direnv mise
           :lang        org markdown json yaml
+          :llm         (claude-ide +mcp +ide-diff) (eca +completion)
           :term        vterm
           :os          macos
           :ui          theme modeline fonts treemacs workspaces)

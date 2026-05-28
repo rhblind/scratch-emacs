@@ -50,6 +50,10 @@ dired-recent
 auto-save/
 /workspaces/
 
+# ECA project-local config and auto-downloaded server binary
+.eca/
+eca/
+
 # Superpowers specs / plans -- local working docs, not tracked
 /docs/
 

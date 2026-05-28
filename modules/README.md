@@ -12,6 +12,7 @@ module.
 - [`:tools`](#tools----development-tooling) - development tooling
 - [`:lang`](#lang----language-support) - language support
 - [`:term`](#term----terminal-emulators) - terminal emulators
+- [`:llm`](#llm----ai-assistants) - AI assistants
 - [`:os`](#os----operating-system-integration) - operating system integration
 - [`:ui`](#ui----appearance-and-layout) - appearance and layout
 
@@ -119,6 +120,27 @@ External dependencies (when `:tools lsp` is enabled):
 External dependencies:
 
 - **vterm**: `cmake` + `libtool` (builds a native module on first load)
+
+## `:llm` -- AI assistants
+
+LLM-powered coding assistants integrated into the editor.
+
+| Module       | Flags                                 | Summary                                         |
+|--------------|---------------------------------------|-------------------------------------------------|
+| `claude-ide` | `+mcp`, `+ide-diff`, `+vterm`, `+eat` | Claude Code CLI via terminal + MCP bridge       |
+| `eca`        | `+completion`, `+talk`                | ECA pair-programming client: chat, rewrite, MCP |
+
+Leader bindings live under `SPC A c` (claude) and `SPC A e` (eca) so
+both modules can coexist.
+
+External dependencies:
+
+- **claude-ide**: requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
+  installed and available on PATH. Terminal backend requires `vterm`
+  (default, via `:term vterm`) or `eat` (via `+eat` flag).
+- **eca**: the `eca` server binary is auto-downloaded on first use.
+  `+talk` requires [whisper.el](https://github.com/natruj/whisper.el)
+  and a local whisper model.
 
 ## `:os` -- operating system integration
 
