@@ -101,13 +101,21 @@
 (global-auto-revert-mode 1)
 
 (defun scratch-auto-revert--prompt-if-modified-a (&rest _)
-  "Prompt to revert when the file changed on disk but the buffer is modified."
+  "Prompt to revert when the file changed on disk but the buffer is modified.
+If the file no longer exists, offer to kill the buffer instead."
   (when (and buffer-file-name
-             (buffer-modified-p)
              (not (verify-visited-file-modtime)))
-    (if (y-or-n-p (format "%s changed on disk; reload from file? " (buffer-name)))
-        (revert-buffer :ignore-auto :noconfirm)
-      (set-visited-file-modtime))))
+    (cond
+     ((not (file-exists-p buffer-file-name))
+      (if (y-or-n-p (format "%s no longer exists. Kill buffer? " (buffer-name)))
+          (kill-this-buffer)
+        (setq buffer-file-name nil)
+        (set-buffer-modified-p t)
+        (auto-revert-mode -1)))
+     ((buffer-modified-p)
+      (if (y-or-n-p (format "%s changed on disk; reload from file? " (buffer-name)))
+          (revert-buffer :ignore-auto :noconfirm)
+        (set-visited-file-modtime))))))
 
 (advice-add 'auto-revert-handler :before #'scratch-auto-revert--prompt-if-modified-a)
 
