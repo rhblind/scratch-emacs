@@ -110,8 +110,18 @@ root (which can be slow on large solutions)."
                   (derived-mode-p 'csharp-ts-mode 'csharp-mode))
          (dotnet-mode 1)
          (setq-local dotnet-project-directory
-                     (or (locate-dominating-file default-directory ".sln")
-                         (locate-dominating-file default-directory ".csproj")
+                     (or (when-let* ((proj (project-current))
+                                     (boundary (expand-file-name (project-root proj))))
+                           (or (locate-dominating-file
+                                default-directory
+                                (lambda (dir)
+                                  (and (string-prefix-p boundary (expand-file-name dir))
+                                       (file-exists-p (expand-file-name ".sln" dir)))))
+                               (locate-dominating-file
+                                default-directory
+                                (lambda (dir)
+                                  (and (string-prefix-p boundary (expand-file-name dir))
+                                       (file-exists-p (expand-file-name ".csproj" dir)))))))
                          default-directory))))))
   (add-hook 'csharp-ts-mode-hook #'scratch-csharp--activate-dotnet-mode-h)
   (add-hook 'csharp-mode-hook    #'scratch-csharp--activate-dotnet-mode-h))
@@ -159,13 +169,15 @@ root (which can be slow on large solutions)."
 ;; server -- harmless for OmniSharp / Roslyn users.
 (defun scratch-csharp--locate-project-root ()
   "Walk up from `default-directory' looking for a `.sln' / `.csproj' sibling.
-`locate-dominating-file' takes a literal name, not a glob, so we pass
-a predicate that scans each directory for matching extensions."
-  (locate-dominating-file
-   default-directory
-   (lambda (dir)
-     (and (file-directory-p dir)
-          (directory-files dir nil "\\.\\(sln\\|csproj\\)\\'" t)))))
+Bounded by `project-root' so the search doesn't escape a git worktree."
+  (when-let* ((proj (project-current))
+              (boundary (expand-file-name (project-root proj))))
+    (locate-dominating-file
+     default-directory
+     (lambda (dir)
+       (and (string-prefix-p boundary (expand-file-name dir))
+            (file-directory-p dir)
+            (directory-files dir nil "\\.\\(sln\\|csproj\\)\\'" t))))))
 
 (defun scratch-csharp--project-has-local-csharp-ls-p ()
   "Non-nil if the current project declares csharp-ls as a local dotnet tool."
