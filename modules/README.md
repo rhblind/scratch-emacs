@@ -90,18 +90,23 @@ External dependencies:
 Per-language modes, LSP wiring, and companion tooling. Most default
 to tree-sitter major modes when a grammar is available.
 
-| Module     | Flags                       | Summary                                       |
-|------------|-----------------------------|-----------------------------------------------|
-| `org`      | `+roam`, `+hugo`, `+pretty` | org-modern, org-appear, org-cliplink          |
-| `markdown` |                             | markdown-mode, xwidget live preview, mermaid  |
-| `csharp`   |                             | csharp-ts-mode, dotnet minor mode, csharp-ls  |
-| `elixir`   |                             | elixir-ts-mode, exunit runner, LSP via dexter |
-| `erlang`   |                             | erlang-ts-mode, ELP language server, erlfmt   |
-| `json`     |                             | json-ts-mode, auto-LSP                        |
-| `yaml`     |                             | yaml-ts-mode, auto-LSP                        |
+| Module       | Flags                       | Summary                                                     |
+|--------------|-----------------------------|-------------------------------------------------------------|
+| `org`        | `+roam`, `+hugo`, `+pretty` | org-modern, org-appear, org-cliplink                        |
+| `markdown`   |                             | markdown-mode, xwidget live preview, mermaid                |
+| `javascript` | `+deno`                     | JS/TS/TSX via tree-sitter, jest, biome/prettier auto-detect |
+| `csharp`     |                             | csharp-ts-mode, dotnet minor mode, csharp-ls                |
+| `elixir`     |                             | elixir-ts-mode, exunit runner, LSP via dexter               |
+| `erlang`     |                             | erlang-ts-mode, ELP language server, erlfmt                 |
+| `json`       |                             | json-ts-mode, auto-LSP                                      |
+| `yaml`       |                             | yaml-ts-mode, auto-LSP                                      |
 
 External dependencies (when `:tools lsp` is enabled):
 
+- **javascript**: `typescript-language-server`
+  (`npm i -g typescript-language-server typescript`); `+deno` requires
+  `deno` on PATH. Formatter auto-detected: prettier (if config found),
+  biome (default), or `deno fmt` (in Deno projects)
 - **csharp**: `csharp-ls` (`dotnet tool install -g csharp-ls`);
   `csharpier` for formatting
 - **elixir**: `dexter` LSP server on PATH; `mix` for formatting
