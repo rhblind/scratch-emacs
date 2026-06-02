@@ -298,3 +298,33 @@ state's cursor immediately so the change is visible right away."
   ;; double-activating from `display-graphic-p nil' above + this hook
   ;; is harmless.)
   (add-hook 'tty-setup-hook #'evil-terminal-cursor-changer-activate))
+
+;;;; Jump list integration
+;;
+;; `evil-want-C-i-jump' is nil so TAB works in terminals. In GUI frames
+;; <C-i> is a distinct event, so bind it there for forward jumps.
+
+(with-eval-after-load 'evil
+  ;; In GUI frames, distinguish C-i from TAB so we can bind jump-forward
+  ;; without stealing TAB in terminals.
+  (when (display-graphic-p)
+    (define-key input-decode-map [?\C-i] [C-i]))
+
+  (evil-define-key '(normal motion) 'global
+    [C-i] #'evil-jump-forward)
+  (evil-define-key 'insert 'global
+    [C-i] #'indent-for-tab-command)
+
+  ;; Record a jump point before any go-to-definition command so C-o
+  ;; returns to where you were.
+  (defun scratch-evil--set-jump-a (&rest _)
+    (evil-set-jump))
+  (dolist (cmd '(xref-find-definitions
+                 xref-find-references
+                 lsp-ui-peek-find-definitions
+                 lsp-ui-peek-find-references
+                 lsp-ui-peek-find-implementation
+                 lsp-find-definition
+                 lsp-find-references
+                 lsp-find-implementation))
+    (advice-add cmd :before #'scratch-evil--set-jump-a)))
