@@ -150,7 +150,26 @@
              exunit-verify-single)
   :init
   (dolist (hook '(elixir-mode-hook elixir-ts-mode-hook))
-    (add-hook hook #'exunit-mode)))
+    (add-hook hook #'exunit-mode))
+  :config
+  ;; The default `exunit-project-root' stops at the nearest mix.exs (the
+  ;; app's own), so in umbrella projects `mix test' runs from the app
+  ;; subdirectory and misses the umbrella root's config/test.exs. This
+  ;; override walks up to a dir with both apps/ and mix.exs (the umbrella
+  ;; root signature) before falling back to the nearest mix.exs, so mix
+  ;; always loads the umbrella-level config.
+  (defun exunit-project-root ()
+    "Return project root, preferring umbrella root when inside one."
+    (or exunit-project-root
+        (let ((root (or (locate-dominating-file
+                         default-directory
+                         (lambda (dir)
+                           (and (file-directory-p (expand-file-name "apps" dir))
+                                (file-exists-p (expand-file-name "mix.exs" dir)))))
+                        (locate-dominating-file default-directory "mix.exs"))))
+          (unless root
+            (error "Couldn't locate project root. Make sure current file is inside a project"))
+          (setq exunit-project-root (expand-file-name root))))))
 
 ;; Localleader: `,' (or `M-,' in insert) inside elixir buffers. Both
 ;; `elixir-mode' and `elixir-ts-mode' get the same map. Defined as a
