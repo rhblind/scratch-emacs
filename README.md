@@ -61,7 +61,7 @@ Each module has a `packages.el` (package declarations) and a
           :emacs       (vc +forge +gutter) ibuffer dired
           :checkers    syntax
           :tools       (lsp +peek) editorconfig direnv mise
-          :lang        org markdown json yaml
+          :lang        org markdown (javascript +deno) json yaml
           :llm         (claude-ide +mcp +ide-diff) (eca +completion)
           :term        vterm
           :os          macos
