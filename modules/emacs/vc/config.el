@@ -103,6 +103,31 @@ Falls back to `magit-toplevel' when the git command fails."
   ;; collection only overrides `Z' here when `evil-collection-magit-
   ;; use-z-for-folds' is set, which we don't (we keep `z' for stash).
   ;; So restore magit's intended `Z' shortcut explicitly.
+  (defun scratch-vc--display-file-reuse-window (buffer)
+    "Display BUFFER in an existing non-magit window, or split if none exists."
+    (let ((target (cl-find-if
+                   (lambda (w)
+                     (and (not (eq w (selected-window)))
+                          (not (window-dedicated-p w))
+                          (not (window-parameter w 'window-side))
+                          (not (with-current-buffer (window-buffer w)
+                                 (derived-mode-p 'magit-mode)))))
+                   (window-list))))
+      (if target
+          (progn
+            (set-window-buffer target buffer)
+            (select-window target))
+        (select-window (split-window (selected-window) nil 'right))
+        (switch-to-buffer buffer))))
+
+  (defun scratch-vc-diff-visit-file ()
+    "Visit file at point, reusing the other window."
+    (interactive)
+    (magit-diff-visit-file--internal t #'scratch-vc--display-file-reuse-window))
+
+  (define-key magit-file-section-map (kbd "RET") #'scratch-vc-diff-visit-file)
+  (define-key magit-hunk-section-map (kbd "RET") #'scratch-vc-diff-visit-file)
+
   (when (modulep! :editor evil)
     (with-eval-after-load 'evil
       (evil-define-key '(normal visual) magit-mode-map
