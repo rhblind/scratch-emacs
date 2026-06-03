@@ -141,6 +141,7 @@
 (require 'scratch-defaults)   ; recentf, savehist, save-place, file/format defaults
 (require 'scratch-keys)       ; general + the `map!' macro (framework-wide)
 (require 'scratch-buffer)     ; buffer helpers (scratch/scratch-buffer, ...)
+(require 'scratch-file)       ; file helpers (rename, copy, delete, sudo, yank path)
 (require 'scratch-code)       ; prog-mode dispatchers (format, ...)
 (require 'scratch-window)     ; window numbering + M-N bindings
 (require 'scratch-mouse)      ; mouse support (GUI + TTY via xterm-mouse-mode)
