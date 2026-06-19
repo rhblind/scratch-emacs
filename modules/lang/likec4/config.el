@@ -1,7 +1,7 @@
 ;;; modules/lang/likec4/config.el -*- lexical-binding: t; -*-
 ;;
 ;; LikeC4 architecture-as-code support.
-;; Requires: npm i -g likec4
+;; Requires: brew install likec4  (or npm i -g likec4)
 
 ;; --- base mode (fallback when grammar isn't installed) ---
 

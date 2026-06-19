@@ -100,6 +100,7 @@ to tree-sitter major modes when a grammar is available.
 | `erlang`     |                             | erlang-ts-mode, ELP language server, erlfmt                 |
 | `json`       |                             | json-ts-mode, auto-LSP                                      |
 | `yaml`       |                             | yaml-ts-mode, auto-LSP                                      |
+| `likec4`     |                             | LikeC4 architecture-as-code, tree-sitter, LSP, dev preview  |
 
 External dependencies (when `:tools lsp` is enabled):
 
@@ -114,6 +115,7 @@ External dependencies (when `:tools lsp` is enabled):
 - **json**: `vscode-json-language-server`
   (`npm i -g vscode-langservers-extracted`)
 - **yaml**: `yaml-language-server` (`npm i -g yaml-language-server`)
+- **likec4**: `likec4` (`brew install likec4` or `npm i -g likec4`); bundles LSP, formatter, and dev server
 - **markdown**: `cmark-gfm` for live preview (no LSP)
 
 ## `:term` -- terminal emulators
