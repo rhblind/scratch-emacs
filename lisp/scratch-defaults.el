@@ -223,6 +223,7 @@ Symmetric counterpart of `scratch/backward-kill-word'."
 (global-set-key (kbd "M-<backspace>") #'scratch/backward-kill-word)
 (global-set-key (kbd "C-<delete>")    #'scratch/forward-kill-word)
 (global-set-key (kbd "M-<delete>")    #'scratch/forward-kill-word)
+(global-set-key (kbd "M-o")           #'other-window)
 
 (provide 'scratch-defaults)
 ;;; scratch-defaults.el ends here
