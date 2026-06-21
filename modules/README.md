@@ -120,13 +120,17 @@ External dependencies (when `:tools lsp` is enabled):
 
 ## `:term` -- terminal emulators
 
-| Module  | Flags | Summary                             |
-|---------|-------|-------------------------------------|
-| `vterm` |       | libvterm terminal, `SPC o t` toggle |
+| Module    | Flags | Summary                                  |
+|-----------|-------|------------------------------------------|
+| `vterm`   |       | libvterm terminal, `SPC o t` toggle      |
+| `ghostel` |       | libghostty terminal, `SPC o t` toggle    |
+
+Pick one. Both provide the same keybindings and popup behaviour.
 
 External dependencies:
 
 - **vterm**: `cmake` + `libtool` (builds a native module on first load)
+- **ghostel**: none (prebuilt binary auto-downloaded on first use)
 
 ## `:llm` -- AI assistants
 
@@ -144,7 +148,7 @@ External dependencies:
 
 - **claude-ide**: requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
   installed and available on PATH. Terminal backend requires `vterm`
-  (default, via `:term vterm`) or `eat` (via `+eat` flag).
+  (via `+vterm` flag) or `eat` (via `+eat` flag); defaults to vterm.
 - **eca**: the `eca` server binary is auto-downloaded on first use.
   `+talk` requires [whisper.el](https://github.com/natruj/whisper.el)
   and a local whisper model.

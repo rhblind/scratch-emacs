@@ -5,7 +5,7 @@
 (straight-use-package
  '(claude-code-ide :type git :host github :repo "manzaltu/claude-code-ide.el"))
 
-;; The default terminal backend (vterm) is installed by `:term vterm'.
-;; Only `eat' needs an explicit install here.
+(when (modulep! +vterm)
+  (straight-use-package 'vterm))
 (when (modulep! +eat)
   (straight-use-package 'eat))

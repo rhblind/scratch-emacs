@@ -11,7 +11,7 @@
 ;;   +vterm     force vterm terminal backend
 ;;   +eat       force eat terminal backend (needs +eat in packages.el)
 ;;
-;; Default terminal backend is vterm (via `:term vterm').
+;; Default terminal backend is vterm. Use +vterm or +eat to override.
 
 (use-package claude-code-ide
   :commands (claude-code-ide

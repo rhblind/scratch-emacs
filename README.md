@@ -20,7 +20,7 @@ You're welcome to use it as-is, fork it, or send PRs, but this is mostly  a pers
 - **A nerd font** (`M-x nerd-icons-install-fonts` on first install)
 - **Tree-sitter grammars** (`M-x treesit-auto-install-all` after enabling a new language module)
 - **[ripgrep](https://github.com/BurntSushi/ripgrep)** for project search
-- **cmake + libtool** for `:term vterm` (builds a native module on first load)
+- **cmake + libtool** for `:term vterm` (builds a native module on first load); `:term ghostel` auto-downloads its binary instead
 - **[cmark-gfm](https://github.com/github/cmark-gfm)**  for `:lang markdown` live preview
 
 ## Install
