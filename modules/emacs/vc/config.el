@@ -197,10 +197,13 @@ Uses string prefix matching so it works even after DIRECTORY is deleted."
     killed))
 
 (defun scratch-vc--worktree-delete-cleanup-a (orig-fn worktree)
-  "Around-advice: clean up buffers, workspace, and project after deletion."
+  "Around-advice: clean up buffers, workspace, and project after deletion.
+Bypasses OS trash so worktrees are permanently removed (they're large
+and trivially recreated from git)."
   (let ((wt-dir (file-name-as-directory (expand-file-name worktree)))
         (wt-name (file-name-nondirectory (directory-file-name worktree))))
-    (funcall orig-fn worktree)
+    (let ((delete-by-moving-to-trash nil))
+      (funcall orig-fn worktree))
     (let ((n (scratch-vc--kill-buffers-in-directory wt-dir)))
       (when (> n 0)
         (message "Killed %d buffer(s) from deleted worktree" n)))
