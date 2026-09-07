@@ -1159,6 +1159,105 @@ Return the number of warnings emitted."
   (straight-freeze-versions t)
   (scratch-cli--print "Freeze complete."))
 
+;;; outdated ------------------------------------------------------------------
+
+(defun scratch-cli--outdated-help ()
+  (scratch-cli--print "Usage: scratch outdated [--skip-fetch]")
+  (scratch-cli--print "")
+  (scratch-cli--print "Fetch upstream for every installed package and list those with")
+  (scratch-cli--print "newer commits available. Does not modify your local checkout.")
+  (scratch-cli--print "")
+  (scratch-cli--print "Options:")
+  (scratch-cli--print "  --skip-fetch  Compare against already-fetched refs (no network)."))
+
+(defun scratch-cli-outdated (args)
+  "Fetch all repos and report packages that are behind upstream."
+  (let ((skip-fetch nil))
+    (while args
+      (pcase (car args)
+        ("--skip-fetch" (setq skip-fetch t args (cdr args)))
+        ((or "-h" "--help") (scratch-cli--outdated-help) (kill-emacs 0))
+        (arg (scratch-cli--die "outdated: unknown option: %s" arg))))
+    (setq user-emacs-directory scratch-cli--emacs-dir)
+    (scratch-cli--print "Loading framework...")
+    (load (expand-file-name "init.el" scratch-cli--emacs-dir) nil 'nomessage)
+    (unless (boundp 'straight--recipe-cache)
+      (scratch-cli--die "outdated: straight.el not loaded; run `scratch sync' first"))
+    (let ((repos-dir (straight--repos-dir))
+          (seen (make-hash-table :test #'equal))
+          (outdated nil)
+          (fetch-errors nil))
+      ;; Collect unique repos first.
+      (maphash
+       (lambda (_package recipe)
+         (let ((local-repo (plist-get recipe :local-repo)))
+           (when (and local-repo (not (gethash local-repo seen)))
+             (puthash local-repo t seen))))
+       straight--recipe-cache)
+      ;; Parallel fetch via xargs, then sequential compare.
+      (unless skip-fetch
+        (let ((total (hash-table-count seen))
+              (repo-list nil))
+          (maphash
+           (lambda (local-repo _)
+             (let ((dir (expand-file-name local-repo repos-dir)))
+               (when (file-directory-p dir)
+                 (push dir repo-list))))
+           seen)
+          (scratch-cli--print "Fetching %d repos..." total)
+          (let* ((input (mapconcat #'identity (nreverse repo-list) "\n"))
+                 (buf (generate-new-buffer " *fetch-all*"))
+                 (ret (with-temp-buffer
+                        (insert input)
+                        (call-process-region
+                         (point-min) (point-max)
+                         "xargs" nil buf nil
+                         "-P" "8" "-I{}"
+                         "git" "-C" "{}" "fetch" "--quiet" "origin"))))
+            (unless (= ret 0)
+              (scratch-cli--print "  Some fetches failed (exit %d)." ret))
+            (kill-buffer buf))
+          (scratch-cli--print "Fetching done.")))
+      ;; Compare HEAD vs upstream.
+      (maphash
+       (lambda (local-repo _)
+         (let ((default-directory (expand-file-name local-repo repos-dir)))
+           (when (file-directory-p default-directory)
+             (let ((behind
+                    (string-trim
+                     (shell-command-to-string
+                      "git rev-list --count HEAD..@{u} 2>/dev/null"))))
+               (when (and (> (length behind) 0)
+                          (not (string= behind "0")))
+                 (let ((local-sha
+                        (string-trim
+                         (shell-command-to-string "git rev-parse --short HEAD")))
+                       (remote-sha
+                        (string-trim
+                         (shell-command-to-string "git rev-parse --short @{u}"))))
+                   (push (list local-repo behind local-sha remote-sha)
+                         outdated)))))))
+       seen)
+      (scratch-cli--print "")
+      (when fetch-errors
+        (scratch-cli--print "Warning: fetch failed for %d repo%s: %s"
+                            (length fetch-errors)
+                            (if (= (length fetch-errors) 1) "" "s")
+                            (string-join (nreverse fetch-errors) ", "))
+        (scratch-cli--print ""))
+      (if (null outdated)
+          (scratch-cli--print "All packages are up to date.")
+        (setq outdated (sort outdated (lambda (a b) (string< (car a) (car b)))))
+        (scratch-cli--print "%-35s %7s  %s" "Package" "Behind" "Local..Remote")
+        (scratch-cli--print "%s" (make-string 70 ?-))
+        (dolist (entry outdated)
+          (pcase-let ((`(,repo ,behind ,local ,remote) entry))
+            (scratch-cli--print "%-35s %5s    %s..%s" repo behind local remote)))
+        (scratch-cli--print "")
+        (scratch-cli--print "%d package%s outdated. Run `scratch sync --rebuild' after upgrading."
+                            (length outdated)
+                            (if (= (length outdated) 1) "" "s"))))))
+
 ;;; env -----------------------------------------------------------------------
 ;;
 ;; Snapshot the current shell environment to `<emacs-dir>/env' so GUI
@@ -1318,6 +1417,7 @@ ALLOW and BLOCK are lists of regexps; ALLOW overrides BLOCK."
   (scratch-cli--print "  sync [--force-tangle] [--rebuild]    Re-tangle and install all packages")
   (scratch-cli--print "  upgrade [--skip-sync]                Pull framework, validate config, sync")
   (scratch-cli--print "  freeze                               Pin every installed package to its current commit")
+  (scratch-cli--print "  outdated [--skip-fetch]               List packages with newer upstream commits")
   (scratch-cli--print "  env [clear] [--shell SHELL]          Snapshot shell env (PATH etc.) for GUI Emacs")
   (scratch-cli--print "  help                                 Show this message")
   (scratch-cli--print "")
@@ -1331,7 +1431,8 @@ ALLOW and BLOCK are lists of regexps; ALLOW overrides BLOCK."
     ("install"      (scratch-cli-install (cdr argv)) (kill-emacs 0))
     ("sync"         (scratch-cli-sync    (cdr argv)) (kill-emacs 0))
     ("upgrade"      (scratch-cli-upgrade (cdr argv)) (kill-emacs 0))
-    ("freeze"       (scratch-cli-freeze  (cdr argv)) (kill-emacs 0))
+    ("freeze"       (scratch-cli-freeze   (cdr argv)) (kill-emacs 0))
+    ("outdated"     (scratch-cli-outdated (cdr argv)) (kill-emacs 0))
     ("env"          (scratch-cli-env     (cdr argv)) (kill-emacs 0))
     (cmd
      (scratch-cli--print "scratch: unknown command: %s" cmd)
