@@ -165,6 +165,76 @@ that's already correct)."
        (match (switch-to-buffer match))
        (t (dired root))))))
 
+(defun scratch-workspaces--root-for (name)
+  "Filesystem root to display alongside workspace NAME, or nil.
+Prefers `project.el's known-projects registry -- the same lookup
+`scratch/workspace-switch' already uses to decide whether NAME matches
+a project -- since that's authoritative rather than guessed. Falls
+back to resolving a live buffer's directory to a project root, for
+workspaces that were never routed through `project-switch-project'."
+  (require 'project)
+  (or (scratch-workspaces--known-project-root-by-name name)
+      (when-let* ((persp (persp-get-by-name name))
+                  (buf (cl-find-if #'buffer-live-p (persp-buffers persp)))
+                  (dir (buffer-local-value 'default-directory buf)))
+        (if-let ((proj (project-current nil dir))) (project-root proj) dir))))
+
+(defun scratch-workspaces--git-info (root)
+  "Return (WORKTREE-P . PROJECT-BASENAME) for the git repo at ROOT, or nil.
+WORKTREE-P compares git's own `--git-dir' against `--git-common-dir'
+-- they differ only for a linked worktree -- rather than assuming
+worktrees live under a `.worktrees/' naming convention, which isn't
+universal. PROJECT-BASENAME resolves through `--git-common-dir' to the
+*primary* checkout's directory name, so a worktree correctly reports
+the project it branched from rather than its own directory name."
+  (require 'vc-git)
+  (let* ((default-directory root)
+         (out (ignore-errors
+                (process-lines vc-git-program "rev-parse"
+                               "--git-dir" "--git-common-dir"))))
+    (when (= (length out) 2)
+      (let* ((git-dir (expand-file-name (nth 0 out)))
+             (common-dir (expand-file-name (nth 1 out))))
+        (cons (not (equal git-dir common-dir))
+              (file-name-nondirectory
+               (directory-file-name
+                (file-name-directory (directory-file-name common-dir)))))))))
+
+;; Route workspace-name prompts through marginalia so their root
+;; annotation gets the same column alignment as the file pickers
+;; (see `scratch-marginalia--annotate-local-file' in the personal
+;; config). Declaring a `workspace' category via
+;; `marginalia-command-categories' means the prompts below stay plain
+;; `completing-read' calls -- no per-call `completion-extra-properties'
+;; plumbing needed.
+(with-eval-after-load 'marginalia
+  (dolist (cmd '(scratch/workspace-switch scratch/workspace-kill
+                 scratch/workspace-save scratch/workspace-load))
+    (add-to-list 'marginalia-command-categories (cons cmd 'workspace)))
+
+  (defun scratch-workspaces--annotate-root (root)
+    "Abbreviated ROOT, colored to flag a linked worktree versus a
+primary checkout, with the owning project's basename in bold so it
+stands out inside a long worktree path."
+    (pcase-let* ((`(,worktree-p . ,project) (scratch-workspaces--git-info root))
+                 (display (propertize (abbreviate-file-name root) 'face
+                                      (if worktree-p 'marginalia-key
+                                        'marginalia-documentation))))
+      (when-let ((pos (and project (string-match (regexp-quote project) display))))
+        (add-face-text-property pos (+ pos (length project)) 'bold nil display))
+      display))
+
+  (defun scratch-workspaces--marginalia-annotate (name)
+    "Marginalia annotator for the `workspace' category.
+Shows NAME's root; see `scratch-workspaces--annotate-root' for the
+coloring/bolding."
+    (when-let ((root (scratch-workspaces--root-for name)))
+      (marginalia--fields
+       ((scratch-workspaces--annotate-root root)))))
+
+  (add-to-list 'marginalia-annotators
+               '(workspace scratch-workspaces--marginalia-annotate builtin none)))
+
 (defun scratch/workspace-switch (name)
   "Switch to workspace NAME, prompting if called interactively.
 When NAME matches a known project, also pulls the project context
