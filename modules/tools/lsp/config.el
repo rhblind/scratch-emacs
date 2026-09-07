@@ -246,6 +246,42 @@ session and runs the workspace-folders-changed hooks."
   (advice-add 'lsp          :before #'scratch-lsp--ensure-worktree-folder)
   (advice-add 'lsp-deferred :before #'scratch-lsp--ensure-worktree-folder))
 
+;; ---------------------------------------------------------------------------
+;; Prune stale session folders (deleted worktrees, removed projects).
+;;
+;; `lsp-session-folders' never shrinks on its own -- the advice above
+;; keeps adding worktree roots to it, and nothing ever removes one once
+;; its worktree is deleted (`git worktree remove'). Multi-root servers
+;; (`:multi-root t', e.g. json-ls) get *every* folder in the session
+;; handed to them as `workspaceFolders' on startup via
+;; `lsp-session-server-id->folders', so dead paths pile up forever and
+;; get pushed at every multi-root server you start.
+;;
+;; Fix: right after the session is read from `lsp-session-file', drop
+;; any folder that no longer exists on disk, from both the general
+;; folder list and the per-server-id table that multi-root startup
+;; actually reads from.
+
+(defun scratch-lsp--prune-stale-session-folders (session)
+  "Remove SESSION folders that no longer exist on disk.
+Runs once, right after SESSION is loaded from `lsp-session-file',
+so it never touches a live workspace. Returns SESSION."
+  (let* ((live-p (lambda (folder) (file-directory-p folder)))
+         (folders (lsp-session-folders session))
+         (stale (cl-remove-if live-p folders)))
+    (when stale
+      (setf (lsp-session-folders session) (cl-remove-if-not live-p folders))
+      (maphash (lambda (server-id folders)
+                 (puthash server-id (cl-remove-if-not live-p folders)
+                          (lsp-session-server-id->folders session)))
+               (lsp-session-server-id->folders session))
+      (lsp--persist-session session)))
+  session)
+
+(with-eval-after-load 'lsp-mode
+  (advice-add 'lsp--load-default-session :filter-return
+              #'scratch-lsp--prune-stale-session-folders))
+
 (with-eval-after-load 'lsp-ui-peek
   ;; lsp-ui-peek has its own response handler that bypasses
   ;; `lsp--locations-to-xref-items'. Its return value is a list of
