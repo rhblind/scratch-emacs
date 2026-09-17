@@ -92,7 +92,7 @@ to tree-sitter major modes when a grammar is available.
 
 | Module       | Flags                       | Summary                                                     |
 |--------------|-----------------------------|-------------------------------------------------------------|
-| `org`        | `+roam`, `+hugo`, `+pretty` | org-modern, org-appear, org-cliplink                        |
+| `org`        | `+roam`, `+hugo`, `+pretty`, `+present` | org-modern, org-appear, org-cliplink, org-present |
 | `markdown`   |                             | markdown-mode, xwidget live preview, mermaid                |
 | `javascript` | `+deno`                     | JS/TS/TSX via tree-sitter, jest, biome/prettier auto-detect |
 | `csharp`     |                             | csharp-ts-mode, dotnet minor mode, csharp-ls                |

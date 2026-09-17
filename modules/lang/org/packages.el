@@ -22,6 +22,13 @@
   (straight-use-package 'org-super-agenda)
   (straight-use-package 'doct))
 
+;; +present: turn the current org file into a slideshow via org-present.
+;; Reuses olivetti (already pulled in by +pretty) for centering instead
+;; of adding visual-fill-column as a new dependency.
+(when (modulep! +present)
+  (straight-use-package 'org-present)
+  (straight-use-package 'olivetti))
+
 ;; evil-org: vim-style heading / list / table manipulation in org-mode,
 ;; plus dedicated `evil-org-agenda-mode' so the agenda buffer respects
 ;; evil keys (j/k navigate, etc.).  evil-collection's org support is

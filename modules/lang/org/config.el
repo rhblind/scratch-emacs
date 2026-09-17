@@ -357,6 +357,161 @@ Set this in your user config, e.g.:
   (setq scratch-org-capture-blog-file
         (expand-file-name \"blog.org\" org-hugo-base-dir))"))
 
+;;;; +present (org-present slideshow)
+;;
+;; Turn the current org file into a slideshow: the title/preamble is
+;; slide 1, then each top-level heading is its own slide. Arrow keys
+;; navigate, `C-c C-q' quits; see org-present's own keymap (`C-c C-='
+;; / `C-c C--' resize, `C-c <' / `C-c >' first/last slide) for the rest.
+
+(when (modulep! +present)
+  (defvar scratch-org-present-body-width 100
+    "`olivetti-body-width' while presenting.
+Override by `setq' BEFORE calling `scratch!'.")
+
+  (defvar scratch-org-present-vertical-position 0.25
+    "Fraction of the window's height where a slide's content should start.
+0 puts it flush against the top, 0.5 centers it. Override by `setq'
+BEFORE calling `scratch!'.")
+
+  (defvar scratch-org-present-frame-alpha nil
+    "Frame `alpha-background' (0-100) while presenting, or nil to leave it alone.
+Lets the desktop peek through behind the text for a bit of depth,
+without touching the text's own opacity (unlike the classic `alpha'
+frame parameter). Requires Emacs 29+ and a compositor that honours it.
+Override by `setq' BEFORE calling `scratch!', e.g. `(setq
+scratch-org-present-frame-alpha 92)'.")
+
+  (use-package org-present
+    :commands org-present
+    :hook ((org-present-mode      . scratch-org-present--enter)
+           (org-present-mode-quit . scratch-org-present--exit)))
+
+  (defvar-local scratch-org-present--header-line-face-cookie nil
+    "`face-remap-add-relative' cookie blending the padding header-line in.")
+
+  (defvar-local scratch-org-present--heading-scale-cookies nil
+    "`face-remap-add-relative' cookies scaling title/heading faces to match `org-present-big'.
+`org-present-big' (via `text-scale-increase') only remaps the `default'
+face; `org-document-title' and `org-level-N' get their font/height from
+their own face spec and are otherwise left behind at document size.")
+
+  (defconst scratch-org-present--heading-faces
+    '(org-document-title
+      org-level-1 org-level-2 org-level-3 org-level-4
+      org-level-5 org-level-6 org-level-7 org-level-8)
+    "Faces to scale in step with `org-present-text-scale' while presenting.")
+
+  (defvar-local scratch-org-present--frame-alpha-restore nil
+    "(FRAME . PREVIOUS-ALPHA-BACKGROUND) to restore on exit, or nil if untouched.")
+
+  (defun scratch-org-present--enter ()
+    "Center the slide, enlarge text, and show inline images."
+    (setq-local olivetti-body-width scratch-org-present-body-width)
+    (olivetti-mode 1)
+    (org-present-big)
+    (org-display-inline-images)
+    ;; Default to read-only so stray keystrokes while presenting don't edit
+    ;; the document; `C-c C-w' (`org-present-read-write') drops back to
+    ;; editable on demand. `org-present-quit' already restores read-write
+    ;; before exiting, so no matching call is needed in the `--exit' half.
+    (org-present-read-only)
+    (setq scratch-org-present--header-line-face-cookie
+          (face-remap-add-relative 'header-line '(:inherit default :box nil)))
+    (let ((mult (expt text-scale-mode-step org-present-text-scale)))
+      (setq scratch-org-present--heading-scale-cookies
+            (mapcar (lambda (face) (face-remap-add-relative face (list :height mult)))
+                    scratch-org-present--heading-faces)))
+    (when scratch-org-present-frame-alpha
+      (let ((frame (window-frame (get-buffer-window (current-buffer) t))))
+        (setq scratch-org-present--frame-alpha-restore
+              (cons frame (frame-parameter frame 'alpha-background)))
+        (set-frame-parameter frame 'alpha-background scratch-org-present-frame-alpha))))
+
+  (defun scratch-org-present--exit ()
+    "Undo `scratch-org-present--enter''s buffer-local tweaks."
+    (olivetti-mode -1)
+    (org-remove-inline-images)
+    (setq header-line-format nil)
+    (when scratch-org-present--header-line-face-cookie
+      (face-remap-remove-relative scratch-org-present--header-line-face-cookie)
+      (setq scratch-org-present--header-line-face-cookie nil))
+    (mapc #'face-remap-remove-relative scratch-org-present--heading-scale-cookies)
+    (setq scratch-org-present--heading-scale-cookies nil)
+    (when scratch-org-present--frame-alpha-restore
+      (set-frame-parameter (car scratch-org-present--frame-alpha-restore)
+                            'alpha-background
+                            (cdr scratch-org-present--frame-alpha-restore))
+      (setq scratch-org-present--frame-alpha-restore nil)))
+
+  (defun scratch-org-present--prepare-slide (_buffer-name _heading)
+    "Show only the current slide's direct children, collapsed."
+    (org-overview)
+    (org-show-entry)
+    (org-show-children))
+  (add-hook 'org-present-after-navigate-functions #'scratch-org-present--prepare-slide)
+
+  (defun scratch-org-present--vpad-slide (&rest _)
+    "Pad above the visible slide so its content starts around
+`scratch-org-present-vertical-position' down the window, rather than
+flush against the top. Approximates using the first line's pixel
+height as a uniform per-row estimate; imperfect when slide lines vary
+a lot in height. Pads via `header-line-format' stretched with
+`(space :height PX)', not a buffer overlay: an overlay `before-string'
+positioned at exactly `window-start' (which a zero-width overlay at
+`point-min' always is, right after org-present narrows to a new
+slide) is silently dropped by redisplay -- confirmed live via
+`posn-at-point'. A stretched header-line sits above the text area
+entirely, sidestepping that edge case; `scratch-org-present--enter'
+remaps the `header-line' face to blend with the buffer background so
+it doesn't look like a distinct bar.
+Measures the buffer's own window explicitly (`with-selected-window')
+rather than trusting `selected-window' -- on a multi-frame daemon the
+globally selected frame can differ from the one actually showing the
+slide (e.g. a corfu child frame), which silently measures the wrong
+window and produces bogus padding."
+    (setq header-line-format nil)
+    (when-let* ((win (get-buffer-window (current-buffer) t)))
+      (with-selected-window win
+        (redisplay t)
+        (let* ((line-height (max 1 (line-pixel-height)))
+               (content-px (* (count-screen-lines (point-min) (point-max)) line-height))
+               (available-px (max 0 (- (window-body-height win t) content-px)))
+               (desired-px (round (* (window-body-height win t)
+                                      scratch-org-present-vertical-position)))
+               (pad-px (min desired-px available-px)))
+          (setq header-line-format
+                (propertize " " 'display `(space :height (,pad-px))))))))
+  (add-hook 'org-present-after-navigate-functions #'scratch-org-present--vpad-slide t)
+
+  (when (modulep! :editor leader)
+    (with-eval-after-load 'org
+      (map! :map org-mode-map :localleader
+            :desc "present" "z" #'org-present)))
+
+  ;; evil-collection deliberately leaves the raw arrow keys alone (they're
+  ;; evil's own cursor motion); it wires J/K, gj/gk, ]]/[[, SPC/S-SPC,
+  ;; q/ZQ/ZZ instead. Simpler for live presenting: make the plain arrows
+  ;; advance/retreat slides too, scoped to org-present-mode only.
+  ;;
+  ;; SPC/S-SPC are unbound again right after: this framework's leader key
+  ;; IS SPC, and org-present-mode's evil keymap outranks the global leader
+  ;; binding while presenting, so evil-collection's SPC-for-next-slide
+  ;; silently ate every leader command (`SPC g g' for magit, etc.) the
+  ;; whole time you were presenting.
+  (when (modulep! :editor evil)
+    (with-eval-after-load 'org-present
+      (evil-define-key 'normal org-present-mode-keymap
+        (kbd "<right>") #'org-present-next
+        (kbd "<left>")  #'org-present-prev
+        (kbd "SPC")     nil
+        (kbd "S-SPC")   nil))
+    ;; org-present-mode's evil auxiliary keymap (populated above and by
+    ;; evil-collection) only takes effect once `evil-mode-map-alist' is
+    ;; rebuilt to include it -- nothing does that automatically when the
+    ;; mode toggles on. Same fix as `evil-org-mode-hook' below.
+    (add-hook 'org-present-mode-hook #'evil-normalize-keymaps)))
+
 ;; org-cliplink: insert the URL on the kill ring as an org link with
 ;; the page's title fetched live. Useful inside captures where you've
 ;; just yanked a URL from the browser. Override `transport-implementation'
