@@ -90,17 +90,18 @@ External dependencies:
 Per-language modes, LSP wiring, and companion tooling. Most default
 to tree-sitter major modes when a grammar is available.
 
-| Module       | Flags                       | Summary                                                     |
-|--------------|-----------------------------|-------------------------------------------------------------|
-| `org`        | `+roam`, `+hugo`, `+pretty`, `+present` | org-modern, org-appear, org-cliplink, org-present |
-| `markdown`   |                             | markdown-mode, xwidget live preview, mermaid                |
-| `javascript` | `+deno`                     | JS/TS/TSX via tree-sitter, jest, biome/prettier auto-detect |
-| `csharp`     |                             | csharp-ts-mode, dotnet minor mode, csharp-ls                |
-| `elixir`     |                             | elixir-ts-mode, exunit runner, LSP via dexter               |
-| `erlang`     |                             | erlang-ts-mode, ELP language server, erlfmt                 |
-| `json`       |                             | json-ts-mode, auto-LSP                                      |
-| `yaml`       |                             | yaml-ts-mode, auto-LSP                                      |
-| `likec4`     |                             | LikeC4 architecture-as-code, tree-sitter, LSP, dev preview  |
+| Module       | Flags                                   | Summary                                                                                         |
+|--------------|-----------------------------------------|-------------------------------------------------------------------------------------------------|
+| `org`        | `+roam`, `+hugo`, `+pretty`, `+present` | org-modern, org-appear, org-cliplink, org-present                                               |
+| `markdown`   |                                         | markdown-mode, xwidget live preview, mermaid                                                    |
+| `javascript` | `+deno`                                 | JS/TS/TSX via tree-sitter, jest, biome/prettier auto-detect                                     |
+| `csharp`     |                                         | csharp-ts-mode, dotnet minor mode, csharp-ls                                                    |
+| `elixir`     |                                         | elixir-ts-mode, exunit runner, LSP via dexter                                                   |
+| `erlang`     |                                         | erlang-ts-mode, ELP language server, erlfmt                                                     |
+| `json`       |                                         | json-ts-mode, auto-LSP                                                                          |
+| `yaml`       |                                         | yaml-ts-mode, auto-LSP                                                                          |
+| `rust`       |                                         | rust-ts-mode, rust-analyzer, cargo localleader, cargo-aware flycheck (`+clippy` = clippy first) |
+| `likec4`     |                                         | LikeC4 architecture-as-code, tree-sitter, LSP, dev preview                                      |
 
 External dependencies (when `:tools lsp` is enabled):
 
@@ -115,6 +116,9 @@ External dependencies (when `:tools lsp` is enabled):
 - **json**: `vscode-json-language-server`
   (`npm i -g vscode-langservers-extracted`)
 - **yaml**: `yaml-language-server` (`npm i -g yaml-language-server`)
+- **rust**: `rust-analyzer` on PATH (`rustup component add
+  rust-analyzer`); formatting via `rustfmt` (ships with the toolchain);
+  `+clippy` needs the clippy component (`rustup component add clippy`)
 - **likec4**: `likec4` (`brew install likec4` or `npm i -g likec4`); bundles LSP, formatter, and dev server
 - **markdown**: `cmark-gfm` for live preview (no LSP)
 

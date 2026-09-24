@@ -265,12 +265,25 @@ session and runs the workspace-folders-changed hooks."
 (defun scratch-lsp--prune-stale-session-folders (session)
   "Remove SESSION folders that no longer exist on disk.
 Runs once, right after SESSION is loaded from `lsp-session-file',
-so it never touches a live workspace. Returns SESSION."
+so it never touches a live workspace. Returns SESSION.
+
+`lsp--load-default-session' also fires while lsp-mode's client
+packages are still loading: some bundled clients (e.g. lsp-typespec)
+call `lsp-session' at registration time to resolve their server
+binary, which triggers a session load mid-cascade. In that window
+the struct machinery can come from stale bytecode that lacks the
+named `(setf lsp-session-folders)' function, and a signalling setf
+would abort the whole client-loading cascade -- and with it `lsp'
+itself (observed as \"Error running timer: (void-function (setf
+lsp-session-folders))\" in frameless daemons). Write the slot
+directly instead; `cl-struct-slot-offset' reads the same type
+registration the readers use, so this is equivalent to the setf."
   (let* ((live-p (lambda (folder) (file-directory-p folder)))
          (folders (lsp-session-folders session))
          (stale (cl-remove-if live-p folders)))
     (when stale
-      (setf (lsp-session-folders session) (cl-remove-if-not live-p folders))
+      (aset session (cl-struct-slot-offset 'lsp-session 'folders)
+            (cl-remove-if-not live-p folders))
       (maphash (lambda (server-id folders)
                  (puthash server-id (cl-remove-if-not live-p folders)
                           (lsp-session-server-id->folders session)))
