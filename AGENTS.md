@@ -145,6 +145,7 @@ Currently wired integrations to use as references:
 | `:checkers syntax` | `:editor evil` | `flycheck-posframe` inhibited in insert / replace state |
 | `:checkers syntax` | `:completion corfu` | `flycheck-posframe` inhibited while a corfu candidate is selected (avoids overlapping popups) |
 | `:ui hl-todo` | `:completion vertico` | `consult-todo` for `SPC s t` (buffer) and `SPC s T` (project-wide) |
+| `:lang <x> +debug` | `:tools dape` | language registers its DAP adapter configs in `dape-configs` (additive, never clobbers upstream) + localleader `d` prefix; `:lang python`'s `debugpy-uv` is the reference wiring |
 
 Common companion packages to check for when adding a new module:
 

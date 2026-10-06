@@ -77,6 +77,7 @@ Language-agnostic tools that `:lang` modules build on.
 | `direnv`       |         | Buffer-local direnv via envrc.el              |
 | `mise`         |         | Buffer-local mise for runtime versions        |
 | `just`         |         | Major mode for Justfiles via just-mode        |
+| `dape`         |         | DAP debugging client; languages opt in via their own `+debug` flag |
 
 External dependencies:
 
@@ -98,9 +99,10 @@ to tree-sitter major modes when a grammar is available.
 | `csharp`     |                                         | csharp-ts-mode, dotnet minor mode, csharp-ls                                                    |
 | `elixir`     |                                         | elixir-ts-mode, exunit runner, LSP via dexter                                                   |
 | `erlang`     |                                         | erlang-ts-mode, ELP language server, erlfmt                                                     |
-| `json`       |                                         | json-ts-mode, auto-LSP                                                                          |
+| `json`       |                                         | json-ts-mode for `.json` / `.jsonc`, auto-LSP                                                   |
 | `yaml`       |                                         | yaml-ts-mode, auto-LSP                                                                          |
 | `rust`       |                                         | rust-ts-mode, rust-analyzer, cargo localleader, cargo-aware flycheck (`+clippy` = clippy first) |
+| `python`     | `+debug`                                | python-ts-mode, LSP via ty + ruff, uv-aware interpreter/pytest, ruff formatting, pytest localleader |
 | `likec4`     |                                         | LikeC4 architecture-as-code, tree-sitter, LSP, dev preview                                      |
 
 External dependencies (when `:tools lsp` is enabled):
@@ -121,6 +123,20 @@ External dependencies (when `:tools lsp` is enabled):
   `+clippy` needs the clippy component (`rustup component add clippy`)
 - **likec4**: `likec4` (`brew install likec4` or `npm i -g likec4`); bundles LSP, formatter, and dev server
 - **markdown**: `cmark-gfm` for live preview (no LSP)
+- **python**: `ty` + `ruff` on PATH (`uv tool install ty ruff`);
+  `uv` for project/environment detection; formatting via `ruff`;
+  tests via `pytest` (invoked through `uv run pytest` in uv projects);
+  `+debug` needs `:tools dape` and uses `uv run --with debugpy`, so
+  `debugpy` does not have to be installed
+
+## `:tools dape` -- debugger client
+
+DAP client with adapters resolved per project at debug time:
+
+- **python** (`+debug`): `debugpy-uv` config, injects debugpy via
+  `uv run --with debugpy` (nothing to install)
+- **rust / c / c++**: stock `gdb` / `lldb-dap` / `dlv` configs from
+  upstream, no module wiring needed
 
 ## `:term` -- terminal emulators
 

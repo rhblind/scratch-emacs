@@ -60,8 +60,8 @@ Each module has a `packages.el` (package declarations) and a
           :completion  vertico corfu
           :emacs       (vc +forge +gutter) ibuffer dired
           :checkers    syntax
-          :tools       (lsp +peek) editorconfig direnv mise
-          :lang        org markdown (javascript +deno) json yaml (rust +clippy)
+          :tools       (lsp +peek) editorconfig direnv mise dape
+          :lang        org markdown (javascript +deno) json yaml (rust +clippy) (python +debug)
           :llm         (claude-ide +mcp +ide-diff) (eca +completion)
           :term        vterm
           :os          macos
