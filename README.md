@@ -33,7 +33,7 @@ what matches the modules you enable:
 | `:lang toml`                | `taplo`                               | `brew install taplo`                                         |
 | `:lang rust`                | `rustup` toolchain components         | `rustup component add rust-analyzer clippy`                  |
 | `:lang elixir`              | `dexter` LSP server                   | on `$PATH` (see module docs)                                 |
-| `:lang erlang`              | ELP + `erlfmt`               | `brew install erlang-language-platform erlfmt`               |
+| `:lang erlang`              | ELP + `erlfmt`                        | `brew install erlang-language-platform erlfmt`               |
 | `:lang javascript`          | `typescript-language-server` (+deno)  | `npm i -g typescript-language-server typescript`             |
 | `:lang json` / `:lang yaml` | npm LSP servers                       | `npm i -g vscode-langservers-extracted yaml-language-server` |
 | `:lang likec4`              | `likec4`                              | `brew install likec4` (or `npm i -g likec4`)                 |
