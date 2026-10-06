@@ -54,6 +54,9 @@ auto-save/
 .eca/
 eca/
 
+# Local OpenCode config
+opencode.json*
+
 # Superpowers specs / plans -- local working docs, not tracked
 /docs/
 
