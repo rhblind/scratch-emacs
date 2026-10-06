@@ -103,6 +103,7 @@ to tree-sitter major modes when a grammar is available.
 | `yaml`       |                                         | yaml-ts-mode, auto-LSP                                                                          |
 | `rust`       |                                         | rust-ts-mode, rust-analyzer, cargo localleader, cargo-aware flycheck (`+clippy` = clippy first) |
 | `python`     | `+debug`                                | python-ts-mode, LSP via ty + ruff, uv-aware interpreter/pytest, ruff formatting, pytest localleader |
+| `toml`       |                                         | toml-ts-mode, taplo LSP with editor schemas (pyproject/Cargo/mise)                              |
 | `likec4`     |                                         | LikeC4 architecture-as-code, tree-sitter, LSP, dev preview                                      |
 
 External dependencies (when `:tools lsp` is enabled):
@@ -114,7 +115,8 @@ External dependencies (when `:tools lsp` is enabled):
 - **csharp**: `csharp-ls` (`dotnet tool install -g csharp-ls`);
   `csharpier` for formatting
 - **elixir**: `dexter` LSP server on PATH; `mix` for formatting
-- **erlang**: ELP (Erlang Language Platform); `erlfmt` for formatting
+- **erlang**: WhatsApp's ELP (Erlang Language Platform) and its
+  `erlfmt` formatter (`brew install erlang-language-platform erlfmt`)
 - **json**: `vscode-json-language-server`
   (`npm i -g vscode-langservers-extracted`)
 - **yaml**: `yaml-language-server` (`npm i -g yaml-language-server`)
@@ -123,11 +125,15 @@ External dependencies (when `:tools lsp` is enabled):
   `+clippy` needs the clippy component (`rustup component add clippy`)
 - **likec4**: `likec4` (`brew install likec4` or `npm i -g likec4`); bundles LSP, formatter, and dev server
 - **markdown**: `cmark-gfm` for live preview (no LSP)
-- **python**: `ty` + `ruff` on PATH (`uv tool install ty ruff`);
+- **python**: `ty` + `ruff` on PATH (`brew install uv ty ruff`, or
+  `uv tool install ty ruff`);
   `uv` for project/environment detection; formatting via `ruff`;
   tests via `pytest` (invoked through `uv run pytest` in uv projects);
   `+debug` needs `:tools dape` and uses `uv run --with debugpy`, so
   `debugpy` does not have to be installed
+- **toml**: `taplo` on PATH (`brew install taplo`, `cargo install
+  taplo-cli --locked`, or the GitHub release binary; the PyPI wheel
+  ships without LSP support); tree-sitter grammar via `treesit-auto`
 
 ## `:tools dape` -- debugger client
 

@@ -15,13 +15,47 @@ You're welcome to use it as-is, fork it, or send PRs, but this is mostly  a pers
 
 ## Requirements
 
+Core requirements:
+
 - **Emacs 30+**
 - **Git** for package management via [straight.el](https://github.com/radian-software/straight.el)
 - **A nerd font** (`M-x nerd-icons-install-fonts` on first install)
 - **Tree-sitter grammars** (`M-x treesit-auto-install-all` after enabling a new language module)
-- **[ripgrep](https://github.com/BurntSushi/ripgrep)** for project search
+- **[ripgrep](https://github.com/BurntSushi/ripgrep)** for project search (`brew install ripgrep`)
 - **cmake + libtool** for `:term vterm` (builds a native module on first load); `:term ghostel` auto-downloads its binary instead
-- **[cmark-gfm](https://github.com/github/cmark-gfm)**  for `:lang markdown` live preview
+
+Language and tooling modules shell out to external programs. Install
+what matches the modules you enable:
+
+| Module(s)                   | Tool(s)                               | Install                                                      |
+|-----------------------------|---------------------------------------|--------------------------------------------------------------|
+| `:lang python`              | `uv`, `ty`, `ruff`                    | `brew install uv ty ruff`                                    |
+| `:lang toml`                | `taplo`                               | `brew install taplo`                                         |
+| `:lang rust`                | `rustup` toolchain components         | `rustup component add rust-analyzer clippy`                  |
+| `:lang elixir`              | `dexter` LSP server                   | on `$PATH` (see module docs)                                 |
+| `:lang erlang`              | ELP + `erlfmt`               | `brew install erlang-language-platform erlfmt`               |
+| `:lang javascript`          | `typescript-language-server` (+deno)  | `npm i -g typescript-language-server typescript`             |
+| `:lang json` / `:lang yaml` | npm LSP servers                       | `npm i -g vscode-langservers-extracted yaml-language-server` |
+| `:lang likec4`              | `likec4`                              | `brew install likec4` (or `npm i -g likec4`)                 |
+| `:lang csharp`              | .NET SDK + global tools               | `dotnet tool install -g csharp-ls csharpier`                 |
+| `:lang markdown`            | `cmark-gfm`                           | `brew install cmark-gfm`                                     |
+| `:tools mise`               | `mise`                                | `brew install mise`                                          |
+| `:tools direnv`             | `direnv`                              | `brew install direnv`                                        |
+| `:tools just`               | `just`                                | `brew install just`                                          |
+| `:tools dape`               | adapter per project (none for python) | python uses `uv run --with debugpy` at debug time            |
+
+Notes:
+
+- `brew` alternatives: most of the above also install via other
+  channels -- `uv tool install ty ruff`, `npm i -g`, `dotnet tool`,
+  or the project's own toolchain. Use whatever your machine prefers;
+  the tool just has to be on the `$PATH` Emacs inherits.
+- **taplo caveat**: the PyPI wheel (`uv tool install taplo`, `pip
+  install taplo`) ships *without* LSP support -- lsp-mode fails with
+  "the LSP is not part of this build". Use `brew install taplo`,
+  `cargo install taplo-cli --locked`, or the GitHub release binary.
+- After installing tools, run `scratch env` so the Emacs daemon
+  snapshots the updated `$PATH`.
 
 ## Install
 
@@ -61,7 +95,7 @@ Each module has a `packages.el` (package declarations) and a
           :emacs       (vc +forge +gutter) ibuffer dired
           :checkers    syntax
           :tools       (lsp +peek) editorconfig direnv mise dape
-          :lang        org markdown (javascript +deno) json yaml (rust +clippy) (python +debug)
+          :lang        org markdown (javascript +deno) json yaml toml (rust +clippy) (python +debug)
           :llm         (claude-ide +mcp +ide-diff) (eca +completion)
           :term        vterm
           :os          macos
