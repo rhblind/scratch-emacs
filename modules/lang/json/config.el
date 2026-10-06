@@ -25,6 +25,13 @@
                '(json "https://github.com/tree-sitter/tree-sitter-json"
                       "master" "src")))
 
+;; `.jsonc' (VS Code-style JSON with comments) isn't registered by
+;; vanilla Emacs. Route it through the legacy JSON mode so the remap
+;; below upgrades it to `json-ts-mode' when the grammar is installed:
+;; the json grammar parses both `//' and `/* */' comments, and
+;; json-ts-mode fontifies them and sets `comment-start'.
+(add-to-list 'auto-mode-alist '("\\.jsonc\\'" . js-json-mode))
+
 ;; Tree-sitter mode remap, only when the grammar is actually
 ;; installed -- otherwise legacy `js-json-mode' / `javascript-mode'
 ;; handle the buffer cleanly. Mirrors the csharp/elixir pattern.
