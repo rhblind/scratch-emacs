@@ -91,16 +91,17 @@ nearest-Cargo.toml resolution."
 Checks every directory between the buffer's directory and the
 project boundary, nearest first. Covers both flat projects and uv
 workspaces (member package has its own pyproject.toml but only the
-workspace root has the `.venv')."
+workspace root has the `.venv'). Always steps past the boundary to
+terminate -- a project without a venv anywhere up the tree (e.g.
+before the first `uv sync') must exit the loop, not spin."
   (when-let* ((boundary (scratch-python--project-boundary)))
     (let ((dir (file-name-as-directory (scratch-python--buffer-dir)))
           (result nil))
       (while (and (not result) (string-prefix-p boundary dir))
         (let ((python (expand-file-name ".venv/bin/python" dir)))
           (setq result (and (file-exists-p python) python))
-          (unless (or result (string= dir boundary))
-            (setq dir (file-name-as-directory
-                       (expand-file-name ".." dir))))))
+          (setq dir (file-name-as-directory
+                     (expand-file-name ".." dir)))))
       result)))
 
 (defun scratch-python--use-uv-p ()
