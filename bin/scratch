@@ -1015,23 +1015,27 @@
 ;;; sync ----------------------------------------------------------------------
 
 (defun scratch-cli--sync-help ()
-  (scratch-cli--print "Usage: scratch sync [--force-tangle] [--rebuild]")
+  (scratch-cli--print "Usage: scratch sync [--force-tangle] [--pull] [--rebuild]")
   (scratch-cli--print "")
   (scratch-cli--print "Re-tangle config.org, install declared packages, and prune orphans.")
   (scratch-cli--print "Run this after editing your literate config or adding/removing modules.")
   (scratch-cli--print "")
   (scratch-cli--print "Options:")
   (scratch-cli--print "  --force-tangle  Re-tangle config.org even if outputs look fresh.")
+  (scratch-cli--print "  --pull          Pull every straight package to its latest version")
+  (scratch-cli--print "                  before installing, then rebuild (implies --rebuild).")
   (scratch-cli--print "  --rebuild       Rebuild byte-compiled output of every installed package")
   (scratch-cli--print "                  (useful after upgrading Emacs)."))
 
 (defun scratch-cli-sync (args)
   "Tangle the user config and install/build all declared packages."
   (let ((force-tangle nil)
+        (pull nil)
         (rebuild nil))
     (while args
       (pcase (car args)
         ("--force-tangle" (setq force-tangle t args (cdr args)))
+        ("--pull"         (setq pull t rebuild t args (cdr args)))
         ("--rebuild"      (setq rebuild t      args (cdr args)))
         ((or "-h" "--help") (scratch-cli--sync-help) (kill-emacs 0))
         (arg (scratch-cli--die "sync: unknown option: %s" arg))))
@@ -1076,6 +1080,12 @@
     (scratch-cli--print "Loading framework...")
     (load (expand-file-name "init.el" scratch-cli--emacs-dir) nil 'nomessage)
 
+    (when pull
+      (scratch-cli--print "")
+      (scratch-cli--print "Pulling all straight packages...")
+      (if (fboundp 'straight-pull-all)
+          (straight-pull-all)
+        (scratch-cli--die "sync: straight-pull-all not available")))
     (when rebuild
       (scratch-cli--print "")
       (scratch-cli--print "Rebuilding all straight packages...")
@@ -1459,7 +1469,8 @@ ALLOW and BLOCK are lists of regexps; ALLOW overrides BLOCK."
   (scratch-cli--print "")
   (scratch-cli--print "Commands:")
   (scratch-cli--print "  install [--user-dir DIR] [--force]   Bootstrap the user overrides dir")
-  (scratch-cli--print "  sync [--force-tangle] [--rebuild]    Re-tangle and install all packages")
+  (scratch-cli--print "  sync [--force-tangle] [--pull] [--rebuild]")
+  (scratch-cli--print "                                       Re-tangle and install all packages")
   (scratch-cli--print "  upgrade [--skip-sync]                Pull framework, validate config, sync")
   (scratch-cli--print "  freeze                               Pin every installed package to its current commit")
   (scratch-cli--print "  env [clear] [--shell SHELL]          Snapshot shell env (PATH etc.) for GUI Emacs")
