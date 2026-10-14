@@ -33,8 +33,13 @@
  (expand-file-name "env" user-emacs-directory) 'noerror)
 
 ;;; straight.el bootstrap (https://github.com/radian-software/straight.el)
-;;; Download tarballs instead of full git clones for faster initial install.
-(setq straight-vc-use-snapshot-installation t)
+;;; Keep full git clones instead of tarball snapshots. Snapshot installs
+;;; (a `.straight-commit' marker, no `.git') break `straight-pull-all'
+;;; when the repos directory lives inside a git repository: git falls
+;;; through to the parent repo, straight sees a mismatched origin URL
+;;; and errors. Bootstrap speed is not worth losing package updates
+;;; over.
+(setq straight-vc-use-snapshot-installation nil)
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name

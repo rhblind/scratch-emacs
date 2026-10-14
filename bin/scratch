@@ -1085,7 +1085,12 @@
       (scratch-cli--print "Pulling all straight packages...")
       (if (fboundp 'straight-pull-all)
           (straight-pull-all)
-        (scratch-cli--die "sync: straight-pull-all not available")))
+        (scratch-cli--die "sync: straight-pull-all not available"))
+      ;; Record the pulled commits in the lockfile; without this the
+      ;; next startup checks the pre-pull commits back out.
+      (when (fboundp 'straight-freeze-versions)
+        (scratch-cli--print "Freezing pulled versions...")
+        (straight-freeze-versions t)))
     (when rebuild
       (scratch-cli--print "")
       (scratch-cli--print "Rebuilding all straight packages...")
