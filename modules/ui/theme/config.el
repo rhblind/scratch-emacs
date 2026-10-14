@@ -47,32 +47,6 @@ Override by `setq' BEFORE calling `scratch!'.")
         custom-enabled-themes))
 (advice-add 'load-theme :before #'scratch-theme--disable-previous-a)
 
-;; Emacs 32 turned face inheritance cycles into hard errors, and
-;; doom-themes trips one against gnus's own defaults: its
-;; `gnus-group-news-low-empty' spec inherits `gnus-group-news-low', while
-;; gnus's defface makes `gnus-group-news-low' inherit
-;; `gnus-group-news-low-empty'. The cycle fires wherever the second spec
-;; lands (theme load if gnus is already up, gnus load if a theme is
-;; already enabled), so doom-themes' definition-order fix (upstream
-;; 53645a9) can't help. Tolerate exactly this class of cycle for
-;; gnus-group-* faces: the offending :inherit is skipped and the face
-;; falls back to gnus's default styling, instead of aborting the whole
-;; theme load or gnus's load.
-(when (>= emacs-major-version 32)
-  (define-advice internal-set-lisp-face-attribute
-      (:around (orig face attr value &optional frame)
-               scratch-theme-tolerate-gnus-face-cycles)
-    (if (and (eq attr :inherit)
-             (string-prefix-p "gnus-group-" (symbol-name face)))
-        (condition-case err
-            (funcall orig face attr value frame)
-          (error
-           (unless (string-prefix-p
-                    "Face inheritance results in inheritance cycle"
-                    (error-message-string err))
-             (signal (car err) (cdr err)))))
-      (funcall orig face attr value frame))))
-
 (cond
  ((modulep! +light)
   (mapc #'disable-theme custom-enabled-themes)
