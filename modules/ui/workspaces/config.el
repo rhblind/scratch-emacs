@@ -158,7 +158,7 @@ that's already correct)."
                (file-in-directory-p default-directory root))
     (let ((match (cl-find-if
                   (lambda (buf)
-                    (when-let ((file (buffer-file-name buf)))
+                    (when-let* ((file (buffer-file-name buf)))
                       (file-in-directory-p file root)))
                   (persp-buffer-list))))
       (cond
@@ -177,7 +177,7 @@ workspaces that were never routed through `project-switch-project'."
       (when-let* ((persp (persp-get-by-name name))
                   (buf (cl-find-if #'buffer-live-p (persp-buffers persp)))
                   (dir (buffer-local-value 'default-directory buf)))
-        (if-let ((proj (project-current nil dir))) (project-root proj) dir))))
+        (if-let* ((proj (project-current nil dir))) (project-root proj) dir))))
 
 (defun scratch-workspaces--git-info (root)
   "Return (WORKTREE-P . PROJECT-BASENAME) for the git repo at ROOT, or nil.
@@ -220,7 +220,7 @@ stands out inside a long worktree path."
                  (display (propertize (abbreviate-file-name root) 'face
                                       (if worktree-p 'marginalia-key
                                         'marginalia-documentation))))
-      (when-let ((pos (and project (string-match (regexp-quote project) display))))
+      (when-let* ((pos (and project (string-match (regexp-quote project) display))))
         (add-face-text-property pos (+ pos (length project)) 'bold nil display))
       display))
 
@@ -228,7 +228,7 @@ stands out inside a long worktree path."
     "Marginalia annotator for the `workspace' category.
 Shows NAME's root; see `scratch-workspaces--annotate-root' for the
 coloring/bolding."
-    (when-let ((root (scratch-workspaces--root-for name)))
+    (when-let* ((root (scratch-workspaces--root-for name)))
       (marginalia--fields
        ((scratch-workspaces--annotate-root root)))))
 
@@ -249,7 +249,7 @@ workspace's project after the switch."
     (when (y-or-n-p (format "Workspace %S doesn't exist. Create it? " name))
       (persp-add-new name)))
   (persp-frame-switch name)
-  (when-let ((root (scratch-workspaces--known-project-root-by-name name)))
+  (when-let* ((root (scratch-workspaces--known-project-root-by-name name)))
     (scratch-workspaces--ensure-in-project root)
     ;; Pull treemacs along ONLY if it's already visible -- if it was
     ;; closed in the previous workspace, the user wants it closed
@@ -352,7 +352,7 @@ workspace's project after the switch."
 (defun scratch/workspace-switch-to-final ()
   "Switch to the last open workspace."
   (interactive)
-  (when-let ((name (car (last (scratch-workspaces--names)))))
+  (when-let* ((name (car (last (scratch-workspaces--names)))))
     (persp-frame-switch name)
     (scratch/workspace-display)))
 
@@ -388,7 +388,7 @@ Uses the basename of DIRECTORY (e.g. `/path/to/foo/' -> `foo')."
 
 (defun scratch-workspaces--workspace-empty-p (&optional name)
   "Non-nil if workspace NAME (defaults to current) has no buffers."
-  (when-let ((persp (if name (persp-get-by-name name) (get-current-persp))))
+  (when-let* ((persp (if name (persp-get-by-name name) (get-current-persp))))
     (null (persp-buffers persp))))
 
 (defun scratch-workspaces--remember-project (directory)
@@ -396,7 +396,7 @@ Uses the basename of DIRECTORY (e.g. `/path/to/foo/' -> `foo')."
 Workaround for `project-prompt-project-dir' only registering subdirs of
 the entered path -- it never adds the path itself, so projects switched
 to via `SPC p p' don't survive Emacs restarts."
-  (when-let ((proj (project--find-in-directory
+  (when-let* ((proj (project--find-in-directory
                     (file-name-as-directory (expand-file-name directory)))))
     (project-remember-project proj)))
 
@@ -444,7 +444,7 @@ subdirectories of the path you typed, not the path itself)."
       (lambda ()
         (interactive)
         (let ((names (scratch-workspaces--names)))
-          (if-let ((target (nth idx names)))
+          (if-let* ((target (nth idx names)))
               (progn (persp-frame-switch target)
                      (scratch/workspace-display))
             (user-error "No workspace at slot %d" (1+ idx)))))

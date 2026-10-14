@@ -1104,13 +1104,18 @@
     (scratch-cli--print "")
     (scratch-cli--print "Pruning unused packages...")
     (define-advice delete-directory (:around (fn dir &rest args) scratch-force-delete)
-      "Make git pack files writable before deleting so prune doesn't fail."
+      "Make git pack files writable before deleting so prune doesn't fail,
+and delete package dirs directly instead of moving them to the Trash
+(the user's `delete-by-moving-to-trash' default both breaks batch
+pruning and piles package trees into the Trash)."
       (when (and (file-directory-p dir)
                  (file-directory-p (expand-file-name ".git" dir)))
         (dolist (f (directory-files-recursively
                     (expand-file-name ".git" dir) "." t))
           (set-file-modes f #o700)))
-      (apply fn dir args))
+      (when (file-exists-p dir)
+        (let (delete-by-moving-to-trash)
+          (apply fn dir args))))
     (when (fboundp 'straight-remove-unused-repos)
       (straight-remove-unused-repos 'force))
     (when (fboundp 'straight-prune-build)

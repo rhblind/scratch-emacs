@@ -178,24 +178,24 @@ Set to nil or 1.0 to keep org at the global font size. Override by
 
 (defun scratch-org--project-root ()
   "Return the root directory of the current project, or nil."
-  (when-let ((proj (project-current)))
+  (when-let* ((proj (project-current)))
     (project-root proj)))
 
 (defun scratch-org-project-todo-file ()
   "Return TODO.org in the current project root."
-  (if-let ((root (scratch-org--project-root)))
+  (if-let* ((root (scratch-org--project-root)))
       (expand-file-name "TODO.org" root)
     (user-error "No project found; open a project file first")))
 
 (defun scratch-org-project-notes-file ()
   "Return NOTES.org in the current project root."
-  (if-let ((root (scratch-org--project-root)))
+  (if-let* ((root (scratch-org--project-root)))
       (expand-file-name "NOTES.org" root)
     (user-error "No project found; open a project file first")))
 
 (defun scratch-org-project-changelog-file ()
   "Return CHANGELOG.org in the current project root."
-  (if-let ((root (scratch-org--project-root)))
+  (if-let* ((root (scratch-org--project-root)))
       (expand-file-name "CHANGELOG.org" root)
     (user-error "No project found; open a project file first")))
 

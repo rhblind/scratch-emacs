@@ -61,7 +61,7 @@
 
 (defun scratch-vterm--project-root ()
   "Return the current project root, or `default-directory' as fallback."
-  (or (when-let ((proj (project-current))) (project-root proj))
+  (or (when-let* ((proj (project-current))) (project-root proj))
       default-directory))
 
 (defun scratch-vterm--popup-buffer-name ()

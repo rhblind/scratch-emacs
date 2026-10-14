@@ -61,7 +61,7 @@
 (defun scratch/yank-buffer-filepath ()
   "Copy the current buffer's absolute file path to the kill ring."
   (interactive)
-  (if-let ((path (buffer-file-name)))
+  (if-let* ((path (buffer-file-name)))
       (progn
         (kill-new path)
         (message "Copied: %s" path))
@@ -71,7 +71,7 @@
   "Copy the current buffer's project-relative file path to the kill ring.
 Falls back to the absolute path when outside a project."
   (interactive)
-  (if-let ((path (buffer-file-name)))
+  (if-let* ((path (buffer-file-name)))
       (let* ((proj (project-current))
              (root (when proj (project-root proj)))
              (rel (if root

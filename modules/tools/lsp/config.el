@@ -309,7 +309,7 @@ registration the readers use, so this is equivalent to the setf."
                     (setq groups
                           (cl-remove-if-not
                            (lambda (g)
-                             (when-let ((file (plist-get g :file)))
+                             (when-let* ((file (plist-get g :file)))
                                (scratch-lsp--keep-location-p
                                 file our-main our-label)))
                            groups))))

@@ -56,7 +56,7 @@
 With an active region, copy as `path:L1-L2' (GitHub-style range).
 Without a region, copy just the path."
   (interactive)
-  (if-let ((path (buffer-file-name)))
+  (if-let* ((path (buffer-file-name)))
       (let ((s (cond
                 ((use-region-p)
                  (let ((beg (line-number-at-pos (region-beginning)))
