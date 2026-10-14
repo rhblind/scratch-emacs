@@ -36,9 +36,11 @@
   (when (modulep! :editor evil)
     (add-hook 'evil-insert-state-exit-hook #'corfu-quit))
 
-  ;; Terminal popup support: only require/configure corfu-terminal when we
-  ;; might serve a TTY frame. Pure GUI launches never load it.
-  (when (or (daemonp) (not (display-graphic-p)))
+  ;; Terminal popup support: only require/configure corfu-terminal when
+  ;; corfu lacks native TTY support (below Emacs 31) and we might serve
+  ;; a TTY frame. Pure GUI launches never load it.
+  (when (and (< emacs-major-version 31)
+             (or (daemonp) (not (display-graphic-p))))
     (require 'corfu-terminal)
     (defun scratch-corfu--enable-terminal-for-tty (&optional frame)
       "Activate `corfu-terminal-mode' when FRAME is a TTY frame."

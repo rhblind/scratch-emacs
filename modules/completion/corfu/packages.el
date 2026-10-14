@@ -16,6 +16,9 @@
 
 ;; corfu's default popup uses child-frames, which don't render in a TTY.
 ;; corfu-terminal swaps in an overlay-based popup for terminal frames.
-;; Installed unconditionally because a daemon may serve TTY emacsclients
-;; later even if the daemon itself started without a display.
-(straight-use-package 'corfu-terminal)
+;; Only needed below Emacs 31, where corfu grew native TTY support;
+;; installing it on 31+ makes corfu warn at load time. A daemon may
+;; still serve TTY emacsclients later even if it starts without a
+;; display, hence the version guard rather than a display check.
+(when (< emacs-major-version 31)
+  (straight-use-package 'corfu-terminal))
