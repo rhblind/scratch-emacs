@@ -78,6 +78,16 @@ Override by `setq' BEFORE calling `scratch!'.")
     (cond
      (noninteractive
       (load-theme scratch-theme-dark t))
+     ((daemonp)
+      ;; A headless daemon has no GUI frame at init, so `window-system'
+      ;; is nil and auto-dark cannot detect the OS appearance (its
+      ;; applescript mechanism requires a graphic display). Enable it
+      ;; on the first client frame instead; the `unless' keeps the
+      ;; hook idempotent across reconnects and re-evals.
+      (add-hook 'server-after-make-frame-hook
+                (lambda ()
+                  (unless auto-dark-mode
+                    (auto-dark-mode 1)))))
      (t
       ;; Pass `1' explicitly: a bare `(auto-dark-mode)' toggles, and
       ;; if anything else already activated the mode (re-eval, custom
