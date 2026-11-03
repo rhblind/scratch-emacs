@@ -56,10 +56,23 @@ installed and built."
               ";;; scratch-autoloads.el ends here\n"))
     (message "[scratch] Generated %s (%d packages)"
              scratch-autoloads-file (length autoload-files))
-    ;; Byte-compile for faster loading (suppress upstream docstring warnings)
+    ;; Byte-compile for faster loading. Warnings are silenced: the
+    ;; bundle is generated from upstream autoloads, so its warnings
+    ;; are noise by construction (functions "not known to be defined"
+    ;; outside their own package, defcustoms missing :group). Real
+    ;; compile errors still print.
     (message "[scratch] Byte-compiling autoloads...")
-    (let ((byte-compile-warnings '(not docstrings free-vars)))
-      (byte-compile-file scratch-autoloads-file))
+    (require 'bytecomp)          ; let-binding its vars before load breaks
+    (let ((byte-compile-warnings nil))
+      (if (and (boundp 'byte-compile-log-warning-function)
+               (fboundp 'byte-compile--log-warning-for-byte-compile))
+          (let ((byte-compile-log-warning-function
+                 (lambda (string position fill level)
+                   (when (eq level :error)
+                     (byte-compile--log-warning-for-byte-compile
+                      string position fill level)))))
+            (byte-compile-file scratch-autoloads-file))
+        (byte-compile-file scratch-autoloads-file)))
     ;; Native-compile if available
     (when (and (fboundp 'native-compile-async)
                (not (getenv "SCRATCH_SKIP_NATIVECOMP")))
