@@ -103,3 +103,40 @@ activates with a missing grammar."
     (scratch-erlang--def-localleader erlang-mode-map))
   (with-eval-after-load 'erlang-ts
     (scratch-erlang--def-localleader erlang-ts-mode-map)))
+
+;;; Fix: Emacs 31 SIGABRT when fontifying Erlang buffers.
+;;
+;; erlang-ts-mode's font-lock rules match guards / BIF atoms with
+;; erlang.el regexes wrapped in \_<...\_> (symbol anchors). When Emacs
+;; evaluates a treesit `#match!' predicate whose regexp needs syntax
+;; info, it calls `syntax-propertize' from inside the query -- and
+;; `erlang-ts--syntax-propertize' runs a nested `treesit-query-capture'
+;; while the outer query cursor is still iterating. That corrupts
+;; tree-sitter state and crashes Emacs (SIGABRT in
+;; ts_query_cursor__advance, libtree-sitter 0.27).
+;;
+;; Re-anchor those regexes against the captured node's full text
+;; instead: `^...$' has identical semantics for a whole-node match and
+;; carries no syntax-table dependency, so `syntax-propertize' is never
+;; called mid-query. Same trick the built-in elixir-ts-mode uses for
+;; its `:match' regexes.
+(defvar erlang-guards-regexp)
+(defvar erlang-int-bif-regexp)
+(defvar erlang-ext-bif-regexp)
+(defvar erlang-guards)
+(defvar erlang-int-bifs)
+(defvar erlang-ext-bifs)
+
+(defun scratch-erlang--anchored-font-lock-rules (fn)
+  "Call FN with erlang.el's symbol-anchored regexes rebound to node-text-anchored ones."
+  (let ((erlang-guards-regexp
+         (concat "^" (regexp-opt erlang-guards t) "$"))
+        (erlang-int-bif-regexp
+         (concat "^" (regexp-opt erlang-int-bifs t) "$"))
+        (erlang-ext-bif-regexp
+         (concat "^" (regexp-opt (append erlang-int-bifs erlang-ext-bifs) t) "$")))
+    (funcall fn)))
+
+(with-eval-after-load 'erlang-ts
+  (advice-add #'erlang-ts--build-font-lock-rules
+              :around #'scratch-erlang--anchored-font-lock-rules))
