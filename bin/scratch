@@ -7,7 +7,10 @@
 :; case "$EMACS" in *term*) EMACS=emacs ;; *) EMACS="${EMACS:-emacs}" ;; esac
 :; [ "x$EMACS" = xemacs ] && { type emacs >/dev/null 2>&1 || err=1; }
 :; [ "x$err" = x ] || { echo "Error: failed to run Emacs with command '$EMACS'" >&2; exit 1; }
-:; exec "$EMACS" -q --no-site-file --batch --load "$0" -- "$@"
+:; # `--script' (not `--load') so the file is read with lexical binding
+:; # (Emacs 31+ loads scripts lexically); the line-2 cookie above only
+:; # takes effect for `hack-local-variables', not for `--load'.
+:; exec "$EMACS" -q --no-site-file --batch --script "$0" -- "$@"
 :; exit 1   # unreachable
 
 ;;; scratch -- CLI for the scratch Emacs framework.
