@@ -123,8 +123,9 @@ Set this BEFORE `treemacs' loads.")
 ;; the wrong project after a workspace switch. We rely instead on the
 ;; default frame scope (one treemacs buffer per frame) plus
 ;; `treemacs-project-follow-mode' to keep the tree's content in sync
-;; with the active project; the workspaces module pulls treemacs
-;; explicitly on persp-activated for an immediate swap.
+;; with the active project; the workspaces module calls
+;; `scratch-workspaces--pull-treemacs' after each of its switch
+;; commands for an immediate, focus-safe swap.
 
 (when (modulep! :tools lsp)
   (use-package lsp-treemacs

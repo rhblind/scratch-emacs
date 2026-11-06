@@ -101,13 +101,16 @@
                 #'scratch-workspaces--project-switch-a)))
 
 ;; Note: we deliberately don't add a `persp-activated-functions' hook to
-;; pull treemacs along on persp switch. With `treemacs-persp' removed
-;; (see :ui treemacs/config.el), there's one treemacs buffer per frame
-;; and `treemacs-project-follow-mode' already swaps the tree's content
-;; on `window-buffer-change-functions' -- which fires when the user
-;; lands in a buffer in the new persp/project. An eager hook on
-;; persp-activated steals focus from a vertico minibuffer that's still
-;; up between `project-switch-project' and the user's file pick.
+;; pull treemacs along on persp switch. A hook fires mid-activation,
+;; before persp-mode has finished restoring the workspace's window
+;; configuration, so the treemacs window may not be in place yet (the
+;; pull would silently no-op) and it also runs inside unrelated
+;; activations like session loads. Instead every workspace switch path
+;; calls `scratch-workspaces--pull-treemacs' explicitly after
+;; `persp-frame-switch' has returned, when the layout is settled. The
+;; pull is wrapped in `save-selected-window', so unlike a raw hook it
+;; can't steal focus from a vertico minibuffer that's still up between
+;; `project-switch-project' and the user's file pick.
 
 
 ;;;; Helpers / commands
@@ -165,19 +168,59 @@ that's already correct)."
        (match (switch-to-buffer match))
        (t (dired root))))))
 
+(defun scratch-workspaces--persp-project-root (persp)
+  "Return the first real project root among PERSP's live buffers, or nil.
+Buffers whose directory doesn't resolve to a project are skipped
+rather than falling back to their raw directory."
+  (require 'project)
+  (cl-some
+   (lambda (buf)
+     (and (buffer-live-p buf)
+          (ignore-errors
+            (project-root
+             (project-current
+              nil (buffer-local-value 'default-directory buf))))))
+   (persp-buffers persp)))
+
 (defun scratch-workspaces--root-for (name)
   "Filesystem root to display alongside workspace NAME, or nil.
 Prefers `project.el's known-projects registry -- the same lookup
 `scratch/workspace-switch' already uses to decide whether NAME matches
 a project -- since that's authoritative rather than guessed. Falls
-back to resolving a live buffer's directory to a project root, for
-workspaces that were never routed through `project-switch-project'."
-  (require 'project)
-  (or (scratch-workspaces--known-project-root-by-name name)
-      (when-let* ((persp (persp-get-by-name name))
-                  (buf (cl-find-if #'buffer-live-p (persp-buffers persp)))
-                  (dir (buffer-local-value 'default-directory buf)))
-        (if-let* ((proj (project-current nil dir))) (project-root proj) dir))))
+back to the first project among the workspace's live buffers, then to
+the first live buffer's directory, so annotation-only callers still
+get a best-effort hint for workspaces that were never routed through
+`project-switch-project'."
+  (when-let* ((persp (persp-get-by-name name)))
+    (or (scratch-workspaces--known-project-root-by-name name)
+        (scratch-workspaces--persp-project-root persp)
+        (when-let* ((buf (cl-find-if #'buffer-live-p (persp-buffers persp))))
+          (buffer-local-value 'default-directory buf)))))
+
+(defun scratch-workspaces--pull-treemacs (name)
+  "Retarget a visible treemacs tree to workspace NAME's project.
+No-op when treemacs isn't loaded or its window isn't visible in the
+selected frame -- a tree the user closed stays closed. The root is
+looked up from NAME's workspace identity (see
+`scratch-workspaces--root-for'), never from whichever buffer happens
+to be visible after the switch, so the tree follows the workspace
+even when its name isn't a registered project.
+
+Upstream's swap path (`treemacs--show-single-project') selects the
+treemacs window as a side effect, so this runs inside
+`save-selected-window'; errors are demoted to a message so a
+transient treemacs state can never break a workspace switch."
+  (when (and (fboundp 'treemacs-get-local-window)
+             (treemacs-get-local-window)
+             (fboundp 'treemacs-add-and-display-current-project-exclusively))
+    (when-let* ((root (scratch-workspaces--root-for name)))
+      (condition-case err
+          (save-selected-window
+            (with-temp-buffer
+              (setq default-directory root)
+              (treemacs-add-and-display-current-project-exclusively)))
+        (error (message "scratch-workspaces: treemacs pull failed: %s"
+                        (error-message-string err)))))))
 
 (defun scratch-workspaces--git-info (root)
   "Return (WORKTREE-P . PROJECT-BASENAME) for the git repo at ROOT, or nil.
@@ -250,17 +293,13 @@ workspace's project after the switch."
       (persp-add-new name)))
   (persp-frame-switch name)
   (when-let* ((root (scratch-workspaces--known-project-root-by-name name)))
-    (scratch-workspaces--ensure-in-project root)
-    ;; Pull treemacs along ONLY if it's already visible -- if it was
-    ;; closed in the previous workspace, the user wants it closed
-    ;; here too. `treemacs-display-current-project-exclusively' would
-    ;; otherwise open the side window even when the user had it
-    ;; deliberately closed. `treemacs-project-follow-mode' updates
-    ;; the tree contents the next buffer-change either way.
-    (when (and (fboundp 'treemacs-get-local-window)
-               (treemacs-get-local-window)
-               (fboundp 'treemacs-display-current-project-exclusively))
-      (ignore-errors (treemacs-display-current-project-exclusively))))
+    (scratch-workspaces--ensure-in-project root))
+  ;; Pull treemacs along ONLY if it's already visible -- if it was
+  ;; closed in the previous workspace, the user wants it closed here
+  ;; too. This runs on every switch (not just for workspaces matching
+  ;; a registered project) and never moves point; see
+  ;; `scratch-workspaces--pull-treemacs'.
+  (scratch-workspaces--pull-treemacs name)
   (scratch/workspace-display))
 
 (defun scratch/workspace-new (&optional name)
@@ -309,10 +348,11 @@ workspace's project after the switch."
     (let ((siblings (remove name others)))
       (persp-kill name)
       (when siblings
-        (persp-frame-switch
-         (if (member scratch-workspaces--last siblings)
-             scratch-workspaces--last
-           (car siblings))))
+        (let ((target (if (member scratch-workspaces--last siblings)
+                          scratch-workspaces--last
+                        (car siblings))))
+          (persp-frame-switch target)
+          (scratch-workspaces--pull-treemacs target)))
       (scratch/workspace-display))))
 
 (defun scratch/workspace-other ()
@@ -323,8 +363,12 @@ workspace's project after the switch."
         ((not (member scratch-workspaces--last (scratch-workspaces--names)))
          (user-error "Previous workspace %S no longer exists"
                      scratch-workspaces--last))
-        (t (persp-frame-switch scratch-workspaces--last)
-           (scratch/workspace-display))))
+        (t (let ((target scratch-workspaces--last))
+             ;; Bind before switching: the `persp-before-switch-functions'
+             ;; hook rewrites `scratch-workspaces--last' mid-switch.
+             (persp-frame-switch target)
+             (scratch-workspaces--pull-treemacs target)
+             (scratch/workspace-display)))))
 
 (defun scratch-workspaces--cycle (n)
   "Cycle N workspaces forward (negative N goes backward)."
@@ -337,6 +381,7 @@ workspace's project after the switch."
                              0))
                     (target (nth (mod (+ idx n) count) names)))
                (persp-frame-switch target)
+               (scratch-workspaces--pull-treemacs target)
                (scratch/workspace-display))))))
 
 (defun scratch/workspace-next (&optional n)
@@ -378,7 +423,8 @@ workspace's project after the switch."
   (persp-load-state-from-file
    (expand-file-name (concat name ".persp") persp-save-dir))
   (when (member name (scratch-workspaces--names))
-    (persp-frame-switch name))
+    (persp-frame-switch name)
+    (scratch-workspaces--pull-treemacs name))
   (scratch/workspace-display))
 
 (defun scratch-workspaces--project-name (directory)
@@ -424,16 +470,19 @@ subdirectories of the path you typed, not the path itself)."
        ;; Workspace already exists -- jump there, then run project action.
        ((member name (scratch-workspaces--names))
         (persp-frame-switch name)
+        (scratch-workspaces--pull-treemacs name)
         (funcall orig-fn directory))
        ;; Empty current workspace (e.g. fresh "main") -- recycle it.
        ((and (not (scratch-workspaces--protected-p current))
              (scratch-workspaces--workspace-empty-p))
         (persp-rename name (get-current-persp))
+        (scratch-workspaces--pull-treemacs name)
         (funcall orig-fn directory))
        ;; Otherwise, create a new workspace and switch.
        (t
         (persp-add-new name)
         (persp-frame-switch name)
+        (scratch-workspaces--pull-treemacs name)
         (funcall orig-fn directory)))))))
 
 
@@ -446,6 +495,7 @@ subdirectories of the path you typed, not the path itself)."
         (let ((names (scratch-workspaces--names)))
           (if-let* ((target (nth idx names)))
               (progn (persp-frame-switch target)
+                     (scratch-workspaces--pull-treemacs target)
                      (scratch/workspace-display))
             (user-error "No workspace at slot %d" (1+ idx)))))
       (format "Switch to workspace at slot %d." (1+ idx)))))
